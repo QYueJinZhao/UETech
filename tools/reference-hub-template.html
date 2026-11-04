@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>速查库 · UE 技术学习站</title>
+<meta name="description" content="方案库、问题库、面试题库、对比、插件、来源与整合审核报告的查阅入口。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>速查库</b><span>原有内容全部保留 · 只为查阅而生</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 学习路线</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="ref-hero">
+    <div class="kicker">查阅区</div>
+    <h1>速查库</h1>
+    <p class="lede">这里不是首页，也不承担教学主线。方案、问题、面试题、对比、插件、来源与审核报告都在原处，字段与本地深链保持不变。</p>
+    <div class="note" style="margin-top:14px">__STATS__</div>
+  </section>
+
+  <section class="ref-grid">
+    __CARDS__
+  </section>
+
+  <footer class="foot">
+    <div>所有页面为静态 HTML，无 CDN、可离线双击打开。外部链接（B 站、官方文档、UEGameRes）需联网。</div>
+    <div><a href="../index.html">返回学习路线</a> · 旧链接 <code>index.html#card-&lt;id&gt;</code> 会自动跳转到对应条目。</div>
+  </footer>
+</main>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

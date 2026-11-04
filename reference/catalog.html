@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>速查库 · UE 技术方案情报库</title>
+<link rel="stylesheet" href="../assets/catalog.css">
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <div class="brand"><b>UE 技术方案情报库</b><span id="subtitle">渲染 · 性能 · GC · 网络 · 玩法 · 资源 · 成长路线</span></div>
+    <a href="../index.html" style="color:var(--dim);font-size:12px;white-space:nowrap;text-decoration:none;flex:none">← 学习路线</a><div class="searchbox">
+      <span class="ico">⌕</span>
+      <input id="q" type="search" placeholder="全局搜索：方案名 / 中文别名 / 关键词 / 专题 / 视频 / 资源 / 来源" autocomplete="off">
+    </div>
+    <div class="gfilters">
+      <label>知识域<select data-sel="gDomain">
+        <option value="all">全部</option>
+        <option value="solution">方案库</option>
+        <option value="topic">专题</option>
+        <option value="rendering">渲染</option>
+        <option value="performance">性能分析</option>
+        <option value="gc">GC / 内存</option>
+        <option value="problem">问题库</option>
+        <option value="compare">对比</option>
+        <option value="difficulty">难点</option>
+        <option value="method">推导链</option>
+        <option value="roadmap">成长路线</option>
+        <option value="timeline">技术演进</option>
+        <option value="plugins">插件与模板</option>
+        <option value="video">视频</option>
+        <option value="resource">资源</option>
+        <option value="sites">来源站点</option>
+        <option value="source">来源</option>
+      </select></label>
+      <label>难度<select data-sel="gLevel">
+        <option value="all">全部</option>
+        <option value="入门">入门</option>
+        <option value="进阶">进阶</option>
+        <option value="深入">深入</option>
+      </select></label>
+      <label>资源类型<select data-sel="gKind">
+        <option value="all">全部</option>
+        <option value="文档">文档</option>
+        <option value="演讲">演讲</option>
+        <option value="论文">论文</option>
+        <option value="工程博客">工程博客</option>
+        <option value="书籍">书籍</option>
+        <option value="视频">视频</option>
+        <option value="源码/仓库">源码/仓库</option>
+        <option value="二手解读">二手解读</option>
+        <option value="资源">资源条目</option>
+      </select></label>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <nav id="nav"></nav>
+  <main id="main"><div class="empty">正在加载数据…</div></main>
+</div>
+<footer class="foot">
+  <div>UE 游戏技术方案情报库 · 离线单文件站点 · 数据来源分为 A/B/C 三级，卡片内标注；未找到一手来源的结论已显式标注“待核实/缺口”。</div>
+  <div id="geninfo"></div>
+</footer>
+
+<script src="../assets/data.js"></script>
+<script src="../assets/catalog.js"></script>
+</body>
+</html>
