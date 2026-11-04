@@ -1,0 +1,975 @@
+[
+  {
+    "id": "diff-fps-01",
+    "type": "FPS",
+    "name": "高 tick 下的服务器成本与命中公平性",
+    "extra": false,
+    "description": "TTK 短、爆头判定严格，玩家对「谁先开枪」极敏感；高 tick 提升精度但成本上升。",
+    "candidates": [
+      "fps-04",
+      "fps-06",
+      "fps-02"
+    ],
+    "mainstream": "服务器权威 + 高 tick + 延迟补偿回溯；公开案例中 128Hz 被用于竞技射击。",
+    "risks": [
+      "tick 高但服务器帧时间不稳定，反而抖动",
+      "回溯窗口过大被高延迟利用",
+      "带宽/成本超预算"
+    ],
+    "sources": [
+      "S057",
+      "S048",
+      "S049"
+    ]
+  },
+  {
+    "id": "diff-fps-02",
+    "type": "FPS",
+    "name": "后坐力/散布与客户端表现的一致性",
+    "extra": false,
+    "description": "手感需要即时反馈，但弹道不能由客户端决定，否则可被篡改。",
+    "candidates": [
+      "fps-08",
+      "fps-07",
+      "fps-06"
+    ],
+    "mainstream": "服务器用种子+连发序号生成弹道，客户端只播放相机/音效/特效。",
+    "risks": [
+      "客户端预测与服务器弹道分歧",
+      "不同帧率下手感漂移",
+      "随机种子泄露/被预测"
+    ],
+    "sources": [
+      "S049",
+      "S082"
+    ]
+  },
+  {
+    "id": "diff-fps-03",
+    "type": "FPS",
+    "name": "反作弊与信息最小化",
+    "extra": false,
+    "description": "透视/自瞄依赖客户端拿到隐藏信息或篡改判定。",
+    "candidates": [
+      "fps-09",
+      "fps-07",
+      "tps-07"
+    ],
+    "mainstream": "服务器权威+反作弊 SDK+遥测+录像审计；只下发可见信息。",
+    "risks": [
+      "只上 SDK 不改权威逻辑",
+      "误封",
+      "审计链路不足"
+    ],
+    "sources": [
+      "S028",
+      "S082"
+    ]
+  },
+  {
+    "id": "diff-fps-04",
+    "type": "FPS",
+    "name": "大规模对局的复制成本",
+    "extra": false,
+    "description": "64 人以上时，默认相关性复制会下发大量无关 Actor。",
+    "candidates": [
+      "fps-10",
+      "fps-11",
+      "gen-03"
+    ],
+    "mainstream": "Replication Graph/Iris 过滤 + 距离/相关性降频。",
+    "risks": [
+      "过滤规则错误导致关键 Actor 不下发",
+      "与流送/销毁不同步",
+      "调试复杂"
+    ],
+    "sources": [
+      "S006",
+      "S005",
+      "S036"
+    ]
+  },
+  {
+    "id": "diff-fps-05",
+    "type": "FPS",
+    "name": "跨平台输入与手感",
+    "extra": true,
+    "description": "键鼠/手柄/触屏的灵敏度、死区、辅助瞄准差异大。",
+    "candidates": [
+      "gen-09",
+      "fps-13"
+    ],
+    "mainstream": "Enhanced Input + 数据化手感参数 + 分平台辅助瞄准。",
+    "risks": [
+      "辅助瞄准破坏公平",
+      "参数硬编码难调",
+      "触屏 UI 遮挡"
+    ],
+    "sources": [
+      "S016"
+    ]
+  },
+  {
+    "id": "diff-tps-01",
+    "type": "TPS",
+    "name": "越肩相机与遮挡",
+    "extra": false,
+    "description": "相机需要贴近角色又不穿墙，狭窄空间容易穿帮。",
+    "candidates": [
+      "tps-01"
+    ],
+    "mainstream": "SpringArm + 球体探测收缩；或自定义相机扫掠。",
+    "risks": [
+      "单射线探测漏检",
+      "相机抖动/延迟",
+      "瞄准与相机偏移冲突"
+    ],
+    "sources": [
+      "S016"
+    ]
+  },
+  {
+    "id": "diff-tps-02",
+    "type": "TPS",
+    "name": "精确命中与动画表现",
+    "extra": false,
+    "description": "第三人称武器/技能动作幅度大，命中体与动画窗口需对齐。",
+    "candidates": [
+      "tps-02",
+      "arpg-03",
+      "fps-06"
+    ],
+    "mainstream": "简化碰撞体/分段胶囊 + 服务器窗口判定 + 回溯。",
+    "risks": [
+      "穿透/卡刀",
+      "高延迟隔空命中",
+      "骨骼碰撞开销"
+    ],
+    "sources": [
+      "S023",
+      "S058"
+    ]
+  },
+  {
+    "id": "diff-tps-03",
+    "type": "TPS",
+    "name": "群体敌人与性能",
+    "extra": false,
+    "description": "同屏大量敌人时 Actor+BT 成本高。",
+    "candidates": [
+      "tps-06",
+      "arpg-04",
+      "ow-08"
+    ],
+    "mainstream": "Mass/ECS 杂兵 + 精英 Actor + 距离降频。",
+    "risks": [
+      "Mass 调试难",
+      "状态切换丢失",
+      "导航不同步"
+    ],
+    "sources": [
+      "S008",
+      "S009"
+    ]
+  },
+  {
+    "id": "diff-tps-04",
+    "type": "TPS",
+    "name": "空间音频与信息获取",
+    "extra": true,
+    "description": "声音是重要情报，但过量信息会降低战术性。",
+    "candidates": [
+      "tps-05",
+      "tps-07"
+    ],
+    "mainstream": "衰减/遮挡/传播路径近似 + 信息最小化。",
+    "risks": [
+      "声源过多导致性能/混乱",
+      "遮挡实现不准",
+      "与反透视冲突"
+    ],
+    "sources": [
+      "S021",
+      "S022"
+    ]
+  },
+  {
+    "id": "diff-tps-05",
+    "type": "TPS",
+    "name": "载具与网络同步",
+    "extra": false,
+    "description": "载具高速运动、乘客切换权威，容易出现漂移/穿模。",
+    "candidates": [
+      "tps-10",
+      "fps-12"
+    ],
+    "mainstream": "Chaos Vehicles + 服务器权威 + 客户端预测/校正。",
+    "risks": [
+      "高速穿透",
+      "上下车权威转移错乱",
+      "物理子步开销"
+    ],
+    "sources": [
+      "S041"
+    ]
+  },
+  {
+    "id": "diff-ext-01",
+    "type": "搜打撤",
+    "name": "服务器权威库存与撤离结算",
+    "extra": false,
+    "description": "物资价值高，复制/刷物品/结算漏洞会直接造成经济损失。",
+    "candidates": [
+      "tps-03",
+      "tps-04",
+      "gen-13"
+    ],
+    "mainstream": "服务器权威容器 + 幂等结算 + 审计对账。",
+    "risks": [
+      "重复结算",
+      "断线导致丢失/复制",
+      "客户端缓存被篡改"
+    ],
+    "sources": [
+      "S038",
+      "S046"
+    ]
+  },
+  {
+    "id": "diff-ext-02",
+    "type": "搜打撤",
+    "name": "信息不对称与反透视",
+    "extra": false,
+    "description": "隐藏玩家/物资的位置是核心情报，泄露即破坏玩法。",
+    "candidates": [
+      "tps-07",
+      "moba-07",
+      "fps-09"
+    ],
+    "mainstream": "服务器可见性裁剪 + 只下发可见信息。",
+    "risks": [
+      "抓包/内存读取",
+      "雷达误报",
+      "延迟导致「看到但打不到」"
+    ],
+    "sources": [
+      "S082",
+      "S038"
+    ]
+  },
+  {
+    "id": "diff-ext-03",
+    "type": "搜打撤",
+    "name": "匹配分池与装备价值约束",
+    "extra": false,
+    "description": "玩家带出装备价值差异大，纯 MMR 匹配会破坏风险/收益。",
+    "candidates": [
+      "tps-09",
+      "gen-17"
+    ],
+    "mainstream": "区域/延迟硬约束 + 装备价值/段位软约束 + 超时放宽。",
+    "risks": [
+      "高价值玩家等待过久",
+      "分池导致对局质量下降",
+      "AI 补位争议"
+    ],
+    "sources": [
+      "S038"
+    ]
+  },
+  {
+    "id": "diff-ext-04",
+    "type": "搜打撤",
+    "name": "公开一手技术资料稀缺",
+    "extra": true,
+    "description": "头部搜打撤产品很少公开网络/结算细节，很多说法只能标「待核实」。",
+    "candidates": [
+      "tps-03",
+      "tps-04"
+    ],
+    "mainstream": "公开演讲多集中在 FPS/大逃杀，搜打撤常复用其网络方案。",
+    "risks": [
+      "把大逃杀结论直接套用",
+      "引用二手解读当一手",
+      "编造厂商案例"
+    ],
+    "sources": [
+      "S038"
+    ]
+  },
+  {
+    "id": "diff-moba-01",
+    "type": "MOBA",
+    "name": "帧同步 vs 状态同步的选择",
+    "extra": false,
+    "description": "技能/移动需要低带宽与可回放，但确定性实现难。",
+    "candidates": [
+      "moba-01",
+      "moba-02",
+      "moba-03"
+    ],
+    "mainstream": "部分产品用确定性帧同步；也有服务器状态同步。厂商公开程度不同，不能一概而论。",
+    "risks": [
+      "跨平台浮点不一致",
+      "外挂注入输入",
+      "技能物理难确定性"
+    ],
+    "sources": [
+      "S058",
+      "S052"
+    ]
+  },
+  {
+    "id": "diff-moba-02",
+    "type": "MOBA",
+    "name": "团战性能与特效预算",
+    "extra": false,
+    "description": "10 人团战瞬时特效/UI/小兵叠加，帧时间容易爆。",
+    "candidates": [
+      "moba-09",
+      "arpg-08",
+      "gen-10"
+    ],
+    "mainstream": "特效/UI/动画分预算 + 设备分档 + 临时降级。",
+    "risks": [
+      "低端机团战掉帧",
+      "半透明 overdraw",
+      "UI 每帧更新"
+    ],
+    "sources": [
+      "S074",
+      "S017"
+    ]
+  },
+  {
+    "id": "diff-moba-03",
+    "type": "MOBA",
+    "name": "小兵/召唤物寻路",
+    "extra": false,
+    "description": "大量同目标单位，逐个体 A* 成本高。",
+    "candidates": [
+      "moba-06",
+      "ow-09"
+    ],
+    "mainstream": "流场/分层寻路 + 局部避障。",
+    "risks": [
+      "流场重建开销",
+      "拥挤卡死",
+      "障碍变化不同步"
+    ],
+    "sources": [
+      "S020",
+      "S061"
+    ]
+  },
+  {
+    "id": "diff-moba-04",
+    "type": "MOBA",
+    "name": "战争迷雾与信息最小化",
+    "extra": false,
+    "description": "敌方位置不能全量下发，否则透视外挂直接获益。",
+    "candidates": [
+      "moba-07",
+      "tps-07"
+    ],
+    "mainstream": "服务器按队伍视野裁剪复制。",
+    "risks": [
+      "草丛/遮挡规则错误",
+      "抓包泄露",
+      "视野计算拖慢 tick"
+    ],
+    "sources": [
+      "S082",
+      "S006"
+    ]
+  },
+  {
+    "id": "diff-moba-05",
+    "type": "MOBA",
+    "name": "重连/回放与确定性",
+    "extra": false,
+    "description": "长对局需要断线重连与观战回放，确定性/快照方案各有代价。",
+    "candidates": [
+      "moba-05",
+      "gen-14"
+    ],
+    "mainstream": "快照+输入日志或服务器录像；确定性项目可重演。",
+    "risks": [
+      "跨版本不兼容",
+      "录像体积",
+      "重连状态不一致"
+    ],
+    "sources": [
+      "S058",
+      "S052"
+    ]
+  },
+  {
+    "id": "diff-ow-01",
+    "type": "开放世界",
+    "name": "流送单元、内存与 hitch",
+    "extra": false,
+    "description": "大世界内容密度高，流送边界容易产生加载峰值与 hitch。",
+    "candidates": [
+      "ow-01",
+      "ow-02",
+      "ow-05",
+      "gen-15"
+    ],
+    "mainstream": "World Partition + HLOD + 虚拟纹理/IoStore + 预加载。",
+    "risks": [
+      "单元过细管理开销",
+      "HLOD 切换穿帮",
+      "IO 抖动"
+    ],
+    "sources": [
+      "S003",
+      "S011",
+      "S032"
+    ]
+  },
+  {
+    "id": "diff-ow-02",
+    "type": "开放世界",
+    "name": "动态 GI 与昼夜/天气",
+    "extra": false,
+    "description": "动态光照变化使烘焙失效，Lumen 成本高。",
+    "candidates": [
+      "ow-04",
+      "ow-12",
+      "ow-03"
+    ],
+    "mainstream": "Lumen + VSM + 分档回退；静态区域可烘焙。",
+    "risks": [
+      "GI 闪烁/漏光",
+      "显存/GPU 超预算",
+      "低端平台不可用"
+    ],
+    "sources": [
+      "S002",
+      "S034",
+      "S065"
+    ]
+  },
+  {
+    "id": "diff-ow-03",
+    "type": "开放世界",
+    "name": "大规模 AI 与导航",
+    "extra": false,
+    "description": "大量 NPC 需要行为/寻路，逐个体模拟成本高。",
+    "candidates": [
+      "ow-08",
+      "ow-09",
+      "tps-06"
+    ],
+    "mainstream": "Mass/StateTree + 分层/流场 + 分区降频。",
+    "risks": [
+      "Mass 调试难",
+      "导航与流送不同步",
+      "远处行为异常"
+    ],
+    "sources": [
+      "S008",
+      "S009",
+      "S020"
+    ]
+  },
+  {
+    "id": "diff-ow-04",
+    "type": "开放世界",
+    "name": "内容产能与 PCG 可复现",
+    "extra": false,
+    "description": "大世界内容量远超手工产能，PCG 需要可复现与可控。",
+    "candidates": [
+      "ow-06",
+      "ow-07",
+      "gen-07"
+    ],
+    "mainstream": "PCG + 固定种子 + 手工遮罩 + 数据校验。",
+    "risks": [
+      "规则变更导致全图重建",
+      "生成结果不可复现",
+      "艺术失控"
+    ],
+    "sources": [
+      "S014",
+      "S015"
+    ]
+  },
+  {
+    "id": "diff-ow-05",
+    "type": "开放世界",
+    "name": "PSO/Shader 首次出现卡顿",
+    "extra": true,
+    "description": "大量材质/画质档位组合导致首次出现新组合时同步编译。",
+    "candidates": [
+      "ow-13",
+      "gen-11"
+    ],
+    "mainstream": "PSO 预缓存 + 变体裁剪 + 加载预热。",
+    "risks": [
+      "收集不全",
+      "包体/编译时间上升",
+      "平台差异"
+    ],
+    "sources": [
+      "S042",
+      "S025"
+    ]
+  },
+  {
+    "id": "diff-arpg-01",
+    "type": "ARPG",
+    "name": "技能系统选型与联机预测",
+    "extra": false,
+    "description": "技能/词条/冷却组合多，联机下需要预测与回滚。",
+    "candidates": [
+      "arpg-02",
+      "moba-03",
+      "arpg-05"
+    ],
+    "mainstream": "GAS 或类似框架 + 服务器权威 + 预测键。",
+    "risks": [
+      "预测键冲突",
+      "Effect 开销",
+      "团队学习曲线"
+    ],
+    "sources": [
+      "S007",
+      "S028"
+    ]
+  },
+  {
+    "id": "diff-arpg-02",
+    "type": "ARPG",
+    "name": "动作命中窗口与服务器判定",
+    "extra": false,
+    "description": "攻击动画的命中帧必须与服务器判定对齐。",
+    "candidates": [
+      "arpg-03",
+      "fps-06",
+      "tps-02"
+    ],
+    "mainstream": "AnimNotify 窗口 + 服务器查询 + 延迟补偿。",
+    "risks": [
+      "动画取消未清理窗口",
+      "高延迟隔空命中",
+      "多段碰撞漏判"
+    ],
+    "sources": [
+      "S023",
+      "S058"
+    ]
+  },
+  {
+    "id": "diff-arpg-03",
+    "type": "ARPG",
+    "name": "动画质量与预算",
+    "extra": false,
+    "description": "动作游戏动画量大，Motion Matching 提升质量但成本高。",
+    "candidates": [
+      "arpg-01",
+      "arpg-10",
+      "tps-08"
+    ],
+    "mainstream": "移动 MM + 战斗 Montage + 动画 LOD/降频。",
+    "risks": [
+      "数据库过大",
+      "远处动画跳变",
+      "包体膨胀"
+    ],
+    "sources": [
+      "S019",
+      "S050"
+    ]
+  },
+  {
+    "id": "diff-arpg-04",
+    "type": "ARPG",
+    "name": "副本/大世界流式与存档",
+    "extra": false,
+    "description": "副本进出与持久化状态需要一致，避免回档/丢进度。",
+    "candidates": [
+      "arpg-06",
+      "ow-11",
+      "gen-13"
+    ],
+    "mainstream": "Level Streaming/WP + 服务器权威存档 + 版本迁移。",
+    "risks": [
+      "进出副本黑屏",
+      "坏档",
+      "联机状态不一致"
+    ],
+    "sources": [
+      "S046",
+      "S011"
+    ]
+  },
+  {
+    "id": "diff-arpg-05",
+    "type": "ARPG",
+    "name": "背包/UI 与数据驱动数值",
+    "extra": true,
+    "description": "大量物品/词条导致 UI 与查表成本高。",
+    "candidates": [
+      "arpg-09",
+      "arpg-07",
+      "gen-10"
+    ],
+    "mainstream": "虚拟化列表 + 事件驱动 + DataTable/Data Asset + 校验。",
+    "risks": [
+      "UI 每帧更新",
+      "数据错误运行时崩溃",
+      "查表字符串开销"
+    ],
+    "sources": [
+      "S017",
+      "S031",
+      "S030"
+    ]
+  },
+  {
+    "id": "diff-common-01",
+    "type": "通用",
+    "name": "网络拓扑与成本模型",
+    "extra": true,
+    "description": "拓扑决定权威/延迟/成本，是立项最早决策之一。",
+    "candidates": [
+      "gen-01",
+      "gen-02",
+      "gen-03"
+    ],
+    "mainstream": "竞技用 Dedicated Server + 编排；合作可用 Listen。",
+    "risks": [
+      "上线后才发现带宽成本",
+      "编排冷启动",
+      "主机玩家优势"
+    ],
+    "sources": [
+      "S028",
+      "S080"
+    ]
+  },
+  {
+    "id": "diff-common-02",
+    "type": "通用",
+    "name": "GC 卡顿与内存峰值",
+    "extra": true,
+    "description": "对象数量/分配习惯导致 GC 周期性停顿。",
+    "candidates": [
+      "gc-06",
+      "gc-10",
+      "gc-11"
+    ],
+    "mainstream": "控制对象数 + 池化高频对象 + 增量/集群按需。",
+    "risks": [
+      "池化状态泄漏",
+      "增量总开销上升",
+      "集群滞留内存"
+    ],
+    "sources": [
+      "S071",
+      "S083"
+    ]
+  },
+  {
+    "id": "diff-common-03",
+    "type": "通用",
+    "name": "UI/UMG 与 draw call",
+    "extra": true,
+    "description": "复杂 HUD/背包容易成为 CPU/GPU 瓶颈。",
+    "candidates": [
+      "gen-10",
+      "arpg-09"
+    ],
+    "mainstream": "Retainer/Invalidation + 虚拟化 + 事件驱动。",
+    "risks": [
+      "缓存残影",
+      "半透明 overdraw",
+      "每帧文本更新"
+    ],
+    "sources": [
+      "S017"
+    ]
+  },
+  {
+    "id": "diff-common-04",
+    "type": "通用",
+    "name": "自动化与线上可观测性",
+    "extra": true,
+    "description": "没有回归与遥测，性能/稳定性问题只能靠玩家反馈。",
+    "candidates": [
+      "gen-05",
+      "gen-06",
+      "gen-04"
+    ],
+    "mainstream": "Gauntlet+阈值进 CI；线上分档采样。",
+    "risks": [
+      "设备农场成本",
+      "阈值抖动",
+      "采样开销"
+    ],
+    "sources": [
+      "S043",
+      "S044",
+      "S081"
+    ]
+  },
+  {
+    "id": "diff-common-05",
+    "type": "通用",
+    "name": "资源加载与流式：卡顿、内存峰值与包体",
+    "extra": false,
+    "description": "加载问题往往同时表现为卡顿、内存峰值与包体膨胀，需要把同步/异步、流送单元、分包与卸载放在同一条链路里看。",
+    "candidates": [
+      "load-01",
+      "load-04",
+      "load-05",
+      "load-07",
+      "load-08"
+    ],
+    "mainstream": "软引用/主资产 + 异步加载 + World Partition/Level Streaming + IoStore/Chunk，配合 Insights LoadTime 与 stat streaming 做回归。",
+    "risks": [
+      "硬引用贯穿导致无关资源被拖入内存",
+      "流送单元过小/过大分别造成管理开销与峰值",
+      "跨 Chunk 引用导致补丁变大或运行时缺失",
+      "卸载时机错误造成跨关卡泄漏"
+    ],
+    "sources": [
+      "S097",
+      "S098",
+      "S099",
+      "S101"
+    ]
+  },
+  {
+    "id": "diff-common-06",
+    "type": "通用",
+    "name": "物理表现：真实感、性能与网络权威",
+    "extra": false,
+    "description": "物理既是玩法又是表现，实时模拟、碎片数量与网络同步会同时挤压 CPU 与带宽预算。",
+    "candidates": [
+      "phy-02",
+      "phy-04",
+      "phy-05",
+      "phy-07",
+      "phy-08",
+      "phy-10"
+    ],
+    "mainstream": "局部互动用 Chaos；大规模破坏用预破碎/缓存/聚类与碎片上限；联机以服务器权威 + 平滑复制为主。",
+    "risks": [
+      "碎片无上限导致物理爆炸",
+      "子步进/异步物理与网络 tick 不一致",
+      "破坏后导航未重建",
+      "高速物体穿透未做 CCD"
+    ],
+    "sources": [
+      "S109",
+      "S110",
+      "S114",
+      "S084"
+    ]
+  },
+  {
+    "id": "diff-common-07",
+    "type": "通用",
+    "name": "GAS：学习曲线、预测失效与 Tag 治理",
+    "extra": false,
+    "description": "GAS 能力强但概念多、样板多；联机预测与 Tag/Effect 治理是团队落地时最容易失控的部分。",
+    "candidates": [
+      "gas-01",
+      "gas-06",
+      "gas-07",
+      "gas-10",
+      "gas-11"
+    ],
+    "mainstream": "中大型联机项目用 GAS + PredictionKey + GameplayCue；轻量单机可自研，但需评估后期迁移成本。",
+    "risks": [
+      "PredictionKey 误用导致回滚抖动",
+      "GameplayCue 批量触发造成表现层开销",
+      "Attribute 初始化顺序错误导致数值异常",
+      "Tag 命名无层级导致查询与维护失控"
+    ],
+    "sources": [
+      "S123",
+      "S124",
+      "S125",
+      "S126"
+    ]
+  },
+  {
+    "id": "diff-common-08",
+    "type": "通用",
+    "name": "移动端渲染：带宽/填充率与机型分级",
+    "extra": false,
+    "description": "移动 GPU 多为 TBDR，带宽与填充率优先于算力；桌面管线与画质直接下移通常会以发热/降频收场。",
+    "candidates": [
+      "mob-01",
+      "mob-02",
+      "mob-03",
+      "mob-08",
+      "mob-10"
+    ],
+    "mainstream": "Forward + 烘焙为主，严格控制半透明/粒子 overdraw，ASTC/ETC2 + 纹理流送，按 Device Profile 分档并做真机回归。",
+    "risks": [
+      "overdraw 失控导致掉帧/发热",
+      "低端机未准备 Forward/烘焙回退",
+      "纹理未压缩或未流送导致内存峰值",
+      "只看平均帧率忽略长尾与降频"
+    ],
+    "sources": [
+      "S074",
+      "S131",
+      "S132"
+    ]
+  },
+  {
+    "id": "diff-common-09",
+    "type": "通用",
+    "name": "复杂移动：能力状态机与联机一致性",
+    "extra": false,
+    "description": "抓钩/攀爬/墙跑等能力同时涉及碰撞、动画对位与网络预测；单机手感成立不代表联机稳定。",
+    "candidates": [
+      "mov-01",
+      "mov-03",
+      "mov-04",
+      "mov-11",
+      "mov-12"
+    ],
+    "mainstream": "CMC 自定义 MovementMode/组件 + Root Motion/Motion Warping + 服务器权威与预测回滚；失败与中断必须有回退状态。",
+    "risks": [
+      "Tick 直接改位置绕过碰撞/预测",
+      "锚点/边缘合法性校验缺失导致穿墙",
+      "状态切换未清理速度/重力",
+      "预测与服务器结果冲突产生橡皮筋"
+    ],
+    "sources": [
+      "S111",
+      "S119",
+      "S120",
+      "S130",
+      "S122"
+    ]
+  },
+  {
+    "id": "diff-common-10",
+    "type": "通用",
+    "name": "网络同步：模型选型、带宽与延迟预算",
+    "extra": false,
+    "description": "帧同步/状态同步的选择会反过来约束玩法、反作弊与回放；带宽与延迟预算必须在项目早期建立。",
+    "candidates": [
+      "net-01",
+      "net-02",
+      "net-05",
+      "net-07",
+      "net-09",
+      "net-12"
+    ],
+    "mainstream": "竞技射击用服务器权威 + 预测/回溯；MOBA 视确定性能力选帧同步或状态同步；大规模用 Replication Graph/Iris 降复制成本。",
+    "risks": [
+      "只测局域网，忽略真实 RTT/抖动",
+      "复制字段无裁剪导致带宽爆炸",
+      "回滚窗口过大被高延迟利用",
+      "重连/追赶缺少状态重建方案"
+    ],
+    "sources": [
+      "S102",
+      "S104",
+      "S105",
+      "S108"
+    ]
+  },
+  {
+    "id": "diff-ow-06",
+    "type": "开放世界",
+    "name": "开放世界加载：流送单元、内存峰值与首包",
+    "extra": false,
+    "description": "开放世界的加载问题会同时影响帧率、内存与包体；流送单元/HLOD/分包必须一起设计。",
+    "candidates": [
+      "load-05",
+      "load-07",
+      "load-09",
+      "ow-01"
+    ],
+    "mainstream": "World Partition + HLOD + 软引用/主资产 + IoStore/Chunk，配合高速巡航自动化与 Insights LoadTime 回归。",
+    "risks": [
+      "单元过小导致管理开销与 hitch",
+      "HLOD 切换穿帮",
+      "首包过大或跨块引用缺失",
+      "加载峰值与内存预算未对齐"
+    ],
+    "sources": [
+      "S099",
+      "S100",
+      "S101"
+    ]
+  },
+  {
+    "id": "diff-fps-06",
+    "type": "FPS",
+    "name": "移动与命中在延迟下的手感一致性",
+    "extra": false,
+    "description": "FPS 对移动预测与命中回溯极敏感；特殊移动（滑铲/攀爬/钩索）会放大预测误差。",
+    "candidates": [
+      "mov-11",
+      "net-08",
+      "net-09"
+    ],
+    "mainstream": "服务器权威 + 客户端预测/回滚 + 命中回溯；特殊移动限制在可控状态并做服务器校验。",
+    "risks": [
+      "预测误差导致位置漂移与橡皮筋",
+      "回溯窗口与移动状态不一致",
+      "高延迟玩家利用回溯"
+    ],
+    "sources": [
+      "S114",
+      "S102",
+      "S108"
+    ]
+  },
+  {
+    "id": "diff-moba-06",
+    "type": "MOBA",
+    "name": "移动与技能的网络一致性",
+    "extra": false,
+    "description": "MOBA 的技能位移/控制与帧同步或状态同步强耦合，任何不同步都会直接改变对局结果。",
+    "candidates": [
+      "mov-11",
+      "net-07",
+      "gas-06"
+    ],
+    "mainstream": "确定性帧同步或服务器状态同步；技能位移与控制以服务器裁定为准，客户端只做表现预测。",
+    "risks": [
+      "位移/控制结果客户端先行导致不同步",
+      "技能预测回滚造成表现跳变",
+      "重连后状态追赶不完整"
+    ],
+    "sources": [
+      "S123",
+      "S108"
+    ]
+  },
+  {
+    "id": "diff-arpg-06",
+    "type": "ARPG",
+    "name": "复杂移动与技能预测的组合风险",
+    "extra": false,
+    "description": "ARPG 常同时使用 GAS 技能与抓钩/闪避等特殊移动，两套预测系统叠加会放大回滚与抖动。",
+    "candidates": [
+      "mov-11",
+      "gas-06",
+      "net-07"
+    ],
+    "mainstream": "技能用 GAS PredictionKey，移动用 CMC 预测；跨系统动作明确权威边界与取消规则。",
+    "risks": [
+      "技能与移动各自预测，结果冲突",
+      "取消/阻断时状态未清理",
+      "Cue 表现与服务器结果错位"
+    ],
+    "sources": [
+      "S123",
+      "S125",
+      "S130"
+    ]
+  }
+]

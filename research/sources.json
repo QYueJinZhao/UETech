@@ -1,0 +1,818 @@
+[
+  {
+    "id": "S001", "title": "Nanite Virtualized Geometry in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/nanite-virtualized-geometry-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Nanite 虚拟几何体官方文档：簇层级、可见性裁剪、流送与平台限制。"
+  },
+  {
+    "id": "S002", "title": "Lumen Global Illumination and Reflections in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/lumen-global-illumination-and-reflections-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Lumen 动态 GI 与反射的官方总览，含硬件/软件追踪与性能开关。"
+  },
+  {
+    "id": "S003", "title": "World Partition in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/world-partition-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "World Partition 官方文档：运行时网格、数据层、流送源与加载范围。"
+  },
+  {
+    "id": "S004", "title": "Networking Overview for Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/networking-overview-for-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "UE 网络总览：客户端-服务器模型、复制、相关性与 RPC。"
+  },
+  {
+    "id": "S005", "title": "Iris Replication System in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/iris-replication-system-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Iris 复制系统：以更少带宽与更低 CPU 开销替代传统复制路径。"
+  },
+  {
+    "id": "S006", "title": "Replication Graph in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/replication-graph-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Replication Graph：按空间/游戏规则分组复制，面向大战场与高玩家数。"
+  },
+  {
+    "id": "S007", "title": "Gameplay Ability System for Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/gameplay-ability-system-for-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "GAS 官方文档：Ability、GameplayEffect、AttributeSet、预测键与复制。"
+  },
+  {
+    "id": "S008", "title": "Mass Entity in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/mass-entity-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Mass Entity：面向大规模实体的 ECS 式框架，含 Processor/Fragment。"
+  },
+  {
+    "id": "S009", "title": "Motion Matching in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/motion-matching-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Motion Matching 官方文档：Pose Search、数据库资产与查询通道。"
+  },
+  {
+    "id": "S010", "title": "Unreal Insights in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-insights-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Unreal Insights 总览：Timing/Asset Loading 等通道与 Trace 工作流。"
+  },
+  {
+    "id": "S011", "title": "Level Streaming in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/level-streaming-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "传统 Level Streaming：关卡分块、加载/卸载与流送体积。"
+  },
+  {
+    "id": "S012", "title": "Hierarchical Level of Detail in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/hierarchical-level-of-detail-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "HLOD 官方文档：代理网格生成、分层与流送配合。"
+  },
+  {
+    "id": "S013", "title": "State Tree in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/state-tree-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "StateTree：面向 AI/玩法逻辑的分层状态机，替代部分行为树场景。"
+  },
+  {
+    "id": "S014", "title": "One File Per Actor in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/one-file-per-actor-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "OFPA：Actor 独立文件，降低大世界协作冲突与保存开销。"
+  },
+  {
+    "id": "S015", "title": "Procedural Content Generation Framework in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/procedural-content-generation-framework-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "PCG Framework：图驱动的内容生成与运行时/编辑器执行。"
+  },
+  {
+    "id": "S016", "title": "Enhanced Input in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/enhanced-input-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Enhanced Input：Input Action/Mapping Context、修饰器与优先级。"
+  },
+  {
+    "id": "S017", "title": "Slate User Interface Programming Framework for Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/slate-user-interface-programming-framework-for-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Slate：UMG 的底层 UI 框架，含控件、布局与绘制机制。"
+  },
+  {
+    "id": "S018", "title": "Blend Spaces in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/blend-spaces-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Blend Space：1D/2D 混合空间与动画状态机的传统动画管线。"
+  },
+  {
+    "id": "S019", "title": "Artificial Intelligence in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/artificial-intelligence-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "UE AI 总览：行为树、感知、EQS 与导航入口。"
+  },
+  {
+    "id": "S020", "title": "Navigation System in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/navigation-system-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "导航系统：NavMesh、Recast 生成、导航查询与动态障碍。"
+  },
+  {
+    "id": "S021", "title": "Audio in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/audio-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "UE 音频总览：Sound Cue、空间化、衰减与混音。"
+  },
+  {
+    "id": "S022", "title": "MetaSounds in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/metasounds-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "MetaSounds：程序化音频图、采样率与实时参数驱动。"
+  },
+  {
+    "id": "S023", "title": "Physics in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/physics-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Chaos 物理总览：刚体、碰撞、约束与子步进。"
+  },
+  {
+    "id": "S024", "title": "Chaos Destruction in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/chaos-destruction-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Chaos Destruction：破碎、场、聚类与性能注意点。"
+  },
+  {
+    "id": "S025", "title": "Stat Commands in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/stat-commands-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "stat 命令：stat unit/game/scenerendering/rhi 等口径与用法。"
+  },
+  {
+    "id": "S026", "title": "Automation Test Framework in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/automation-test-framework-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "自动化测试框架：单元/功能测试、会话与报告。"
+  },
+  {
+    "id": "S027", "title": "Functional Testing in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/functional-testing-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "功能测试：关卡内测试 Actor、断言与自动化串联。"
+  },
+  {
+    "id": "S028", "title": "Setting Up Dedicated Servers in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/setting-up-dedicated-servers-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "专用服务器搭建：Server 目标、打包、启动参数与日志。"
+  },
+  {
+    "id": "S029", "title": "Virtual Texturing in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/virtual-texturing-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "虚拟纹理：页表、流送与运行时纹理预算。"
+  },
+  {
+    "id": "S030", "title": "Asset Management in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/asset-management-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Asset Manager：主资产、异步加载与包体/内存治理。"
+  },
+  {
+    "id": "S031", "title": "Data Validation in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/data-validation-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "数据校验：资产规则、编辑器/命令行校验与团队规范落地。"
+  },
+  {
+    "id": "S032", "title": "Zen Loader in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/zen-loader-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Zen Loader：IoStore 之上的按需加载与包体组织。"
+  },
+  {
+    "id": "S033", "title": "World Partition - Hierarchical Level of Detail in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/world-partition---hierarchical-level-of-detail-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "World Partition 与 HLOD 的组合配置：代理网格、流送距离与运行时开销。"
+  },
+  {
+    "id": "S034", "title": "Lumen Technical Details in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/lumen-technical-details-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Lumen 技术细节：追踪、表面缓存、反射与硬件要求。"
+  },
+  {
+    "id": "S035", "title": "Gameplay Framework in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/gameplay-framework-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Gameplay Framework：GameMode/GameState/PlayerController/Pawn 的职责边界。"
+  },
+  {
+    "id": "S036", "title": "Using the Network Profiler in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/using-the-network-profiler-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Network Profiler：按 Actor/属性/RPC 拆分带宽。"
+  },
+  {
+    "id": "S037", "title": "Unreal Engine 5.8 Release Notes", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "5.8 发布说明；本库涉及版本状态时以此为准，不凭记忆写版本号。"
+  },
+  {
+    "id": "S038", "title": "Online Subsystem in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/online-subsystem-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Online Subsystem：会话、匹配、成就与平台服务抽象。"
+  },
+  {
+    "id": "S039", "title": "Behavior Trees in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/behavior-trees-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "行为树：节点类型、黑板、装饰器与服务。"
+  },
+  {
+    "id": "S040", "title": "Foliage Mode in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/foliage-mode-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Foliage：植被实例化、剔除距离与移动端限制。"
+  },
+  {
+    "id": "S041", "title": "Vehicles in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/vehicles-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Chaos Vehicles 总览与 PhysX 迁移入口。"
+  },
+  {
+    "id": "S042", "title": "PSO Precaching for Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/pso-precaching-for-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "PSO 预缓存：自动收集、异步编译与平台/版本限制。"
+  },
+  {
+    "id": "S043", "title": "Gauntlet Automation Framework Overview in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/gauntlet-automation-framework-overview-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Gauntlet：跨平台运行 UE 会话、组织测试与验证结果。"
+  },
+  {
+    "id": "S044", "title": "Running Gauntlet Tests in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/running-gauntlet-tests-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Gauntlet 运行实践：测试节点、设备与报告。"
+  },
+  {
+    "id": "S045", "title": "Mover in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/mover-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Mover 插件：模块化移动与回滚网络支持，配合 Network Prediction / Chaos 网络物理。"
+  },
+  {
+    "id": "S046", "title": "Saving and Loading Your Game in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/saving-and-loading-your-game-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "SaveGame 体系：自定义存档类、多槽位与二进制保存。"
+  },
+  {
+    "id": "S047", "title": "Unreal Engine 5.5 Release Notes", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-5-release-notes",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "5.5 发布说明；用于核对功能引入版本，不替代具体功能文档。"
+  },
+  {
+    "id": "S048", "title": "'Overwatch' Gameplay Architecture and Netcode", "publisher": "GDC Vault / Blizzard", "speaker": "Timothy Ford",
+    "url": "https://www.gdcvault.com/play/1024001/Overwatch-Gameplay-Architecture-and",
+    "grade": "A", "kind": "演讲", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "GDC 2017：ECS 架构与服务器权威+预测的网络玩法实现。"
+  },
+  {
+    "id": "S049", "title": "Networking Scripted Weapons and Abilities in 'Overwatch'", "publisher": "GDC Vault / Blizzard", "speaker": "Dan Reed",
+    "url": "https://media.gdcvault.com/gdc2017/Presentations/Reed_Dan_NetworkingScriptedWeapons.pdf",
+    "grade": "A", "kind": "演讲", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200 PDF）",
+    "note": "Overwatch Statescript 的服务器权威、预测与增量同步。"
+  },
+  {
+    "id": "S050", "title": "I Shot You First: Networking the Gameplay of HALO: REACH", "publisher": "GDC Vault / Bungie", "speaker": "David Aldridge",
+    "url": "https://www.gdcvault.com/play/1014345/I-Shot-You-First-Networking",
+    "grade": "A", "kind": "演讲", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "GDC 2011：Halo Reach 的客户端预测、服务器权威与延迟补偿取舍。"
+  },
+  {
+    "id": "S051", "title": "Motion Matching and The Road to Next-Gen Animation", "publisher": "GDC Vault / Ubisoft", "speaker": "Simon Clavet",
+    "url": "https://www.gdcvault.com/play/1023280/Motion-Matching-and-The-Road",
+    "grade": "A", "kind": "演讲", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "GDC 2016：Motion Matching 的数据库、查询与声明式动画思路。"
+  },
+  {
+    "id": "S052", "title": "It IS Rocket Science! The Physics and Networking of Rocket League", "publisher": "GDC Vault / Psyonix", "speaker": "Jared Cone",
+    "url": "https://media.gdcvault.com/gdc2018/presentations/Cone_Jared_It_Is_Rocket.pdf",
+    "grade": "A", "kind": "演讲", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200 PDF）",
+    "note": "GDC 2018：固定 tick 物理、确定性模拟与网络同步的工程取舍。"
+  },
+  {
+    "id": "S053", "title": "Motion Matching in The Last of Us Part II", "publisher": "GDC Vault / Naughty Dog",
+    "url": "https://media.gdcvault.com/GDC%202021/Motion_Matching_In_TLOU2.pdf",
+    "grade": "A", "kind": "演讲", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200 PDF）",
+    "note": "GDC 2021：TLOU2 的动作匹配落地、动画预算与调试经验。"
+  },
+  {
+    "id": "S054", "title": "SIGGRAPH 2021 Advances in Real-Time Rendering: A Deep Dive into Nanite", "publisher": "SIGGRAPH / Epic Games", "speaker": "Brian Karis",
+    "url": "https://advances.realtimerendering.com/s2021/",
+    "grade": "A", "kind": "演讲", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，课程页存在）",
+    "note": "Nanite 从导入、簇构建、流送、裁剪到光栅化的完整讲解（课程页汇总）。"
+  },
+  {
+    "id": "S055", "title": "Journey to Nanite", "publisher": "High Performance Graphics 2022", "speaker": "Epic Games",
+    "url": "https://www.highperformancegraphics.org/slides22/Journey_to_Nanite.pdf",
+    "grade": "A", "kind": "演讲", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200 PDF）",
+    "note": "Nanite 设计演进与工程约束，含与光栅化管线的对比。"
+  },
+  {
+    "id": "S056", "title": "Peeking into VALORANT's Netcode", "publisher": "Riot Games Technology",
+    "url": "https://www.riotgames.com/en/news/peeking-valorants-netcode",
+    "grade": "B", "kind": "工程博客", "lang": "EN", "accessived": "2026-11-04", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "VALORANT 的延迟补偿、peeker's advantage 与命中注册分析。"
+  },
+  {
+    "id": "S057", "title": "VALORANT's 128-Tick Servers", "publisher": "Riot Games Technology",
+    "url": "https://technology.riotgames.com/news/valorants-128-tick-servers",
+    "grade": "B", "kind": "工程博客", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "为什么选 128 tick、tick 与延迟/公平性的关系，以及成本口径。"
+  },
+  {
+    "id": "S058", "title": "Determinism in League of Legends: Implementation", "publisher": "Riot Games Technology",
+    "url": "https://www.riotgames.com/en/news/determinism-league-legends-implementation",
+    "grade": "B", "kind": "工程博客", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "LoL 确定性模拟的实现细节：时间步、随机与回放一致性。"
+  },
+  {
+    "id": "S059", "title": "Source Multiplayer Networking", "publisher": "Valve Developer Community",
+    "url": "https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking",
+    "grade": "B", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200）",
+    "note": "Source 引擎的插值、外推、延迟补偿与命令帧实现参考。"
+  },
+  {
+    "id": "S060", "title": "Networked Physics (2004)", "publisher": "Gaffer On Games", "speaker": "Glenn Fiedler",
+    "url": "https://gafferongames.com/post/networked_physics_2004/",
+    "grade": "B", "kind": "工程博客", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200）",
+    "note": "确定性锁步、快照插值与输入回放的基础推导。"
+  },
+  {
+    "id": "S061", "title": "Client-Server Game Architecture", "publisher": "Gabriel Gambetta",
+    "url": "https://www.gabrielgambetta.com/client-server-game-architecture.html",
+    "grade": "B", "kind": "工程博客", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200）",
+    "note": "客户端预测、服务器协调与延迟补偿的教学级系列入口。"
+  },
+  {
+    "id": "S062", "title": "Recast Navigation", "publisher": "GitHub / Mikko Mononen",
+    "url": "https://github.com/recastnavigation/recastnavigation",
+    "grade": "B", "kind": "源码/仓库", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200）",
+    "note": "UE NavMesh 生成所依赖的 Recast/Detour 开源实现。"
+  },
+  {
+    "id": "S063", "title": "Game Engine Architecture (3rd Edition)", "publisher": "CRC Press", "speaker": "Jason Gregory",
+    "url": "https://www.gameenginebook.com/",
+    "grade": "B", "kind": "书籍", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，官方书籍站）",
+    "note": "引擎分层、渲染/动画/物理/网络系统的系统性参考。"
+  },
+  {
+    "id": "S064", "title": "Real-Time Rendering (4th Edition)", "publisher": "A K Peters / CRC", "speaker": "Tomas Akenine-Möller 等",
+    "url": "https://www.realtimerendering.com/",
+    "grade": "B", "kind": "书籍", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（引擎站存在；自动检查遇 403 机器人拦截）",
+    "note": "实时渲染管线、阴影、GI、上采样与 GPU 架构的经典教材。"
+  },
+  {
+    "id": "S065", "title": "Virtual Shadow Maps in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/virtual-shadow-maps-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "VSM：虚拟化阴影页、缓存与 Nanite 几何配合。"
+  },
+  {
+    "id": "S066", "title": "Temporal Super Resolution in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/temporal-super-resolution-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "TSR：时序上采样、历史缓冲与画质/性能权衡。"
+  },
+  {
+    "id": "S067", "title": "Substrate Materials in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/substrate-materials-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Substrate：多层材质与更物理的 BSDF 组合，代价是材质复杂度。"
+  },
+  {
+    "id": "S068", "title": "Render Dependency Graph in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/render-dependency-graph-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "RDG：渲染通道依赖图、资源屏障与异步计算调度。"
+  },
+  {
+    "id": "S069", "title": "Forward Shading Renderer in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/forward-shading-renderer-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "前向渲染路径的功能支持与适用场景（含 VR/移动端考量）。"
+  },
+  {
+    "id": "S070", "title": "Graphics Programming Overview for Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/graphics-programming-overview-for-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "UE 图形编程入口：着色器、渲染线程与调试命令索引。"
+  },
+  {
+    "id": "S071", "title": "Objects in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/objects-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "UObject 生命周期、销毁与 GC 引用语义的官方说明。"
+  },
+  {
+    "id": "S072", "title": "Unreal Object Handling in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-object-handling-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "引用图、根集、强/弱引用与 UPROPERTY 对 GC 的影响。"
+  },
+  {
+    "id": "S073", "title": "Unreal Engine Actor Lifecycle", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-actor-lifecycle",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Actor 从 Spawn 到 Destroy 的完整生命周期与 GC 阶段回调。"
+  },
+  {
+    "id": "S074", "title": "Scalability in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/scalability-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "可扩展性/画质分级：设备配置、CVar 与平台档位。"
+  },
+  {
+    "id": "S075", "title": "RenderDoc", "publisher": "RenderDoc / Baldur Karlsson",
+    "url": "https://renderdoc.org/",
+    "grade": "B", "kind": "源码/仓库", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200）",
+    "note": "跨平台 GPU 帧抓取与管线状态检查工具。"
+  },
+  {
+    "id": "S076", "title": "PIX on Windows", "publisher": "Microsoft",
+    "url": "https://devblogs.microsoft.com/pix/",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200）",
+    "note": "Windows/Xbox GPU 抓帧、计时捕获与驱动侧分析。"
+  },
+  {
+    "id": "S077", "title": "Intel VTune Profiler", "publisher": "Intel",
+    "url": "https://www.intel.com/content/www/us/en/developer/tools/oneapi/vtune-profiler.html",
+    "grade": "B", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "自动检查遇 403 机器人拦截；官方产品页人工可访问",
+    "note": "CPU 热点、线程与微架构分析，适合 PC 端深挖。"
+  },
+  {
+    "id": "S078", "title": "Arm Mobile Studio / Performance Studio", "publisher": "Arm",
+    "url": "https://developer.arm.com/Tools%20and%20Software/ARM%20Mobile%20Studio",
+    "grade": "B", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "自动检查遇 403 机器人拦截；官方工具页人工可访问",
+    "note": "Android/Mali GPU 的帧率、带宽与着色器分析工具链。"
+  },
+  {
+    "id": "S079", "title": "Xcode", "publisher": "Apple",
+    "url": "https://developer.apple.com/xcode/",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200）",
+    "note": "Xcode/Instruments 入口：iOS/macOS CPU、GPU、内存与 Metal 调试。"
+  },
+  {
+    "id": "S080", "title": "Agones", "publisher": "Google / CNCF",
+    "url": "https://agones.dev/site/",
+    "grade": "B", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200）",
+    "note": "Kubernetes 上的专用游戏服务器编排与分配。"
+  },
+  {
+    "id": "S081", "title": "Memory Insights in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/memory-insights-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Memory Insights：LLM 标签、分配调用栈与时间点查询。"
+  },
+  {
+    "id": "S082", "title": "The State of Hit Registration", "publisher": "Riot Games / VALORANT",
+    "url": "https://playvalorant.com/en-us/news/dev/the-state-of-hit-registration/",
+    "grade": "B", "kind": "工程博客", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200）",
+    "note": "命中注册的可视化反馈与高延迟下的表现问题。"
+  },
+  {
+    "id": "S083", "title": "UE5 版本中 GC 的改动", "publisher": "掘金 / USparkle 专栏",
+    "url": "https://juejin.cn/post/7618492703296258102",
+    "grade": "C", "kind": "二手解读", "lang": "ZH", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200）",
+    "note": "二手解读，用于理解 UE5 GC 阶段与增量/集群线索；具体结论需回到 UE 源码与官方文档核对。"
+  },
+  {
+    "id": "S084", "title": "GDC Vault", "publisher": "GDC",
+    "url": "https://www.gdcvault.com/",
+    "grade": "B", "kind": "演讲", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200）",
+    "note": "GDC 演讲检索入口；具体演讲链接优先使用本清单已核验的直达页。"
+  },
+  {
+    "id": "S085", "title": "Game Animation Sample Project in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/game-animation-sample-project-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "以 UEGameRes 既有条目引用；链接未单独抓取（待复核）",
+    "note": "官方 Motion Matching 动画示例工程说明；进推荐前需再次确认页面可达。"
+  },
+  {
+    "id": "S090", "title": "UEGameRes README（本地资源库说明）", "publisher": "UEGameRes 本地项目",
+    "url": "file:///C:/Users/ASUS/Project/UEGameRes/README.md",
+    "grade": "B", "kind": "文档", "lang": "ZH", "accessed": "2026-11-04", "link_status": "本地文件，只读引用",
+    "note": "资源库的分类体系、21 字段 schema、许可口径与索引结构。"
+  },
+  {
+    "id": "S091", "title": "UEGameRes assets.json（只读快照）", "publisher": "UEGameRes 本地项目",
+    "url": "file:///C:/Users/ASUS/Project/UEGameRes/assets.json",
+    "grade": "B", "kind": "文档", "lang": "ZH", "accessed": "2026-11-04", "link_status": "本地文件，只读引用",
+    "note": "349 条资源/工具的结构化导出；本库引用其 id/name/license/image/obtain 字段。"
+  },
+  {
+    "id": "S092", "title": "UEGameRes index.html（本地索引站）", "publisher": "UEGameRes 本地项目",
+    "url": "file:///C:/Users/ASUS/Project/UEGameRes/index.html",
+    "grade": "B", "kind": "文档", "lang": "ZH", "accessed": "2026-11-04", "link_status": "本地文件，只读引用",
+    "note": "条目深链格式 #item-<id>；本地 file:// 打开方式见站点资源库页说明。"
+  },
+  {
+    "id": "S093", "title": "Learned Motion Matching", "publisher": "ACM Transactions on Graphics (TOG), Vol. 39, No. 4",
+    "url": "https://dl.acm.org/doi/10.1145/3386569.3392440",
+    "grade": "B", "kind": "论文", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（DOI 与标题匹配；ACM 可能对自动化访问限流）",
+    "note": "Holden 等，2020。用神经网络压缩 Motion Matching 数据库与查询，是 Motion Matching 走向生产的代表性论文。"
+  },
+  {
+    "id": "S094", "title": "A Survey and Taxonomy of Latency Compensation Techniques for Network Computer Games", "publisher": "ACM Computing Surveys, Vol. 54, No. 11s",
+    "url": "https://dl.acm.org/doi/10.1145/3519023",
+    "grade": "B", "kind": "论文", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（DOI 与标题匹配）",
+    "note": "Liu、Xu、Claypool，2022。系统梳理延迟补偿技术分类（预测、回溯、插值、时间缩放等），适合作为网络同步专题的学术索引。"
+  },
+  {
+    "id": "S095", "title": "Frustum-Traced Raster Shadows", "publisher": "ACM I3D 2015",
+    "url": "https://dl.acm.org/doi/10.1145/2699276.2699280",
+    "grade": "B", "kind": "论文", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（DOI 与标题匹配）",
+    "note": "视锥内光栅化阴影的可见性/阴影贴图优化思路，用于理解阴影阶段成本与虚化阴影的取舍。"
+  },
+  {
+    "id": "S096", "title": "Managing Latency and Fairness in Networked Games", "publisher": "Communications of the ACM, Vol. 49, No. 11",
+    "url": "https://dl.acm.org/doi/10.1145/1167838.1167861",
+    "grade": "B", "kind": "论文", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（DOI 与标题匹配）",
+    "note": "Brun、Safaei、Boustead，2006。讨论延迟与公平性的权衡，是“高 tick / 回溯补偿”取舍的经典学术参照。"
+  },
+  {
+    "id": "S097", "title": "Level Streaming Overview in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/level-streaming-overview-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "传统关卡流送总览：持久关卡、子关卡、流送体积与蓝图/C++ 加载接口。"
+  },
+  {
+    "id": "S098", "title": "Cooking Content and Creating Chunks in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/cooking-content-and-creating-chunks-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Cook 与 Chunk 划分：Chunk ID、Primary Asset 规则、按需下载与补丁分包的基础。"
+  },
+  {
+    "id": "S099", "title": "World Partition - Data Layers in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/world-partition---data-layers-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Data Layer 的运行时加载/卸载、Editor/Runtime 分层与任务状态绑定。"
+  },
+  {
+    "id": "S100", "title": "Level Instancing in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/level-instancing-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Level Instance：把重复建筑/房间作为可复用单元，兼顾编辑性与运行时加载。"
+  },
+  {
+    "id": "S101", "title": "Dynamic Loading Range Scaling in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/dynamic-loading-range-scaling-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "按设备/画质动态缩放 World Partition 加载范围，控制内存与流送压力。"
+  },
+  {
+    "id": "S102", "title": "Replicate Actor Properties in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/replicate-actor-properties-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "属性复制、Replication Condition、Push Model 与带宽裁剪的官方入口。"
+  },
+  {
+    "id": "S103", "title": "Actor Network Dormancy in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/actor-network-dormancy-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "网络休眠：让远处/静止 Actor 停止复制，降低带宽与 CPU。"
+  },
+  {
+    "id": "S104", "title": "Iris Filtering in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/iris-filtering-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Iris 的相关性过滤：空间/距离/自定义过滤器决定谁复制给谁。"
+  },
+  {
+    "id": "S105", "title": "Iris Prioritization in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/iris-prioritization-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Iris 优先级与预算分配：在有限带宽下优先同步重要 Actor。"
+  },
+  {
+    "id": "S106", "title": "Migrate to Iris in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/migrate-to-iris-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "从旧复制系统迁移到 Iris 的步骤、兼容性开关与注意事项。"
+  },
+  {
+    "id": "S107", "title": "Network Debugging for Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/network-debugging-for-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "网络调试命令与工具入口（net stat、日志、复制可视化等）。"
+  },
+  {
+    "id": "S108", "title": "Using Network Emulation in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/using-network-emulation-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Network Emulation：PktLag/PktLoss/PktDup 等参数，用于复现弱网。"
+  },
+  {
+    "id": "S109", "title": "Physics Constraints in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/physics-constraints-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "约束类型、限制/驱动、断裂与物理手柄；抓钩/绳索/机械结构的底座。"
+  },
+  {
+    "id": "S110", "title": "Physics Sub-Stepping in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/physics-sub-stepping-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "子步进：高速/高刚度场景下用小步长换稳定，代价是 CPU。"
+  },
+  {
+    "id": "S111", "title": "Traces with Raycasts in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/traces-with-raycasts-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "射线/形状扫描、Trace Channel 与命中结果；抓钩锚点与攀爬探测的基础。"
+  },
+  {
+    "id": "S112", "title": "Collision in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/collision-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "碰撞响应、复杂/简单碰撞、对象通道与预设；性能与穿透问题的根源。"
+  },
+  {
+    "id": "S113", "title": "Physical Materials in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/physical-materials-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "摩擦、恢复系数与物理材质组合规则，是移动手感与载具调参的基础。"
+  },
+  {
+    "id": "S114", "title": "Networked Physics in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/networked-physics",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "物理复制、平滑与权威归属；载具/布娃娃/破坏联机的官方入口。"
+  },
+  {
+    "id": "S115", "title": "Physics Components in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/physics-components-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "PrimitiveComponent 物理开关、质量/阻尼/睡眠与模拟设置。"
+  },
+  {
+    "id": "S116", "title": "Animation Montage in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/animation-montage-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Montage、Slot、Section 与通知；技能/攀爬/上下车动作编排的核心资产。"
+  },
+  {
+    "id": "S117", "title": "Animation Slots in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/animation-slots-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Slot 在动画蓝图中的插入位置与权重，决定 Montage 覆盖哪些身体部位。"
+  },
+  {
+    "id": "S118", "title": "Physics Driven Animation in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/physics-driven-animation-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "物理驱动动画（含 Physical Animation / 布娃娃混合）的官方说明与组件入口。"
+  },
+  {
+    "id": "S119", "title": "Root Motion in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/root-motion-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Root Motion 与 In-Place 的取舍、蒙太奇根运动与网络同步注意点。"
+  },
+  {
+    "id": "S120", "title": "Motion Warping in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/motion-warping-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Motion Warping：按目标点/朝向扭曲根运动，解决攀爬/处决/上下车对位。"
+  },
+  {
+    "id": "S121", "title": "Animation Optimization in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/animation-optimization-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "动画压缩、LOD、更新率与预算控制；复杂移动/技能动画的成本边界。"
+  },
+  {
+    "id": "S122", "title": "Animation Budget Allocator in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/animation-budget-allocator-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "按重要度分配动画 Tick 预算，适合大量 NPC/杂兵的动画降频。"
+  },
+  {
+    "id": "S123", "title": "Gameplay Ability System Component and Gameplay Attributes in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/gameplay-ability-system-component-and-gameplay-attributes-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "ASC 初始化、拥有者/化身关系与 Attribute 接入。"
+  },
+  {
+    "id": "S124", "title": "Gameplay Effects for the Gameplay Ability System in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/gameplay-effects-for-the-gameplay-ability-system-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "GameplayEffect：Duration/Instant/Periodic、Modifier、Stacking 与执行策略。"
+  },
+  {
+    "id": "S125", "title": "Gameplay Ability Tasks in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/gameplay-ability-tasks-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "AbilityTask：异步等待动画/输入/目标选择，是技能与表现层衔接的关键。"
+  },
+  {
+    "id": "S126", "title": "Gameplay Attributes and Attribute Sets for the Gameplay Ability System in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/gameplay-attributes-and-attribute-sets-for-the-gameplay-ability-system-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "AttributeSet、Base/Current、复制与初始化顺序。"
+  },
+  {
+    "id": "S127", "title": "Using Gameplay Abilities in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/using-gameplay-abilities-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Ability 授予/激活/取消、Tag 阻断与输入绑定。"
+  },
+  {
+    "id": "S128", "title": "Data Driven Gameplay Elements in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/data-driven-gameplay-elements-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "DataAsset/DataTable 驱动的技能与数值配置。"
+  },
+  {
+    "id": "S129", "title": "Deploying Multiplayer Games With Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/deploying-multiplayer-games-with-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "专用服务器打包/部署、容器与编排的官方入口。"
+  },
+  {
+    "id": "S130", "title": "Locomotion in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/locomotion-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "移动动画系统与 CMC/动画蓝图的衔接示例。"
+  },
+  {
+    "id": "S131", "title": "Android GPU Inspector", "publisher": "Google Android Developers",
+    "url": "https://developer.android.com/agi",
+    "grade": "B", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Android GPU 抓帧/计数器工具，用于移动端 GPU 带宽、过度绘制与管线分析。"
+  },
+  {
+    "id": "S132", "title": "Metal | Apple Developer Documentation", "publisher": "Apple",
+    "url": "https://developer.apple.com/documentation/metal",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Metal 图形/计算 API 与工具入口，理解 iOS/macOS 上 UE 的 RHI 能力边界。"
+  },
+  {
+    "id": "S133", "title": "Unreal Engine 5 is now available!", "publisher": "Epic Games",
+    "url": "https://www.unrealengine.com/en-US/blog/unreal-engine-5-is-now-available",
+    "grade": "A", "kind": "官方博客", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配，页面日期 April 5, 2022）",
+    "note": "UE5 正式发布公告；用于 5.0 时间点与 Nanite/Lumen 等首批能力的官方表述。"
+  },
+  {
+    "id": "S134", "title": "Unreal Engine 5 is now available in Early Access!", "publisher": "Epic Games",
+    "url": "https://www.unrealengine.com/en-US/blog/unreal-engine-5-is-now-available-in-early-access",
+    "grade": "A", "kind": "官方博客", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "UE5 EA 公告；首次公开 Nanite、Lumen、World Partition、Data Layers、MetaSounds、Control Rig、Motion Warping 的定位。"
+  },
+  {
+    "id": "S135", "title": "Unreal Engine 5.6 is now available", "publisher": "Epic Games",
+    "url": "https://www.unrealengine.com/en-US/news/unreal-engine-5-6-is-now-available",
+    "grade": "A", "kind": "官方博客", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配，页面日期 June 3, 2025）",
+    "note": "5.6 发布公告；用于 5.6 时间点与大规模开放世界/60 FPS、引擎内动画与 MetaHuman 工作流的官方表述。"
+  },
+  {
+    "id": "S137", "title": "Blueprints Visual Scripting in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/blueprints-visual-scripting-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "蓝图系统总览：节点式脚本、C++ 基类扩展与设计/程序分工。"
+  },
+  {
+    "id": "S138", "title": "Control Rig in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/control-rig-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Control Rig：引擎内绑定/动画、Full-Body IK、与 Sequencer 协作。"
+  },
+  {
+    "id": "S139", "title": "Procedural Content Generation Overview in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/procedural-content-generation-overview",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "PCG 框架：点集、密度、图节点与插件前置；用于内容产能与程序化生成选型。"
+  },
+  {
+    "id": "S140", "title": "Cinematics and Sequencer in Unreal Engine", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/unreal-engine/cinematics-and-movie-making-in-unreal-engine",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Sequencer：多轨道非线性编辑、相机/角色/灯光动画与实时预览。"
+  },
+  {
+    "id": "S141", "title": "Verse Language Reference: Book of Verse", "publisher": "Epic Games",
+    "url": "https://dev.epicgames.com/documentation/en-us/fortnite/verse-language-reference",
+    "grade": "A", "kind": "文档", "lang": "EN", "accessed": "2026-11-04", "link_status": "已验证（HTTP 200，标题匹配）",
+    "note": "Verse 语言参考（UEFN 脚本层）；用于说明 UEFN/Verse 的能力边界，不用于断言具体上线日期。"
+  }
+]

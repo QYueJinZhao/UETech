@@ -1,0 +1,192 @@
+[
+ {
+  "id": "pb-mobile-01",
+  "topic": "topic-mobile",
+  "types": ["通用", "开放世界"],
+  "title": "中低端机帧率不稳并伴随发热降频",
+  "statement": "中低端手机在复杂场景掉帧，运行几分钟后因发热进一步降频，帧率阶梯式下降。",
+  "scene": "移动端开放世界、长时间游玩、高画质默认档。",
+  "symptoms": ["前几分钟尚可，之后帧率下降", "机身温度上升", "GPU 频率被系统限制"],
+  "rootCauseClass": "功耗与设备分级",
+  "rootCause": "按高端机配置画质；缺少设备档位/动态分辨率；持续满载导致热降频。",
+  "candidates": [
+   {"sol": "mob-08", "tradeoff": "设备分级/动态分辨率能稳住帧率，但会增加适配矩阵。"},
+   {"sol": "mob-10", "tradeoff": "平台工具能定位功耗热点，但需要真机与时间。"},
+   {"sol": "mob-01", "tradeoff": "管线选型能降低基础成本，但不解决持续功耗。"}
+  ],
+  "judgment": "先按设备档位设画质上限，再用动态分辨率/帧率策略控功耗；不要用“统一高画质”覆盖所有机型。",
+  "verification": ["真机 30 分钟记录帧率/温度/频率", "对比不同档位的功耗", "检查动态分辨率触发频率"],
+  "sources": ["S074", "S078", "S029"]
+ },
+ {
+  "id": "pb-mobile-02",
+  "topic": "topic-mobile",
+  "types": ["通用", "开放世界"],
+  "title": "移动端 GI/阴影方案照搬桌面导致不可用",
+  "statement": "直接启用 Lumen/VSM 或完全依赖烘焙，导致移动端要么跑不动，要么昼夜/动态物体表现崩坏。",
+  "scene": "移动端开放世界、动态昼夜、室内外切换。",
+  "symptoms": ["低端机 Lumen 不可用/极慢", "烘焙阴影在动态物体上缺失", "昼夜切换时阴影/GI 不连续"],
+  "rootCauseClass": "移动端光照选型",
+  "rootCause": "没有按 Feature Level/机型验证特性可用性；烘焙与动态光照边界不清。",
+  "candidates": [
+   {"sol": "mob-03", "tradeoff": "明确移动端可用性与替代方案是选型基础。"},
+   {"sol": "mob-04", "tradeoff": "烘焙/静态阴影+混合光照能在移动端稳定，但失去全动态。"},
+   {"sol": "rd-14", "tradeoff": "烘焙 vs Lumen 的取舍框架可复用，但需按移动端成本重算。"}
+  ],
+  "judgment": "移动端默认走烘焙/静态阴影 + 有限动态光；只有在目标机型验证通过后才局部启用 Lumen/VSM。",
+  "verification": ["在目标机型逐特性开关测试", "对比烘焙/动态方案的成本与表现", "昼夜切换录屏"],
+  "sources": ["S074", "S029", "S005"]
+ },
+ {
+  "id": "pb-mobile-03",
+  "topic": "topic-mobile",
+  "types": ["通用"],
+  "title": "移动端 draw call 与材质变体拖垮 CPU/GPU",
+  "statement": "移动端场景物件多、材质实例多，draw call 与 Shader 变体数量超出预算。",
+  "scene": "移动端城市/植被、UI 与场景混合、多皮肤角色。",
+  "symptoms": ["stat RHI draw call 高", "首次出现材质切换卡顿", "低端机 CPU 提交瓶颈"],
+  "rootCauseClass": "移动端提交与材质",
+  "rootCause": "缺少实例化/合批；材质实例泛滥；Shader 变体未按移动端裁剪。",
+  "candidates": [
+   {"sol": "mob-06", "tradeoff": "实例化/合批能降 draw call，但会限制独立材质/剔除。"},
+   {"sol": "mob-05", "tradeoff": "材质复杂度/变体控制能降成本，但需要资产规范。"},
+   {"sol": "mob-01", "tradeoff": "管线选型能影响提交方式，但不解决内容侧问题。"}
+  ],
+  "judgment": "先做实例化/合批与材质变体收敛，再谈管线；移动端不要把桌面级材质直接下发。",
+  "verification": ["stat RHI 统计 draw call", "导出材质变体清单", "对比合批/简化后的帧率"],
+  "sources": ["S074", "S029", "S043"]
+ },
+ {
+  "id": "pb-mobile-04",
+  "topic": "topic-mobile",
+  "types": ["通用", "FPS"],
+  "title": "移动端带宽与 overdraw 打满",
+  "statement": "透明粒子、全屏后处理与多层 UI 叠加导致 overdraw，TBDR 带宽被打满，帧率骤降。",
+  "scene": "移动端战斗特效、雨雾天气、全屏 UI。",
+  "symptoms": ["GPU 带宽计数高", "关闭粒子/后处理后明显回升", "低端机发热严重"],
+  "rootCauseClass": "移动端带宽",
+  "rootCause": "半透明大面积覆盖；粒子过度绘制；后处理全分辨率执行。",
+  "candidates": [
+   {"sol": "mob-02", "tradeoff": "TBDR/带宽/overdraw 治理是直接方向，但需要逐效果优化。"},
+   {"sol": "mob-09", "tradeoff": "后处理/透明/粒子裁剪能快速降成本，但损失表现。"},
+   {"sol": "mob-07", "tradeoff": "纹理压缩/流送能降带宽，但不解决叠层。"}
+  ],
+  "judgment": "先量化 overdraw 来源，再按效果优先级裁剪；移动端少用全屏透明层，粒子按距离/重要性降级。",
+  "verification": ["Arm Mobile Studio 看 overdraw/带宽", "逐效果关闭对比", "真机帧率/温度记录"],
+  "sources": ["S074", "S029", "S078"]
+ },
+ {
+  "id": "pb-mobile-05",
+  "topic": "topic-mobile",
+  "types": ["通用"],
+  "title": "缺少机型分级导致画质与性能两头落空",
+  "statement": "只有一套画质配置，高端机浪费性能、低端机跑不动，且无法按机型快速降级。",
+  "scene": "移动端多机型发行、长线运营、云游戏。",
+  "symptoms": ["低端机默认档掉帧", "高端机画质未拉满", "无法按 GPU 家族配置"],
+  "rootCauseClass": "设备分级",
+  "rootCause": "Scalability/Device Profile 未体系化；缺少 GPU 家族/内存档位判定；测试矩阵不足。",
+  "candidates": [
+   {"sol": "mob-08", "tradeoff": "设备分级/动态分辨率是标准解，但需要持续维护档位表。"},
+   {"sol": "mob-11", "tradeoff": "移动延迟路径可按档位启用，但只覆盖部分机型。"},
+   {"sol": "gen-12", "tradeoff": "跨平台画质分级框架能复用，但移动端需单独校准。"}
+  ],
+  "judgment": "按 GPU 家族/内存/屏幕建立档位，默认档必须覆盖最低支持机型；高端档只做增益，不做唯一路径。",
+  "verification": ["统计各档位机型覆盖率", "低端机默认档跑基准场景", "检查 Device Profile 生效情况"],
+  "sources": ["S074", "S078", "S029"]
+ },
+ {
+  "id": "pb-move-01",
+  "topic": "topic-movement",
+  "types": ["TPS", "ARPG", "开放世界"],
+  "title": "抓钩锚点非法或被服务器拒绝",
+  "statement": "抓钩命中非法表面/过远锚点，或服务器拒绝客户端锚点，导致钩索表现与位移不一致。",
+  "scene": "抓钩移动、立体机动、开放世界攀爬。",
+  "symptoms": ["钩索视觉命中但角色不移动", "锚点在墙内/过远", "联机下客户端与服务器锚点不同"],
+  "rootCauseClass": "锚点检测与权威",
+  "rootCause": "只用单点 Trace；锚点合法性（表面/距离/遮挡）未统一校验；客户端先行表现。",
+  "candidates": [
+   {"sol": "mov-03", "tradeoff": "锚点检测/约束/收绳是核心实现，但需要大量手感调参。"},
+   {"sol": "phy-09", "tradeoff": "Sweep/CCD 能减少穿透，但不解决合法性规则。"},
+   {"sol": "mov-11", "tradeoff": "网络预测/回滚能对齐，但锚点判定必须服务器权威。"}
+  ],
+  "judgment": "锚点合法性由服务器统一判定；客户端只做候选与表现；高速抓钩用形状扫掠，不用单点 Trace。",
+  "verification": ["构造非法表面/过远/遮挡锚点用例", "双端对比锚点与位移", "模拟延迟观察拒绝表现"],
+  "sources": ["S049", "S066", "S065"]
+ },
+ {
+  "id": "pb-move-02",
+  "topic": "topic-movement",
+  "types": ["TPS", "ARPG"],
+  "title": "攀爬 Ledge 探测失败与状态错位",
+  "statement": "角色在边缘无法触发攀爬，或进入攀爬后卡在墙里/悬空，上下墙过渡错位。",
+  "scene": "攀爬、翻越、地形边缘、联机同步。",
+  "symptoms": ["边缘检测时有时无", "攀爬状态与胶囊体位置不一致", "上下墙动画穿模"],
+  "rootCauseClass": "边缘检测与状态机",
+  "rootCause": "Trace 方向/高度固定，未适配不同墙高；攀爬状态与 CMC 位置未对齐；动画根位移未校准。",
+  "candidates": [
+   {"sol": "mov-04", "tradeoff": "Ledge Detection/攀爬状态机是核心，但需要大量动画与布点。"},
+   {"sol": "mov-10", "tradeoff": "IK/相机反馈能改善表现，但不能修复检测。"},
+   {"sol": "mov-11", "tradeoff": "网络预测能同步状态，但前提是本地状态机正确。"}
+  ],
+  "judgment": "先做多方向/多高度探测与胶囊体对齐，再谈动画融合；攀爬状态必须由统一状态机驱动，避免多系统抢占。",
+  "verification": ["在多种墙高/角度测试边缘检测", "检查攀爬时胶囊体与 Mesh 对齐", "联机双端对比状态"],
+  "sources": ["S049", "S066", "S015"]
+ },
+ {
+  "id": "pb-move-03",
+  "topic": "topic-movement",
+  "types": ["TPS", "FPS"],
+  "title": "墙跑法线/坡度约束抖动",
+  "statement": "墙跑时角色贴墙抖动、脱离墙面或速度方向错误，转弯/落地时更明显。",
+  "scene": "墙跑、蹬墙、狭窄巷道、斜坡边缘。",
+  "symptoms": ["角色在墙面上下抖动", "墙跑突然脱落", "转向时速度方向不连续"],
+  "rootCauseClass": "移动约束与法线",
+  "rootCause": "墙面法线/坡度判定不稳定；贴墙约束用瞬时修正；速度方向未投影到墙面。",
+  "candidates": [
+   {"sol": "mov-05", "tradeoff": "墙跑法线约束是核心，但需要与相机/动画配合。"},
+   {"sol": "mov-01", "tradeoff": "自定义 Movement Mode 能把墙跑纳入统一移动，改造量大。"},
+   {"sol": "mov-09", "tradeoff": "速度曲线/落地缓冲能改善手感，但不解决贴墙。"}
+  ],
+  "judgment": "墙跑应作为自定义 Movement Mode，用稳定法线与速度投影；不要靠每帧硬贴位置。",
+  "verification": ["录制墙跑/转弯/脱落过程", "检查法线与速度投影", "对比不同约束参数的抖动"],
+  "sources": ["S049", "S015", "S066"]
+ },
+ {
+  "id": "pb-move-04",
+  "topic": "topic-movement",
+  "types": ["TPS", "开放世界"],
+  "title": "滑铲/斜坡滑行速度曲线失控",
+  "statement": "滑铲在斜坡上越滑越快或突然停住，进入/退出时机与动画不匹配。",
+  "scene": "滑铲、斜坡滑行、雪地/沙地移动。",
+  "symptoms": ["斜坡速度不受控", "滑铲结束突然卡住", "动画与位移速度不一致"],
+  "rootCauseClass": "速度曲线与地形",
+  "rootCause": "重力/摩擦/坡度投影未统一；滑铲状态缺少速度上限；动画 Root Motion 与代码位移冲突。",
+  "candidates": [
+   {"sol": "mov-06", "tradeoff": "滑铲/斜坡速度曲线是核心，但需要逐地形调参。"},
+   {"sol": "mov-09", "tradeoff": "加减速/落地缓冲能改善手感，但不解决坡度。"},
+   {"sol": "mov-01", "tradeoff": "自定义 Movement Mode 能统一物理，但改造量大。"}
+  ],
+  "judgment": "把坡度、摩擦、输入统一进速度曲线，并设上限/下限；滑铲期间避免 Root Motion 与代码同时驱动。",
+  "verification": ["多坡度录制速度曲线", "检查摩擦/重力参数", "对比动画位移与胶囊体速度"],
+  "sources": ["S049", "S066", "S015"]
+ },
+ {
+  "id": "pb-move-05",
+  "topic": "topic-movement",
+  "types": ["TPS", "FPS", "ARPG"],
+  "title": "特殊移动在联机下出现橡皮筋",
+  "statement": "抓钩/攀爬/墙跑在延迟下被服务器反复纠正，角色位置来回拉扯。",
+  "scene": "联机特殊移动、合作攀爬、PVP 立体机动。",
+  "symptoms": ["特殊移动中位置回弹", "抓钩被服务器取消", "攀爬状态在双端不同"],
+  "rootCauseClass": "特殊移动网络",
+  "rootCause": "特殊移动未纳入统一预测框架；服务器与客户端状态机不同步；纠偏直接硬设位置。",
+  "candidates": [
+   {"sol": "mov-11", "tradeoff": "特殊移动预测/回滚/平滑是系统解，但每个能力都要定义预测边界。"},
+   {"sol": "net-07", "tradeoff": "通用预测/回滚框架可复用，但特殊移动语义需扩展。"},
+   {"sol": "net-09", "tradeoff": "插值/输入缓冲能平滑，但会增加延迟。"}
+  ],
+  "judgment": "把特殊移动纳入与 CMC 同一套预测/回滚语义；服务器拒绝要给出明确失败表现；纠偏用收敛而非瞬移。",
+  "verification": ["Net Emulate 150ms 下测试抓钩/攀爬", "双端记录状态机与位置", "统计纠偏幅度/频率"],
+  "sources": ["S049", "S004", "S061"]
+ }
+]

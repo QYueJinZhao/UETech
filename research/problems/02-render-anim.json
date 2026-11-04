@@ -1,0 +1,862 @@
+[
+ {
+  "id": "pb-render-01",
+  "topic": "topic-render-basics",
+  "types": [
+   "FPS",
+   "开放世界",
+   "通用"
+  ],
+  "title": "Draw call 与 overdraw 把 GPU 压到帧率腰斩",
+  "statement": "场景物件不多但 draw call 极高，半透明与特效叠层导致 overdraw，GPU 通道耗时远高于预算。",
+  "scene": "植被密集、城市街道、战斗特效叠加、UI 全屏半透明。",
+  "symptoms": [
+   "stat RHI 显示 draw call 数万级",
+   "stat GPU 中 Base Pass/透明通道耗时最高",
+   "降低分辨率仍不见明显改善"
+  ],
+  "rootCauseClass": "GPU 提交与填充率",
+  "rootCause": "大量独立小网格/材质实例无法合批；半透明粒子大面积覆盖屏幕；缺乏实例化、LOD 与遮挡裁剪。",
+  "candidates": [
+   {
+    "sol": "rd-01",
+    "tradeoff": "从几何/光栅阶段理解 draw call 与 overdraw，是定位基础但需要工具配合。"
+   },
+   {
+    "sol": "mob-06",
+    "tradeoff": "实例化/合批能直接降提交数，但会牺牲部分独立控制与剔除精度。"
+   },
+   {
+    "sol": "ow-03",
+    "tradeoff": "Nanite 降低几何提交压力，但对半透明/粒子 overdraw 无效。"
+   }
+  ],
+  "judgment": "先看是提交瓶颈还是填充率瓶颈：提交瓶颈用实例化/合批/Nanite；填充率瓶颈只能削减叠层、缩小覆盖面积或降分辨率。",
+  "verification": [
+   "stat RHI/stat GPU 对比 draw call 与通道耗时",
+   "ProfileGPU 抓单帧看 Base Pass/透明占比",
+   "逐层关闭特效观察 GPU 时间下降"
+  ],
+  "sources": [
+   "S002",
+   "S021",
+   "S074"
+  ]
+ },
+ {
+  "id": "pb-render-02",
+  "topic": "topic-render-basics",
+  "types": [
+   "FPS",
+   "通用"
+  ],
+  "title": "硬抗原生分辨率导致填充率与发热失控",
+  "statement": "为了清晰度坚持原生分辨率，GPU 时间被填满，帧率不稳且移动端发热降频。",
+  "scene": "高分辨率屏幕、移动端、GPU 受限的笔记本与主机性能模式。",
+  "symptoms": [
+   "降低分辨率后帧率大幅提升",
+   "GPU 时间接近帧预算",
+   "移动端温度上升后频率下降"
+  ],
+  "rootCauseClass": "分辨率与上采样",
+  "rootCause": "把像素数当成画质唯一指标；没有使用 TSR/FSR/DLSS 等上采样；动态分辨率未启用。",
+  "candidates": [
+   {
+    "sol": "rd-05",
+    "tradeoff": "上采样能在几乎不损失感知清晰度的情况下降低像素成本，但会引入时序伪影。"
+   },
+   {
+    "sol": "rd-09",
+    "tradeoff": "TSR 质量较好，但对运动矢量与历史缓冲要求高。"
+   },
+   {
+    "sol": "rd-16",
+    "tradeoff": "FSR/DLSS 各有平台与画质取舍，接入成本不同。"
+   }
+  ],
+  "judgment": "先测“降分辨率能换回多少帧”，再选上采样方案；竞技/高速运动优先 TSR 或 DLSS 类，低端设备用动态分辨率兜底。",
+  "verification": [
+   "对比原生/50%/67% 屏幕百分比下的 GPU 时间",
+   "录屏检查运动伪影与 UI 清晰度",
+   "移动端记录温度与频率曲线"
+  ],
+  "sources": [
+   "S019",
+   "S020",
+   "S074"
+  ]
+ },
+ {
+  "id": "pb-render-03",
+  "topic": "topic-render-basics",
+  "types": [
+   "通用",
+   "ARPG"
+  ],
+  "title": "后处理链过重导致高分辨率下 GPU 爆预算",
+  "statement": "Bloom、DOF、运动模糊、曝光等多重后处理叠加，在高分辨率或移动端吃掉大量 GPU 时间。",
+  "scene": "电影化表现、雨夜/霓虹场景、移动端高分辨率设备。",
+  "symptoms": [
+   "stat GPU 后处理通道占比高",
+   "关闭 DOF/Bloom 后帧率明显回升",
+   "半分辨率后处理仍有尖峰"
+  ],
+  "rootCauseClass": "后处理成本",
+  "rootCause": "后处理按全分辨率执行；DOF 采样数过高；Bloom 链过长；移动端未裁剪不支持的效果。",
+  "candidates": [
+   {
+    "sol": "rd-04",
+    "tradeoff": "理解各后处理成本并做分级，是最直接的手段。"
+   },
+   {
+    "sol": "mob-09",
+    "tradeoff": "移动端裁剪与降级能保帧率，但会损失画面风格。"
+   },
+   {
+    "sol": "rd-05",
+    "tradeoff": "降低内部渲染分辨率可整体降成本，但影响所有通道。"
+   }
+  ],
+  "judgment": "按平台/档位裁剪后处理，优先降 DOF 与 Bloom 的采样/分辨率；不要用“全平台同一套电影级后处理”。",
+  "verification": [
+   "逐项关闭后处理记录 GPU 时间差",
+   "对比半分辨率/全分辨率后处理",
+   "真机检查发热与帧率稳定性"
+  ],
+  "sources": [
+   "S002",
+   "S074",
+   "S029"
+  ]
+ },
+ {
+  "id": "pb-render-04",
+  "topic": "topic-render-basics",
+  "types": [
+   "通用",
+   "FPS"
+  ],
+  "title": "前向/延迟选型错误导致多光源或 MSAA 需求冲突",
+  "statement": "项目大量动态光源却选了前向，或需要 MSAA/透明质感却选了延迟，导致性能或画质目标无法同时满足。",
+  "scene": "夜战多光源、户外大场景、需要硬边透明与 MSAA 的风格化项目。",
+  "symptoms": [
+   "多光源场景 Base Pass 成本暴涨",
+   "延迟路径下 MSAA 不可用/透明效果异常",
+   "GBuffer 带宽成为瓶颈"
+  ],
+  "rootCauseClass": "管线选型",
+  "rootCause": "选型时只看单机 demo，没有按“光源数量、透明比例、MSAA 需求、带宽”做矩阵评估。",
+  "candidates": [
+   {
+    "sol": "rd-17",
+    "tradeoff": "前向/延迟/簇延迟的系统对比，能给出选型依据。"
+   },
+   {
+    "sol": "rd-01",
+    "tradeoff": "理解几何/光栅阶段有助于判断瓶颈归属。"
+   },
+   {
+    "sol": "mob-11",
+    "tradeoff": "移动端延迟路径有特定适用条件，不能照搬桌面结论。"
+   }
+  ],
+  "judgment": "先列出不可妥协项（MSAA/透明/多光源/带宽），再用对比矩阵选型；不要为了“先进”选延迟，也不要为了“简单”在前向里硬堆光源。",
+  "verification": [
+   "构造多光源/高透明/高 overdraw 三组基准场景",
+   "对比各管线的 GPU 时间与画质",
+   "检查 GBuffer 带宽与平台支持"
+  ],
+  "sources": [
+   "S002",
+   "S021",
+   "S074"
+  ]
+ },
+ {
+  "id": "pb-render-05",
+  "topic": "topic-render-basics",
+  "types": [
+   "通用"
+  ],
+  "title": "渲染 Pass 顺序与带宽浪费难以定位",
+  "statement": "帧内多个 Pass 重复读写同一目标，带宽被打满，但单看每个 Pass 都不算慢。",
+  "scene": "自定义后处理、移动端 TBDR、复杂材质与多相机渲染。",
+  "symptoms": [
+   "GPU 带宽指标高但通道耗时分散",
+   "移动端 tile 内存频繁换出",
+   "增加一个全屏 Pass 就明显掉帧"
+  ],
+  "rootCauseClass": "带宽与 Pass 调度",
+  "rootCause": "缺少 RDG 级别的依赖分析；Pass 之间未合并；移动端做了不必要的 RT 往返。",
+  "candidates": [
+   {
+    "sol": "rd-11",
+    "tradeoff": "RDG 能把 Pass 依赖与资源生命周期显式化，但学习成本高。"
+   },
+   {
+    "sol": "rd-18",
+    "tradeoff": "RenderDoc/ProfileGPU 能定位带宽热点，但需要逐帧分析。"
+   },
+   {
+    "sol": "mob-02",
+    "tradeoff": "TBDR 下应尽量 on-tile 完成，能省带宽但限制 Pass 设计。"
+   }
+  ],
+  "judgment": "先用工具确认带宽瓶颈，再合并/重排 Pass；移动端优先 on-tile，桌面端关注 RT 读写次数。",
+  "verification": [
+   "RenderDoc 查看每个 Pass 的 RT 读写",
+   "移动端用 Arm Mobile Studio 看带宽计数",
+   "对比合并 Pass 前后的 GPU 时间"
+  ],
+  "sources": [
+   "S002",
+   "S018",
+   "S074"
+  ]
+ },
+ {
+  "id": "pb-gi-01",
+  "topic": "topic-gi",
+  "types": [
+   "开放世界",
+   "FPS",
+   "通用"
+  ],
+  "title": "Lumen 在雨夜/大面积动态光源下成本失控",
+  "statement": "夜间场景大量动态点光/聚光与雨幕反射叠加，Lumen 的 GI/反射通道耗时飙升，帧率大幅下降。",
+  "scene": "雨夜城市、霓虹街区、大量可破坏灯源、开放世界夜间活动。",
+  "symptoms": [
+   "Lumen GI/Reflections 通道耗时数倍于白天",
+   "降低光源数量后明显回升",
+   "阴影与反射出现噪点/闪烁"
+  ],
+  "rootCauseClass": "动态 GI 成本",
+  "rootCause": "Lumen 对动态光源数量、影响范围与表面复杂度敏感；雨幕/半透明与反射叠加放大成本；缺少距离/重要性裁剪。",
+  "candidates": [
+   {
+    "sol": "rd-07",
+    "tradeoff": "Lumen 提供动态 GI/反射，但需要严格的光源预算与降级策略。"
+   },
+   {
+    "sol": "rd-14",
+    "tradeoff": "烘焙光照在固定时间/光源下更便宜，但失去动态性。"
+   },
+   {
+    "sol": "rd-03",
+    "tradeoff": "阴影管线的裁剪与缓存能减轻部分成本，但不能替代 GI 预算。"
+   }
+  ],
+  "judgment": "夜间场景先做光源分级（关键/次要/纯表现），对次要光源关闭 GI 贡献或改用烘焙/自发光；仍不够再评估混合光照方案。",
+  "verification": [
+   "stat GPU 对比白天/雨夜 Lumen 通道耗时",
+   "逐组关闭光源观察 GI/反射变化",
+   "检查 Lumen 场景设置与光源影响半径"
+  ],
+  "sources": [
+   "S005",
+   "S006",
+   "S021"
+  ]
+ },
+ {
+  "id": "pb-gi-02",
+  "topic": "topic-gi",
+  "types": [
+   "开放世界",
+   "ARPG"
+  ],
+  "title": "Lumen 漏光、噪点与闪烁",
+  "statement": "薄墙、小物件与远处几何出现漏光/噪点，镜头移动时闪烁明显。",
+  "scene": "室内外过渡、薄墙隔断、小道具密集、远景观测。",
+  "symptoms": [
+   "墙后出现不属于该区域的光",
+   "静态镜头噪点明显",
+   "移动镜头时高光闪烁"
+  ],
+  "rootCauseClass": "GI 质量与场景尺度",
+  "rootCause": "Lumen 的场景尺度/质量设置与几何厚度不匹配；薄几何缺少足够的表面缓存；光源半径过大。",
+  "candidates": [
+   {
+    "sol": "rd-07",
+    "tradeoff": "调 Lumen 质量/场景细节能减轻，但会增加成本。"
+   },
+   {
+    "sol": "rd-08",
+    "tradeoff": "VSM 能改善阴影接触，但对 GI 漏光不是万能。"
+   },
+   {
+    "sol": "rd-14",
+    "tradeoff": "关键室内改用烘焙/混合光照可消除漏光，但失去全动态。"
+   }
+  ],
+  "judgment": "先判断是阴影漏光还是 GI 漏光：阴影问题调 VSM/接触阴影；GI 漏光优先加厚几何/调光源半径，关键区域改用混合光照。",
+  "verification": [
+   "固定机位对比不同 Lumen 质量档",
+   "检查薄墙厚度与光源半径",
+   "镜头移动录屏观察闪烁"
+  ],
+  "sources": [
+   "S005",
+   "S007",
+   "S008"
+  ]
+ },
+ {
+  "id": "pb-gi-03",
+  "topic": "topic-gi",
+  "types": [
+   "开放世界",
+   "通用"
+  ],
+  "title": "烘焙 Lightmap 接缝与光照不一致",
+  "statement": "大世界分区烘焙后，不同区块/关卡接缝处出现亮度跳变、阴影断裂或光照方向不一致。",
+  "scene": "传统 Lightmap 大世界、室内外拼接、多人协作烘焙。",
+  "symptoms": [
+   "区块边界可见亮度差",
+   "阴影在接缝处断裂",
+   "重新烘焙后局部变亮/变暗"
+  ],
+  "rootCauseClass": "烘焙管线与接缝",
+  "rootCause": "各区块独立烘焙、Lightmap 分辨率/密度不一致；接缝处 UV 不连续；光源参与列表不同。",
+  "candidates": [
+   {
+    "sol": "rd-14",
+    "tradeoff": "统一烘焙设置与接缝处理能解决，但需要管线规范。"
+   },
+   {
+    "sol": "rd-02",
+    "tradeoff": "理解直接光/间接光阶段有助于定位问题来源。"
+   },
+   {
+    "sol": "ow-02",
+    "tradeoff": "HLOD 代理的光照一致性也需要同步处理。"
+   }
+  ],
+  "judgment": "把烘焙当成跨区块的统一管线：统一分辨率、光源参与和 UV 接缝规则；不能各区块各烘各的。",
+  "verification": [
+   "对比接缝两侧的 Lightmap 密度与光源列表",
+   "固定机位扫描接缝录屏",
+   "重新烘焙后做像素差异对比"
+  ],
+  "sources": [
+   "S005",
+   "S006",
+   "S012"
+  ]
+ },
+ {
+  "id": "pb-gi-04",
+  "topic": "topic-gi",
+  "types": [
+   "开放世界",
+   "ARPG"
+  ],
+  "title": "昼夜循环下 GI 与阴影不连贯",
+  "statement": "时间流逝时，间接光/阴影更新滞后或跳变，室内外亮度变化不自然。",
+  "scene": "开放世界昼夜、天气切换、动态天光。",
+  "symptoms": [
+   "阴影方向突变",
+   "室内亮度不随时间平滑变化",
+   "切换天气后 GI 闪烁"
+  ],
+  "rootCauseClass": "动态光照更新",
+  "rootCause": "天光/光源更新频率与 GI 缓存不匹配；静态阴影无法随时间变化；缺少过渡与重捕。",
+  "candidates": [
+   {
+    "sol": "ow-12",
+    "tradeoff": "时间/天气系统需要与 GI/阴影联动，改造面大但根治。"
+   },
+   {
+    "sol": "rd-07",
+    "tradeoff": "Lumen 可动态响应，但成本与稳定性需调优。"
+   },
+   {
+    "sol": "rd-14",
+    "tradeoff": "烘焙方案需要多套光照场景或实时捕捉，切换成本高。"
+   }
+  ],
+  "judgment": "动态昼夜优先 Lumen/动态天光并限制更新频率；固定时段项目用多套烘焙 + 平滑过渡，避免实时全量重烘。",
+  "verification": [
+   "录制完整昼夜循环观察跳变",
+   "检查天光更新与 Lumen 场景缓存",
+   "对比不同更新频率的 GPU 成本"
+  ],
+  "sources": [
+   "S005",
+   "S012",
+   "S008"
+  ]
+ },
+ {
+  "id": "pb-gi-05",
+  "topic": "topic-gi",
+  "types": [
+   "FPS",
+   "通用"
+  ],
+  "title": "反射质量与性能无法兼得",
+  "statement": "水面/金属/玻璃需要高质量反射，但 Lumen 反射或 SSR 成本高，切 cubemap 又假。",
+  "scene": "雨夜街道、水面、镜面建筑、载具涂装。",
+  "symptoms": [
+   "反射通道耗时高",
+   "SSR 在屏幕外/粗糙表面断裂",
+   "cubemap 反射与场景不匹配"
+  ],
+  "rootCauseClass": "反射方案取舍",
+  "rootCause": "对所有表面使用同一套高质量反射；没有按材质/距离/重要性分级。",
+  "candidates": [
+   {
+    "sol": "rd-07",
+    "tradeoff": "Lumen 反射质量高，但成本与噪点需管理。"
+   },
+   {
+    "sol": "rd-16",
+    "tradeoff": "上采样与降分辨率能降成本，但不解决反射语义。"
+   },
+   {
+    "sol": "rd-02",
+    "tradeoff": "理解反射阶段有助于按表面分级。"
+   }
+  ],
+  "judgment": "关键水面/镜面用高质量反射，普通金属/粗糙表面用 cubemap/SSR；按屏幕占比和距离动态切换。",
+  "verification": [
+   "stat GPU 对比不同反射方案",
+   "检查屏幕外反射断裂",
+   "按材质分级后对比画质与成本"
+  ],
+  "sources": [
+   "S005",
+   "S019",
+   "S021"
+  ]
+ },
+ {
+  "id": "pb-anim-01",
+  "topic": "topic-animation",
+  "types": [
+   "ARPG",
+   "TPS",
+   "通用"
+  ],
+  "title": "动画状态机爆炸与过渡抖动",
+  "statement": " locomotion/战斗/受击状态互相打断，状态机节点与过渡条件爆炸，出现滑步、抖动或卡在错误状态。",
+  "scene": "第三人称动作、ARPG 战斗、复杂移动能力。",
+  "symptoms": [
+   "状态切换频繁抖动",
+   "过渡动画播放不完整",
+   "某些组合状态下进入错误分支"
+  ],
+  "rootCauseClass": "状态机复杂度",
+  "rootCause": "用状态机枚举所有组合；过渡条件依赖多个布尔；缺少分层/优先级与中断规则。",
+  "candidates": [
+   {
+    "sol": "arpg-01",
+    "tradeoff": "Motion Matching/分层能降低组合爆炸，但需要动画数据库与调试能力。"
+   },
+   {
+    "sol": "tps-08",
+    "tradeoff": "分层动画/ALI 能把上下半身解耦，但接口设计复杂。"
+   },
+   {
+    "sol": "fps-13",
+    "tradeoff": "第一人称手臂/武器分层能改善表现，但不解决全身状态组合。"
+   }
+  ],
+  "judgment": "先把状态按“移动/战斗/受击/交互”分层，再决定哪些用状态机、哪些用 Motion Matching；不要在一个状态机里枚举所有组合。",
+  "verification": [
+   "录制状态切换矩阵，逐组合检查",
+   "用 Animation Insights 查看状态时长与过渡",
+   "统计滑步与抖动帧"
+  ],
+  "sources": [
+   "S015",
+   "S016",
+   "S025"
+  ]
+ },
+ {
+  "id": "pb-anim-02",
+  "topic": "topic-animation",
+  "types": [
+   "ARPG",
+   "开放世界"
+  ],
+  "title": "Motion Matching 数据库过大导致匹配抖动/成本上升",
+  "statement": "动作库不断扩张后，Motion Matching 选帧抖动、响应变慢，内存与 CPU 成本上升。",
+  "scene": "高品质 locomotion、开放世界角色、大量动作变体。",
+  "symptoms": [
+   "角色姿态频繁跳变",
+   "Pose Search 耗时上升",
+   "内存中动画数据库过大"
+  ],
+  "rootCauseClass": "动画数据与匹配",
+  "rootCause": "数据库缺少裁剪/去重；查询特征权重不合理；动作覆盖过度但质量参差。",
+  "candidates": [
+   {
+    "sol": "arpg-01",
+    "tradeoff": "Motion Matching 表现自然，但需要数据库治理与调参。"
+   },
+   {
+    "sol": "arpg-10",
+    "tradeoff": "动画 LOD/更新频率能降成本，但不解决匹配抖动。"
+   },
+   {
+    "sol": "tps-08",
+    "tradeoff": "分层/筛选能缩小搜索空间，但增加配置复杂度。"
+   }
+  ],
+  "judgment": "先做数据库裁剪与特征权重调优，再按距离/重要性降更新频率；不要用“加更多动画”来解决匹配问题。",
+  "verification": [
+   "Pose Search 调试视图观察选帧",
+   "统计数据库资产数与查询耗时",
+   "对比裁剪前后的抖动与内存"
+  ],
+  "sources": [
+   "S015",
+   "S016",
+   "S026"
+  ]
+ },
+ {
+  "id": "pb-anim-03",
+  "topic": "topic-animation",
+  "types": [
+   "TPS",
+   "ARPG"
+  ],
+  "title": "Root Motion 与胶囊体/网络位置不同步",
+  "statement": "使用 Root Motion 的攻击/位移在联机下与胶囊体位置不一致，出现滑步、瞬移或被服务器拉回。",
+  "scene": "近战攻击、处决、攀爬/翻越、联机动作。",
+  "symptoms": [
+   "客户端动画位移与碰撞体不同步",
+   "服务器纠偏后角色回弹",
+   "动画结束位置与预期不符"
+  ],
+  "rootCauseClass": "移动驱动与网络",
+  "rootCause": "Root Motion 在客户端驱动胶囊体但未在服务器复现；网络纠正覆盖了动画位移；缺少权威位移结算。",
+  "candidates": [
+   {
+    "sol": "mov-02",
+    "tradeoff": "Root Motion 表现好，但网络与碰撞一致性需要额外处理。"
+   },
+   {
+    "sol": "mov-01",
+    "tradeoff": "自定义 Movement Mode 可把位移纳入 CMC 预测，改造量大。"
+   },
+   {
+    "sol": "net-07",
+    "tradeoff": "预测/回滚能对齐，但需要为 Root Motion 定义预测边界。"
+   }
+  ],
+  "judgment": "联机位移优先走服务器权威的 CMC/自定义 Movement Mode，动画只做表现；纯单机或过场可用 Root Motion。",
+  "verification": [
+   "双端录制攻击位移轨迹",
+   "对比胶囊体与 Mesh 位置差",
+   "模拟延迟观察回弹"
+  ],
+  "sources": [
+   "S049",
+   "S015",
+   "S004"
+  ]
+ },
+ {
+  "id": "pb-anim-04",
+  "topic": "topic-animation",
+  "types": [
+   "ARPG",
+   "MOBA"
+  ],
+  "title": "蒙太奇 Slot 冲突与被中断",
+  "statement": "多个技能/受击蒙太奇同时请求同一 Slot，出现动作被截断、上半身卡住或技能表现丢失。",
+  "scene": "ARPG 连招、MOBA 技能、受击与处决叠加。",
+  "symptoms": [
+   "技能动画播放不完整",
+   "上半身停留在上一个动作",
+   "受击打断导致技能无表现"
+  ],
+  "rootCauseClass": "动画槽位与优先级",
+  "rootCause": "Slot 没有分组/优先级；蒙太奇中断规则不明确；GAS/状态机同时驱动动画。",
+  "candidates": [
+   {
+    "sol": "gas-08",
+    "tradeoff": "把技能动画纳入 GAS/Montage 规则能统一优先级，但需要改技能框架。"
+   },
+   {
+    "sol": "arpg-01",
+    "tradeoff": "分层动画能隔离上下半身，但 Slot 冲突仍需规则。"
+   },
+   {
+    "sol": "tps-08",
+    "tradeoff": "ALI/分层能缓解，但不是冲突仲裁机制。"
+   }
+  ],
+  "judgment": "先定义 Slot 分组与优先级（全身/上半身/附加），再由统一仲裁者决定中断；不要让多个系统各自 Play Montage。",
+  "verification": [
+   "构造多技能同时触发用例",
+   "检查 Slot 分组与中断规则",
+   "录制连招/受击叠加表现"
+  ],
+  "sources": [
+   "S015",
+   "S025",
+   "S031"
+  ]
+ },
+ {
+  "id": "pb-anim-05",
+  "topic": "topic-animation",
+  "types": [
+   "TPS",
+   "开放世界"
+  ],
+  "title": "IK 足部贴合在斜坡/延迟下抖动",
+  "statement": "斜坡、台阶与网络延迟环境下，足部 IK 出现抖动、穿地或滑步。",
+  "scene": "第三人称斜坡移动、攀爬、联机同步。",
+  "symptoms": [
+   "脚在斜坡上穿插/悬空",
+   "延迟下足部 IK 追不上身体",
+   "快速转向时脚部抖动"
+  ],
+  "rootCauseClass": "IK 与网络表现",
+  "rootCause": "IK Trace 频率过高或过低；目标位置未做平滑；网络位置校正直接驱动 IK。",
+  "candidates": [
+   {
+    "sol": "mov-10",
+    "tradeoff": "足部 IK/相机反馈能提升表现，但需要平滑与预算控制。"
+   },
+   {
+    "sol": "mov-08",
+    "tradeoff": "载具/座舱对齐有类似约束，可复用对齐思路。"
+   },
+   {
+    "sol": "net-09",
+    "tradeoff": "插值/平滑能减少网络抖动，但会增加延迟。"
+   }
+  ],
+  "judgment": "IK 目标要平滑且与胶囊体解耦；联机时用插值后的表现位置驱动 IK，避免直接追服务器纠正。",
+  "verification": [
+   "斜坡/台阶场景录制足部轨迹",
+   "对比不同 Trace 频率与平滑参数",
+   "模拟延迟观察穿地/抖动"
+  ],
+  "sources": [
+   "S015",
+   "S061",
+   "S049"
+  ]
+ },
+ {
+  "id": "pb-shader-01",
+  "topic": "topic-shader-pso",
+  "types": [
+   "通用",
+   "FPS"
+  ],
+  "title": "首次使用技能/材质时 PSO 缺失导致卡顿",
+  "statement": "第一次进入某场景或首次触发某技能时出现数百毫秒卡顿，第二次正常。",
+  "scene": "首次进入关卡、首次使用武器/技能、首次打开特殊 UI。",
+  "symptoms": [
+   "首次出现明显 hitch",
+   "伴随 Shader 编译/PSO 创建日志",
+   "打包后比编辑器更严重"
+  ],
+  "rootCauseClass": "PSO 与 Shader 编译",
+  "rootCause": "打包时未收集完整 PSO 组合；材质/技能变体在运行时才首次编译；预缓存覆盖不足。",
+  "candidates": [
+   {
+    "sol": "gen-11",
+    "tradeoff": "PSO 预缓存/收集是标准解，但收集覆盖率与维护成本高。"
+   },
+   {
+    "sol": "ow-13",
+    "tradeoff": "大世界场景的 PSO 治理更复杂，需要分区收集。"
+   },
+   {
+    "sol": "mob-05",
+    "tradeoff": "Shader 编译管线优化能减时，但不能消除首次创建。"
+   }
+  ],
+  "judgment": "先收集并预编译高频组合，再对低频组合做加载期预热；不要指望运行时编译不卡。",
+  "verification": [
+   "抓取首次卡顿的 PSO 日志",
+   "对比预缓存前后的 hitch 次数",
+   "在打包构建中检查 PSO 缓存覆盖率"
+  ],
+  "sources": [
+   "S042",
+   "S043",
+   "S002"
+  ]
+ },
+ {
+  "id": "pb-shader-02",
+  "topic": "topic-shader-pso",
+  "types": [
+   "通用",
+   "开放世界"
+  ],
+  "title": "材质变体爆炸导致编译时间与包体失控",
+  "statement": "材质实例与关键字组合失控，Shader 变体数量激增，编译时间长、包体变大、运行时切换卡顿。",
+  "scene": "多平台项目、大量皮肤/武器/环境材质、移动端。",
+  "symptoms": [
+   "Shader 编译时间占构建大头",
+   "变体数量远超实际使用",
+   "首次切换外观时卡顿"
+  ],
+  "rootCauseClass": "材质变体",
+  "rootCause": "材质实例无节制派生；关键字组合未收敛；缺少变体统计与裁剪。",
+  "candidates": [
+   {
+    "sol": "ow-13",
+    "tradeoff": "变体统计与裁剪是直接手段，但需要技术美术规范。"
+   },
+   {
+    "sol": "mob-05",
+    "tradeoff": "移动端材质复杂度控制能降变体，但会限制表现。"
+   },
+   {
+    "sol": "rd-12",
+    "tradeoff": "自定义 Shader 性能治理能定位，但不自动减少组合。"
+   }
+  ],
+  "judgment": "先统计“实际使用”的变体，再裁剪未使用组合；把材质规范做成 CI 检查，而不是靠事后清理。",
+  "verification": [
+   "导出 Shader 变体清单统计数量",
+   "对比裁剪前后的编译时间/包体",
+   "检查材质关键字使用矩阵"
+  ],
+  "sources": [
+   "S042",
+   "S074",
+   "S043"
+  ]
+ },
+ {
+  "id": "pb-shader-03",
+  "topic": "topic-shader-pso",
+  "types": [
+   "通用"
+  ],
+  "title": "热更后 Shader 版本不匹配导致花屏/回退",
+  "statement": "补丁更新后部分材质花屏、默认材质回退，或 Shader 缓存与资源版本不一致。",
+  "scene": "长线运营热更、跨版本升级、Server/Client 不同构建。",
+  "symptoms": [
+   "部分材质显示默认网格/粉色",
+   "日志出现 Shader 版本/哈希不匹配",
+   "回滚后仍残留旧缓存"
+  ],
+  "rootCauseClass": "版本一致性",
+  "rootCause": "Shader 缓存未随构建号失效；资源与代码版本不同源；补丁只覆盖部分平台变体。",
+  "candidates": [
+   {
+    "sol": "gen-11",
+    "tradeoff": "版本化与缓存失效是根治，但需要构建管线配合。"
+   },
+   {
+    "sol": "gen-15",
+    "tradeoff": "统一构建/热更流水线能保证同源，改造面大。"
+   },
+   {
+    "sol": "load-07",
+    "tradeoff": "分包与补丁能控制范围，但不能保证 Shader 版本。"
+   }
+  ],
+  "judgment": "Shader 缓存必须绑定构建号/平台/图形 API；补丁升级时主动清理旧缓存；Server/Client 构建同源。",
+  "verification": [
+   "启动时校验 Shader 缓存版本",
+   "构造跨版本补丁升级用例",
+   "检查各平台变体是否齐全"
+  ],
+  "sources": [
+   "S042",
+   "S098",
+   "S032"
+  ]
+ },
+ {
+  "id": "pb-shader-04",
+  "topic": "topic-shader-pso",
+  "types": [
+   "通用",
+   "ARPG"
+  ],
+  "title": "移动端 Shader 指令数超预算",
+  "statement": "移动端材质在低端机上编译失败或运行极慢，GPU 指令数/寄存器压力超出档位预算。",
+  "scene": "移动端多机型、复杂材质、透明/粒子。",
+  "symptoms": [
+   "低端机掉帧明显",
+   "Shader 编译警告指令数过高",
+   "发热与功耗上升"
+  ],
+  "rootCauseClass": "移动端 Shader 预算",
+  "rootCause": "材质按桌面复杂度制作；缺少移动端变体/简化；透明与光照计算过重。",
+  "candidates": [
+   {
+    "sol": "mob-05",
+    "tradeoff": "移动端材质复杂度治理是直接解，但需要美术改资产。"
+   },
+   {
+    "sol": "mob-01",
+    "tradeoff": "管线/Feature Level 选型能限制能力，但不解决单个材质。"
+   },
+   {
+    "sol": "rd-12",
+    "tradeoff": "指令/occupancy 分析能定位，但需要平台工具。"
+   }
+  ],
+  "judgment": "为移动端建立材质预算与自动检查；关键材质做移动专用简化版本；不要用桌面材质直接下发。",
+  "verification": [
+   "Arm Mobile Studio 查看指令数/周期",
+   "对比简化前后的帧率与发热",
+   "检查移动端变体编译日志"
+  ],
+  "sources": [
+   "S074",
+   "S029",
+   "S043"
+  ]
+ },
+ {
+  "id": "pb-shader-05",
+  "topic": "topic-shader-pso",
+  "types": [
+   "通用"
+  ],
+  "title": "全局 Shader 编译卡顿与 DDC 缺失",
+  "statement": "团队协作/CI 构建时 Shader 编译极慢，或本地 DDC 缺失导致每次全量编译。",
+  "scene": "多分支协作、频繁切分支、CI 构建、跨平台打包。",
+  "symptoms": [
+   "切换分支后长时间编译",
+   "CI 构建耗时不可控",
+   "本地缓存命中率低"
+  ],
+  "rootCauseClass": "构建与缓存",
+  "rootCause": "DDC 未共享/未版本化；Shader 变体过多；构建机与本地环境不一致。",
+  "candidates": [
+   {
+    "sol": "mob-05",
+    "tradeoff": "编译管线/DDC 治理能显著降时，但需要基础设施。"
+   },
+   {
+    "sol": "gen-11",
+    "tradeoff": "PSO 预缓存与构建集成能减少运行时问题，但不解决编译时长。"
+   },
+   {
+    "sol": "gen-05",
+    "tradeoff": "CI/自动化能规范流程，但本身不加速编译。"
+   }
+  ],
+  "judgment": "先做 DDC 共享与版本化，再裁剪变体；CI 与本地使用同一套缓存策略，避免“每个人都在重编”。",
+  "verification": [
+   "统计 DDC 命中率与编译耗时",
+   "对比共享缓存前后的 CI 时间",
+   "检查分支切换后的增量编译"
+  ],
+  "sources": [
+   "S042",
+   "S043",
+   "S044"
+  ]
+ }
+]

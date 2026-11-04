@@ -1,0 +1,1547 @@
+[
+  {
+    "id": "mob-01",
+    "name": "Mobile 渲染管线：Forward / Deferred 与 Feature Level",
+    "aliases": [
+      "Mobile Forward",
+      "Mobile Deferred",
+      "Feature Level",
+      "ES3.1",
+      "Vulkan",
+      "Metal"
+    ],
+    "type": [
+      "通用",
+      "FPS",
+      "MOBA",
+      "开放世界"
+    ],
+    "domain": "solution",
+    "category": "移动端渲染",
+    "engine": [
+      "UE4",
+      "UE5",
+      "UE5.0–5.3",
+      "UE5.4+"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "移动端优先 Forward（省 G-Buffer 带宽），需要大量动态光源/复杂材质时评估 Deferred；Feature Level 决定可用特性（ES3.1/Vulkan/Metal）。",
+    "problem": "桌面管线直接搬到移动端会超出带宽/填充率；不同机型能力差异大，需要按 Feature Level 分级。",
+    "mechanism": "Mobile Forward 在单 pass 内完成着色与光照，减少 G-Buffer 读写；Mobile Deferred 用 G-Buffer + 延迟光照，支持更多光源但带宽更高。Feature Level 决定 shader 模型、纹理格式与可用特性；Vulkan/Metal 提供更低开销的 API。",
+    "pros": [
+      "Forward 带宽友好，适合 TBDR",
+      "Deferred 支持更多动态光源",
+      "Feature Level 可按机型分级"
+    ],
+    "cons": [
+      "Deferred 在移动端带宽代价高",
+      "Forward 对多光源/复杂材质扩展性差",
+      "不同 API/机型的 shader 变体与兼容性复杂"
+    ],
+    "fit": [
+      "手游/移动端跨平台项目",
+      "需要多档画质的开放世界",
+      "MOBA/竞技手游"
+    ],
+    "unfit": [
+      "仅桌面/主机的项目",
+      "需要 Lumen/Nanite 全功能的场景"
+    ],
+    "params": [
+      {
+        "k": "着色路径",
+        "v": "Forward 优先",
+        "note": "按光源数量评估 Deferred"
+      },
+      {
+        "k": "Feature Level",
+        "v": "ES3.1/Vulkan/Metal",
+        "note": "按最低机型定底线"
+      },
+      {
+        "k": "画质档位",
+        "v": "低/中/高",
+        "note": "与设备分级绑定"
+      },
+      {
+        "k": "动态光源数",
+        "v": "严格控制",
+        "note": "Forward 下成本线性增长"
+      }
+    ],
+    "sources": [
+      "S074",
+      "S078",
+      "S131",
+      "S132"
+    ],
+    "cases": [
+      {
+        "who": "UE Scalability",
+        "note": "按设备/画质分级控制渲染特性",
+        "source": "S074"
+      },
+      {
+        "who": "Arm Mobile Studio",
+        "note": "在 Mali 设备上分析管线与带宽",
+        "source": "S078"
+      }
+    ],
+    "tags": [
+      "Mobile Forward",
+      "Mobile Deferred",
+      "Feature Level",
+      "ES3.1",
+      "Vulkan",
+      "Metal"
+    ],
+    "extra": false,
+    "gap": "移动端专属官方管线文档链接未稳定核验；本条以 Scalability/平台工具资料与工程实践归纳。",
+    "reproduce": [
+      "新建移动端项目，分别用 Mobile Forward 与 Mobile Deferred 渲染同一场景。",
+      "在 Project Settings 设置目标 Feature Level（ES3.1/Vulkan/Metal）。",
+      "用 stat RHI / stat GPU 对比两条管线的耗时与带宽。",
+      "增加动态光源数量，观察 Forward 的成本增长。",
+      "在目标机型上跑同一场景，确认帧率与发热。"
+    ],
+    "usage": [
+      "接入方式：Project Settings 的 Rendering/Platform 设置；设备分级用 Device Profiles。",
+      "典型参数：Forward 优先；Feature Level 按最低机型；动态光源严格限制。",
+      "集成点：与材质、光照、后处理、设备分级联动。",
+      "版本差异：UE5 移动端对 Feature Level/着色路径的支持随版本演进，需按目标版本验证。"
+    ],
+    "optimization": {
+      "performance": [
+        "减少 G-Buffer 带宽",
+        "控制动态光源",
+        "用简单材质"
+      ],
+      "memory": [
+        "降低 RT 分辨率",
+        "压缩纹理"
+      ],
+      "package": [
+        "按 Feature Level 生成变体",
+        "剔除未用变体"
+      ],
+      "iteration": [
+        "设备分级配置化",
+        "自动化机型跑测"
+      ],
+      "stability": [
+        "低端机回退 Forward/简化",
+        "shader 变体覆盖测试"
+      ],
+      "notWorth": "目标机型性能充裕时，不必为省带宽牺牲画质。"
+    },
+    "verify": [
+      "stat RHI/stat GPU 显示管线耗时符合预算。",
+      "目标机型帧率稳定，无过热降频。",
+      "不同 Feature Level 下画面与功能符合预期。"
+    ]
+  },
+  {
+    "id": "mob-02",
+    "name": "TBDR、带宽与填充率：过度绘制治理",
+    "aliases": [
+      "TBDR",
+      "Tile-Based",
+      "Overdraw",
+      "填充率",
+      "带宽",
+      "Early-Z"
+    ],
+    "type": [
+      "通用",
+      "FPS",
+      "MOBA"
+    ],
+    "domain": "solution",
+    "category": "移动端渲染",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "B",
+    "level": "进阶",
+    "summary": "移动 GPU 多为 TBDR，带宽与填充率是首要瓶颈；半透明/粒子/大面积特效的 overdraw 会迅速吃满预算。",
+    "problem": "桌面端靠带宽硬抗的 overdraw 在移动端直接掉帧/发热；半透明粒子与 UI 叠加是常见元凶。",
+    "mechanism": "TBDR 把屏幕分块，先在片上内存做深度/模板，再着色可见像素；但半透明无法受益于 Early-Z，overdraw 会重复着色。带宽还包括 RT 读写、纹理采样与 resolve。",
+    "pros": [
+      "理解后可精准优化",
+      "减少 overdraw 对续航/发热收益明显",
+      "与分辨率缩放配合效果好"
+    ],
+    "cons": [
+      "需要 GPU 工具才能量化",
+      "过度削减特效会损失表现力",
+      "不同 GPU 架构行为不同"
+    ],
+    "fit": [
+      "移动端粒子/特效密集场景",
+      "UI 叠加",
+      "大面积半透明"
+    ],
+    "unfit": [
+      "桌面独显带宽充裕场景",
+      "纯不透明低 overdraw 场景"
+    ],
+    "params": [
+      {
+        "k": "Overdraw 目标",
+        "v": "按预算",
+        "note": "用工具测量而非猜"
+      },
+      {
+        "k": "半透明层数",
+        "v": "严格限制",
+        "note": "粒子/雾/UI 叠加"
+      },
+      {
+        "k": "分辨率",
+        "v": "动态缩放",
+        "note": "填充率线性下降"
+      },
+      {
+        "k": "Render Target",
+        "v": "减少",
+        "note": "RT 读写耗带宽"
+      }
+    ],
+    "sources": [
+      "S078",
+      "S131",
+      "S074",
+      "S025"
+    ],
+    "cases": [
+      {
+        "who": "Arm Mobile Studio",
+        "note": "Mali 上查看 overdraw/带宽计数器",
+        "source": "S078"
+      },
+      {
+        "who": "Android GPU Inspector",
+        "note": "Android 设备 GPU 计数器与抓帧",
+        "source": "S131"
+      }
+    ],
+    "tags": [
+      "TBDR",
+      "Overdraw",
+      "带宽",
+      "填充率",
+      "Early-Z",
+      "粒子"
+    ],
+    "extra": false,
+    "gap": "不同 GPU（Mali/Adreno/PowerVR/Apple）的 TBDR 实现差异大，需在目标机型实测。",
+    "reproduce": [
+      "在移动端场景叠加多层半透明粒子/雾/UI。",
+      "用 Arm Mobile Studio 或 AGI 抓帧，查看 overdraw 与带宽计数器。",
+      "逐层关闭特效，定位主要 overdraw 来源。",
+      "降低粒子层数/尺寸或改用不透明/遮罩方案。",
+      "开启动态分辨率，复测帧率与带宽。"
+    ],
+    "usage": [
+      "接入方式：材质/粒子层数控制 + 动态分辨率 + 设备分级。",
+      "典型参数：半透明层数严格限制；RT 数量最小化；分辨率按帧预算缩放。",
+      "集成点：与 Niagara、UI、后处理、动态分辨率联动。",
+      "版本差异：UE5 的移动端后处理/分辨率缩放选项随版本变化，需按目标版本核对。"
+    ],
+    "optimization": {
+      "performance": [
+        "减少 overdraw",
+        "降低分辨率",
+        "合并粒子"
+      ],
+      "memory": [
+        "减少 RT 与纹理"
+      ],
+      "package": [
+        "共享材质/粒子"
+      ],
+      "iteration": [
+        "GPU 抓帧纳入回归",
+        "机型矩阵测试"
+      ],
+      "stability": [
+        "低端机自动降特效",
+        "防止过热降频"
+      ],
+      "notWorth": "overdraw 已低且帧率稳定时，不必为了数字砍表现。"
+    },
+    "verify": [
+      "GPU 计数器显示 overdraw/带宽下降。",
+      "目标机型帧率提升且发热可控。",
+      "画面表现无明显穿帮。"
+    ]
+  },
+  {
+    "id": "mob-03",
+    "name": "Lumen / Nanite / VSM / TSR 在移动端的可用性与替代",
+    "aliases": [
+      "Lumen Mobile",
+      "Nanite Mobile",
+      "Virtual Shadow Maps",
+      "TSR",
+      "移动端 GI",
+      "距离场"
+    ],
+    "type": [
+      "通用",
+      "开放世界",
+      "FPS"
+    ],
+    "domain": "solution",
+    "category": "移动端渲染",
+    "engine": [
+      "UE5",
+      "UE5.0–5.3",
+      "UE5.4+"
+    ],
+    "maturity": "可用但有条件",
+    "reliability": "B",
+    "level": "深入",
+    "summary": "Lumen/Nanite/VSM/TSR 在移动端的支持度随版本与机型变化；多数移动项目用烘焙 GI、静态阴影、LOD+Cull、距离场与简化上采样替代。",
+    "problem": "UE5 桌面默认的高端特性在移动端可能不可用或成本过高；直接开启会导致帧率/发热不可接受。",
+    "mechanism": "Lumen 依赖追踪与表面缓存，移动端通常关闭或仅极低质量；Nanite 在部分移动平台/版本受限，需传统 LOD；VSM 对移动端开销高，常用静态阴影/CSM；TSR 成本较高，可用简化的空间/时序上采样。",
+    "pros": [
+      "按平台选择可接受的画质/成本组合",
+      "烘焙/静态方案稳定且便宜",
+      "LOD/Cull 通用"
+    ],
+    "cons": [
+      "动态光照/几何细节受限",
+      "烘焙迭代慢",
+      "跨版本/机型能力矩阵复杂"
+    ],
+    "fit": [
+      "移动端开放世界",
+      "需要稳定帧率的手游",
+      "多档画质"
+    ],
+    "unfit": [
+      "必须全动态 GI/虚拟几何的移动项目",
+      "仅高端机型且可接受高成本"
+    ],
+    "params": [
+      {
+        "k": "GI",
+        "v": "烘焙/探针优先",
+        "note": "Lumen 仅高端评估"
+      },
+      {
+        "k": "几何",
+        "v": "LOD/HLOD",
+        "note": "Nanite 按平台验证"
+      },
+      {
+        "k": "阴影",
+        "v": "静态/CSM",
+        "note": "VSM 谨慎"
+      },
+      {
+        "k": "上采样",
+        "v": "简化方案",
+        "note": "TSR 成本评估"
+      }
+    ],
+    "sources": [
+      "S001",
+      "S002",
+      "S065",
+      "S066",
+      "S074",
+      "S034"
+    ],
+    "cases": [
+      {
+        "who": "UE Lumen 技术细节",
+        "note": "理解 Lumen 成本来源，评估移动端是否可行",
+        "source": "S034"
+      },
+      {
+        "who": "UE Scalability",
+        "note": "用设备分级关闭高端特性",
+        "source": "S074"
+      }
+    ],
+    "tags": [
+      "Lumen",
+      "Nanite",
+      "VSM",
+      "TSR",
+      "移动端",
+      "烘焙",
+      "LOD"
+    ],
+    "extra": false,
+    "gap": "移动端对 Lumen/Nanite/VSM/TSR 的支持矩阵随 UE5 版本与平台变化，必须以目标版本 Release Notes 与实机验证为准；本库不给出版本断言。",
+    "reproduce": [
+      "在移动端项目分别开启/关闭 Lumen、Nanite、VSM、TSR。",
+      "用 stat RHI/stat GPU 与设备工具记录帧时间/带宽/发热。",
+      "对不可用或超预算的特性，切换到烘焙 GI/静态阴影/LOD。",
+      "建立低/中/高设备档位，验证每档画质与帧率。",
+      "在目标机型矩阵上跑自动化基准。"
+    ],
+    "usage": [
+      "接入方式：Project Settings + Device Profiles + 材质/关卡分级。",
+      "典型参数：GI 烘焙优先；几何 LOD/HLOD；阴影静态/CSM；上采样简化。",
+      "集成点：与光照、流送、设备分级、性能预算联动。",
+      "版本差异：UE5 各版本对移动端高端特性的支持变化大，接入前查目标版本 Release Notes。"
+    ],
+    "optimization": {
+      "performance": [
+        "关闭不可用/超预算特性",
+        "降低分辨率",
+        "LOD/HLOD"
+      ],
+      "memory": [
+        "烘焙光照贴图/探针",
+        "纹理压缩"
+      ],
+      "package": [
+        "按档位打包光照数据",
+        "剔除未用变体"
+      ],
+      "iteration": [
+        "设备分级配置化",
+        "实机基准"
+      ],
+      "stability": [
+        "低端机回退",
+        "温控降频策略"
+      ],
+      "notWorth": "目标机型无法承受时，强行开启高端特性只会带来发热与差评。"
+    },
+    "verify": [
+      "各档位机型帧率与发热符合预算。",
+      "关闭高端特性后画面可接受、无漏光/穿帮。",
+      "Release Notes 与实机行为一致。"
+    ]
+  },
+  {
+    "id": "mob-04",
+    "name": "移动端光照与阴影：烘焙、静态阴影与混合",
+    "aliases": [
+      "Baked Lighting",
+      "Lightmap",
+      "Static Shadow",
+      "CSM",
+      "光照探针",
+      "移动端阴影"
+    ],
+    "type": [
+      "通用",
+      "开放世界",
+      "MOBA"
+    ],
+    "domain": "solution",
+    "category": "移动端渲染",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "移动端优先烘焙光照/静态阴影与少量动态光源；动态昼夜/天气场景用探针/简化 GI 或高端机分层。",
+    "problem": "动态光照与高分辨率阴影在移动端带宽/填充率成本高；全烘焙又无法支持动态变化。",
+    "mechanism": "Lightmap 烘焙静态间接光与阴影；光照探针采样动态物体；CSM 用于动态主光；静态阴影/投影平面用于固定光源。混合方案按区域/重要性切换。",
+    "pros": [
+      "运行时成本低、稳定",
+      "画质可控",
+      "适合大量静态场景"
+    ],
+    "cons": [
+      "烘焙迭代慢、包体增大",
+      "动态变化受限",
+      "漏光/接缝需处理"
+    ],
+    "fit": [
+      "固定时段的手游场景",
+      "MOBA/竞技地图",
+      "移动端开放世界静态环境"
+    ],
+    "unfit": [
+      "频繁昼夜/天气变化",
+      "大量可破坏光照环境"
+    ],
+    "params": [
+      {
+        "k": "Lightmap 分辨率",
+        "v": "按面积/距离",
+        "note": "过高增加包体与烘焙时间"
+      },
+      {
+        "k": "动态光源数",
+        "v": "严格控制",
+        "note": "移动端 Forward 成本线性"
+      },
+      {
+        "k": "阴影距离",
+        "v": "分级",
+        "note": "远距离关闭/静态"
+      },
+      {
+        "k": "探针",
+        "v": "按区域",
+        "note": "覆盖动态物体"
+      }
+    ],
+    "sources": [
+      "S034",
+      "S074",
+      "S065",
+      "S023"
+    ],
+    "cases": [
+      {
+        "who": "UE Lightbaking",
+        "note": "Lightmap/探针/静态阴影流程",
+        "source": "S034"
+      },
+      {
+        "who": "移动端竞技地图",
+        "note": "固定时段+烘焙+少量动态光",
+        "source": "S074"
+      }
+    ],
+    "tags": [
+      "烘焙",
+      "Lightmap",
+      "静态阴影",
+      "CSM",
+      "光照探针",
+      "移动端"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "在移动端场景设置静态光源与 Lightmap 分辨率。",
+      "构建光照，观察烘焙时间与包体变化。",
+      "添加少量动态光源/CSM，测量阴影成本。",
+      "用光照探针覆盖动态角色，检查接缝/漏光。",
+      "在目标机型对比全动态与烘焙的帧率/发热。"
+    ],
+    "usage": [
+      "接入方式：Lightmass/GPU Lightmass 烘焙 + 静态阴影 + 探针。",
+      "典型参数：Lightmap 分辨率按面积；动态光源严格限制；阴影距离分级。",
+      "集成点：与流送、画质档位、昼夜系统联动。",
+      "版本差异：UE5 的 GPU Lightmass/Lumen 与 UE4 Lightmass 流程不同，需按版本选择。"
+    ],
+    "optimization": {
+      "performance": [
+        "减少动态光源/阴影",
+        "远处静态阴影"
+      ],
+      "memory": [
+        "压缩 Lightmap",
+        "流送光照数据"
+      ],
+      "package": [
+        "按区域分块光照",
+        "剔除未用 Lightmap"
+      ],
+      "iteration": [
+        "增量烘焙",
+        "自动化漏光检查"
+      ],
+      "stability": [
+        "接缝/漏光修复流程",
+        "低端机静态阴影回退"
+      ],
+      "notWorth": "场景小且动态光照需求强时，烘焙收益有限。"
+    },
+    "verify": [
+      "目标机型光照/阴影耗时在预算内。",
+      "无漏光/接缝，动态物体受光合理。",
+      "烘焙包体与时间可接受。"
+    ]
+  },
+  {
+    "id": "mob-05",
+    "name": "材质复杂度、指令数与 Shader 变体控制",
+    "aliases": [
+      "Material Instructions",
+      "Shader Complexity",
+      "Shader Variant",
+      "Mobile Material",
+      "材质指令数"
+    ],
+    "type": [
+      "通用",
+      "FPS",
+      "MOBA",
+      "开放世界"
+    ],
+    "domain": "solution",
+    "category": "移动端渲染",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "移动端材质受指令数、纹理采样与变体数量约束；用材质复杂度视图与 stat RHI 找出高成本材质，减少变体与分支。",
+    "problem": "桌面材质直接用于移动端导致 ALU/纹理采样超预算；变体爆炸拖慢编译与包体。",
+    "mechanism": "每个像素的材质指令与采样次数乘以覆盖像素数构成成本；移动端 ALU 与带宽更紧。Shader 变体由材质质量/特性/平台组合产生，过多变体增加编译时间、PSO 卡顿与包体。",
+    "pros": [
+      "优化收益直接",
+      "可视化工具成熟",
+      "变体治理同时改善包体与启动"
+    ],
+    "cons": [
+      "美术效果与性能冲突",
+      "变体裁剪可能漏掉组合",
+      "跨平台质量档位维护复杂"
+    ],
+    "fit": [
+      "移动端角色/环境材质",
+      "大量材质变体的项目",
+      "Shader 编译/PSO 问题"
+    ],
+    "unfit": [
+      "材质极少的小项目",
+      "离线渲染"
+    ],
+    "params": [
+      {
+        "k": "指令数",
+        "v": "按档位上限",
+        "note": "用复杂度视图"
+      },
+      {
+        "k": "纹理采样",
+        "v": "尽量少",
+        "note": "每次采样耗带宽"
+      },
+      {
+        "k": "变体",
+        "v": "按平台/质量",
+        "note": "剔除未用组合"
+      },
+      {
+        "k": "质量开关",
+        "v": "Material Quality Level",
+        "note": "低配走简化路径"
+      }
+    ],
+    "sources": [
+      "S067",
+      "S074",
+      "S042",
+      "S025"
+    ],
+    "cases": [
+      {
+        "who": "UE Shader Complexity",
+        "note": "用视图模式定位高成本材质",
+        "source": "S025"
+      },
+      {
+        "who": "UE PSO Precaching",
+        "note": "变体与 PSO 卡顿治理",
+        "source": "S042"
+      }
+    ],
+    "tags": [
+      "材质",
+      "指令数",
+      "Shader变体",
+      "PSO",
+      "移动端",
+      "纹理采样"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "在移动端场景用 Shader Complexity 视图查看高成本区域。",
+      "统计高成本材质的指令数与纹理采样。",
+      "为低配档位加 Material Quality Level 简化路径。",
+      "用统计/编译日志查看 Shader 变体数量。",
+      "开启 PSO 预缓存，观察首次绘制卡顿。"
+    ],
+    "usage": [
+      "接入方式：材质质量开关 + 变体裁剪 + PSO 预缓存。",
+      "典型参数：指令数按档位上限；纹理采样尽量少；变体按平台/质量裁剪。",
+      "集成点：与设备分级、Cook 变体、PSO 收集联动。",
+      "版本差异：UE5 的 Substrate/材质系统可能改变指令与变体结构，需按版本评估。"
+    ],
+    "optimization": {
+      "performance": [
+        "简化材质",
+        "减少采样",
+        "低配走简化路径"
+      ],
+      "memory": [
+        "共享材质参数",
+        "压缩纹理"
+      ],
+      "package": [
+        "裁剪变体",
+        "共享材质"
+      ],
+      "iteration": [
+        "材质复杂度纳入评审",
+        "变体报表"
+      ],
+      "stability": [
+        "PSO 预缓存",
+        "变体覆盖测试"
+      ],
+      "notWorth": "少量高成本材质在低覆盖区域时，优化收益有限。"
+    },
+    "verify": [
+      "Shader Complexity 视图中高成本区域减少。",
+      "变体数量与编译时间下降。",
+      "首次绘制无明显 PSO 卡顿。"
+    ]
+  },
+  {
+    "id": "mob-06",
+    "name": "Draw call 合并、实例化与合批",
+    "aliases": [
+      "Draw Call",
+      "Instancing",
+      "HISM",
+      "Merge Actors",
+      "合批",
+      "Auto Instancing"
+    ],
+    "type": [
+      "通用",
+      "MOBA",
+      "开放世界",
+      "FPS"
+    ],
+    "domain": "solution",
+    "category": "移动端渲染",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "移动端 draw call 开销相对高；用 Instanced Static Mesh/HISM、Merge Actors、Auto Instancing 与材质共享减少提交，但要注意剔除粒度与更新成本。",
+    "problem": "大量重复物件逐个 draw call 导致 CPU 提交瓶颈；合批过度又会让剔除失效。",
+    "mechanism": "Instancing 把同网格/材质的多个实例合并为一次提交；HISM 支持层级剔除与 LOD；Merge Actors 把静态网格合并；Auto Instancing 在支持的平台上自动合批。",
+    "pros": [
+      "显著减少 draw call",
+      "适合植被/建筑模块/道具",
+      "与 LOD/剔除配合"
+    ],
+    "cons": [
+      "实例化后单实例剔除粒度变粗",
+      "动态更新/变换成本",
+      "合批可能增加内存与包体"
+    ],
+    "fit": [
+      "植被/石头/建筑模块",
+      "MOBA 小兵/场景道具",
+      "开放世界重复物件"
+    ],
+    "unfit": [
+      "高动态、频繁增删的物件",
+      "需要逐物件独立材质的场景"
+    ],
+    "params": [
+      {
+        "k": "实例化方式",
+        "v": "ISM/HISM",
+        "note": "HISM 支持更好剔除"
+      },
+      {
+        "k": "合批范围",
+        "v": "按区域",
+        "note": "避免整图合批"
+      },
+      {
+        "k": "材质共享",
+        "v": "尽量统一",
+        "note": "不同材质会打断合批"
+      },
+      {
+        "k": "剔除",
+        "v": "分层",
+        "note": "实例化后注意粒度"
+      }
+    ],
+    "sources": [
+      "S025",
+      "S074",
+      "S001",
+      "S003"
+    ],
+    "cases": [
+      {
+        "who": "UE Instancing 文档",
+        "note": "ISM/HISM 的使用与剔除",
+        "source": "S025"
+      },
+      {
+        "who": "开放世界植被",
+        "note": "HISM + 距离剔除 + LOD",
+        "source": "S003"
+      }
+    ],
+    "tags": [
+      "DrawCall",
+      "Instancing",
+      "HISM",
+      "合批",
+      "MergeActors",
+      "剔除"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "在移动端场景放置大量重复网格，记录 draw call 与帧时间。",
+      "改用 Instanced Static Mesh/HISM，观察 draw call 下降。",
+      "调整实例剔除距离与 LOD，检查视觉与性能。",
+      "对静态建筑尝试 Merge Actors，比较剔除与内存。",
+      "用 stat RHI/stat scenerendering 确认提交开销。"
+    ],
+    "usage": [
+      "接入方式：ISM/HISM 组件、Merge Actors 工具、材质共享与 Auto Instancing。",
+      "典型参数：按区域合批；HISM 剔除距离/密度；材质尽量统一。",
+      "集成点：与流送、LOD、HLOD、植被系统联动。",
+      "版本差异：UE5 的 Nanite 对静态几何 draw call 有不同路径，移动端仍需按平台验证。"
+    ],
+    "optimization": {
+      "performance": [
+        "实例化/合批",
+        "减少材质切换",
+        "分层剔除"
+      ],
+      "memory": [
+        "控制实例数据",
+        "避免整图合批"
+      ],
+      "package": [
+        "共享网格/材质"
+      ],
+      "iteration": [
+        "draw call 报表纳入 CI",
+        "场景预算"
+      ],
+      "stability": [
+        "合批后剔除正确",
+        "动态物件不误合批"
+      ],
+      "notWorth": "draw call 已远低于预算时，合批带来的剔除损失可能不划算。"
+    },
+    "verify": [
+      "stat RHI/stat scenerendering 显示 draw call 下降。",
+      "剔除后无物件残留/闪烁。",
+      "目标机型帧率提升且内存可接受。"
+    ]
+  },
+  {
+    "id": "mob-07",
+    "name": "移动端纹理：ASTC/ETC2、Mip、流送与预算",
+    "aliases": [
+      "ASTC",
+      "ETC2",
+      "Texture Streaming",
+      "Mip",
+      "纹理预算",
+      "压缩"
+    ],
+    "type": [
+      "通用",
+      "开放世界",
+      "MOBA",
+      "FPS"
+    ],
+    "domain": "solution",
+    "category": "移动端渲染",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "移动端纹理按平台用 ASTC/ETC2 压缩，配合 Mip 与流送控制显存与带宽；纹理预算通常是移动端内存的第一大项。",
+    "problem": "未压缩/错误格式纹理导致显存爆炸与采样带宽高；Mip 缺失造成远处闪烁与缓存抖动。",
+    "mechanism": "ASTC/ETC2 在压缩比与画质间取舍；Mip 链降低远处采样带宽与缓存压力；Texture Streaming 按距离/可见性加载 Mip，控制显存峰值。",
+    "pros": [
+      "显著降低显存与带宽",
+      "Mip 改善画质与缓存",
+      "流送支持大世界"
+    ],
+    "cons": [
+      "压缩伪影（尤其法线/UI）",
+      "流送造成 hitch/模糊",
+      "格式/平台矩阵复杂"
+    ],
+    "fit": [
+      "移动端大世界",
+      "大量 UI/图标",
+      "高分辨率环境纹理"
+    ],
+    "unfit": [
+      "需要像素级精确的 UI/法线（需特殊格式）",
+      "极少量纹理的小项目"
+    ],
+    "params": [
+      {
+        "k": "压缩格式",
+        "v": "ASTC/ETC2",
+        "note": "按平台与用途"
+      },
+      {
+        "k": "Mip",
+        "v": "开启并调偏移",
+        "note": "UI/法线特殊处理"
+      },
+      {
+        "k": "流送池",
+        "v": "按显存预算",
+        "note": "过小会频繁换入"
+      },
+      {
+        "k": "纹理预算",
+        "v": "按设备档位",
+        "note": "单独核算"
+      }
+    ],
+    "sources": [
+      "S029",
+      "S074",
+      "S131",
+      "S078"
+    ],
+    "cases": [
+      {
+        "who": "UE Texture Streaming",
+        "note": "流送池与 Mip 加载",
+        "source": "S029"
+      },
+      {
+        "who": "移动端设备分级",
+        "note": "按机型设置纹理预算",
+        "source": "S074"
+      }
+    ],
+    "tags": [
+      "ASTC",
+      "ETC2",
+      "Mip",
+      "纹理流送",
+      "显存",
+      "移动端"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "导入高分辨率纹理，分别用 ASTC/ETC2 压缩并对比画质。",
+      "开/关 Mip 与流送，观察显存与远处画质。",
+      "用 stat memory/stat streaming 查看纹理池与流送状态。",
+      "设置不同设备档位的纹理预算，测试低端机。",
+      "用 GPU 工具查看纹理采样带宽。"
+    ],
+    "usage": [
+      "接入方式：纹理导入设置 + 平台格式 + Texture Streaming 配置 + Device Profiles。",
+      "典型参数：ASTC/ETC2 按平台；Mip 开启；流送池按显存；纹理预算按档位。",
+      "集成点：与流送、画质档位、内存预算联动。",
+      "版本差异：UE5 的虚拟纹理/流送设置在版本间有变化，需按目标版本核对。"
+    ],
+    "optimization": {
+      "performance": [
+        "压缩/Mip 降低带宽",
+        "流送按需"
+      ],
+      "memory": [
+        "纹理预算",
+        "共享图集"
+      ],
+      "package": [
+        "按区域/用途分包",
+        "剔除未用纹理"
+      ],
+      "iteration": [
+        "纹理审计报表",
+        "自动化画质对比"
+      ],
+      "stability": [
+        "流送 hitch 监控",
+        "低端机降 Mip"
+      ],
+      "notWorth": "纹理总量远低于预算时，过度压缩会损失画质。"
+    },
+    "verify": [
+      "stat memory 显示纹理占用在预算内。",
+      "远处无闪烁/模糊异常。",
+      "GPU 采样带宽下降，帧率稳定。"
+    ]
+  },
+  {
+    "id": "mob-08",
+    "name": "动态分辨率与设备分级",
+    "aliases": [
+      "Dynamic Resolution",
+      "Device Profiles",
+      "Scalability",
+      "机型分级",
+      "分辨率缩放"
+    ],
+    "type": [
+      "通用",
+      "FPS",
+      "MOBA",
+      "开放世界"
+    ],
+    "domain": "solution",
+    "category": "移动端渲染",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "按设备性能分档，动态调整渲染分辨率与画质特性，把帧时间稳定在目标；设备分级避免用一套配置硬扛所有机型。",
+    "problem": "高端机画质浪费、低端机掉帧；固定分辨率无法应对场景复杂度波动与发热降频。",
+    "mechanism": "Device Profiles 按 GPU/机型/内存映射到 Scalability 组；动态分辨率根据 GPU 时间调整屏幕百分比；画质档位控制阴影/后处理/特效/纹理。",
+    "pros": [
+      "帧率更稳定",
+      "覆盖机型广",
+      "可与发热/功耗策略结合"
+    ],
+    "cons": [
+      "分辨率变化可能可见",
+      "分级配置维护成本",
+      "低端机画质下降"
+    ],
+    "fit": [
+      "手游/跨平台",
+      "场景复杂度波动大的游戏",
+      "发热敏感的移动设备"
+    ],
+    "unfit": [
+      "固定硬件的主机",
+      "对分辨率极敏感的像素艺术"
+    ],
+    "params": [
+      {
+        "k": "目标帧时间",
+        "v": "按帧率目标",
+        "note": "留出余量"
+      },
+      {
+        "k": "分辨率范围",
+        "v": "上下限",
+        "note": "避免过低模糊"
+      },
+      {
+        "k": "档位",
+        "v": "低/中/高",
+        "note": "按设备映射"
+      },
+      {
+        "k": "降频策略",
+        "v": "温度/电量",
+        "note": "与系统 API 结合"
+      }
+    ],
+    "sources": [
+      "S074",
+      "S078",
+      "S131",
+      "S132"
+    ],
+    "cases": [
+      {
+        "who": "UE Scalability/Device Profiles",
+        "note": "按设备映射画质组",
+        "source": "S074"
+      },
+      {
+        "who": "移动端商业项目",
+        "note": "动态分辨率+档位控制发热",
+        "source": "S078"
+      }
+    ],
+    "tags": [
+      "动态分辨率",
+      "DeviceProfiles",
+      "设备分级",
+      "Scalability",
+      "发热"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "在 Project Settings 配置 Device Profiles 与 Scalability 组。",
+      "开启动态分辨率，设置目标帧时间与分辨率范围。",
+      "在低/中/高端机型分别跑同一场景，记录帧率/分辨率/温度。",
+      "调整档位特性（阴影/后处理/特效），观察画质与帧率。",
+      "模拟降频（限制 GPU/CPU），验证动态分辨率响应。"
+    ],
+    "usage": [
+      "接入方式：Device Profiles + Scalability + 动态分辨率 CVar/设置。",
+      "典型参数：目标帧时间按帧率；分辨率上下限；档位按设备；温控策略。",
+      "集成点：与画质菜单、发热/功耗、性能预算联动。",
+      "版本差异：UE5 的动态分辨率实现与平台支持随版本变化，需按目标版本验证。"
+    ],
+    "optimization": {
+      "performance": [
+        "动态分辨率",
+        "档位降特性"
+      ],
+      "memory": [
+        "低档降低 RT/纹理"
+      ],
+      "package": [
+        "按档位打包变体"
+      ],
+      "iteration": [
+        "机型矩阵自动化",
+        "画质对比"
+      ],
+      "stability": [
+        "分辨率突变平滑",
+        "温控回退"
+      ],
+      "notWorth": "固定高性能硬件且帧率稳定时，动态分辨率收益有限。"
+    },
+    "verify": [
+      "目标机型帧率稳定在目标附近。",
+      "分辨率变化不明显，画质可接受。",
+      "温度/功耗在预算内。"
+    ]
+  },
+  {
+    "id": "mob-09",
+    "name": "移动端后处理、透明与粒子开销",
+    "aliases": [
+      "Mobile PostProcess",
+      "Transparency",
+      "Particle",
+      "Niagara",
+      "Bloom",
+      "DOF"
+    ],
+    "type": [
+      "通用",
+      "FPS",
+      "MOBA",
+      "开放世界"
+    ],
+    "domain": "solution",
+    "category": "移动端渲染",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "B",
+    "level": "进阶",
+    "summary": "移动端后处理与半透明粒子是带宽/填充率大户；按档位裁剪后处理、限制粒子层数与屏幕覆盖，必要时用不透明/遮罩替代。",
+    "problem": "Bloom/DOF/运动模糊与大量半透明粒子导致掉帧、发热；后处理链的 RT 读写耗带宽。",
+    "mechanism": "后处理每个效果通常需要额外 RT 与全屏 pass；半透明粒子无法 Early-Z，overdraw 直接叠加。粒子数量、屏幕覆盖、材质指令与光照模式决定成本。",
+    "pros": [
+      "裁剪收益直接",
+      "档位化后覆盖机型广",
+      "粒子可用简化材质"
+    ],
+    "cons": [
+      "表现力下降",
+      "过度裁剪影响美术意图",
+      "不同 GPU 差异大"
+    ],
+    "fit": [
+      "移动端战斗特效",
+      "UI/全屏后处理",
+      "低端机回退"
+    ],
+    "unfit": [
+      "后处理是核心视觉风格的项目的低端档",
+      "粒子极少场景"
+    ],
+    "params": [
+      {
+        "k": "后处理档位",
+        "v": "低/中/高",
+        "note": "低档关闭高成本效果"
+      },
+      {
+        "k": "粒子层数",
+        "v": "限制",
+        "note": "按屏幕覆盖"
+      },
+      {
+        "k": "粒子材质",
+        "v": "无光照/简化",
+        "note": "减少指令与采样"
+      },
+      {
+        "k": "屏幕覆盖",
+        "v": "预算",
+        "note": "大面积特效最贵"
+      }
+    ],
+    "sources": [
+      "S074",
+      "S078",
+      "S131",
+      "S025"
+    ],
+    "cases": [
+      {
+        "who": "UE Scalability",
+        "note": "后处理/特效档位",
+        "source": "S074"
+      },
+      {
+        "who": "Arm Mobile Studio",
+        "note": "量化粒子 overdraw/带宽",
+        "source": "S078"
+      }
+    ],
+    "tags": [
+      "后处理",
+      "透明",
+      "粒子",
+      "Niagara",
+      "Overdraw",
+      "移动端"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "在移动端场景叠加 Bloom/DOF/运动模糊与大量粒子。",
+      "用 stat GPU/GPU 工具记录各 pass 与 overdraw。",
+      "逐项关闭后处理，观察帧时间变化。",
+      "降低粒子层数/覆盖率，改用简化材质。",
+      "建立低/中/高档位并验证画面可接受。"
+    ],
+    "usage": [
+      "接入方式：后处理体积/档位 + Niagara 粒子 LOD/预算 + 材质简化。",
+      "典型参数：低档关闭高成本后处理；粒子层数限制；简化材质；屏幕覆盖预算。",
+      "集成点：与画质档位、设备分级、战斗特效系统联动。",
+      "版本差异：UE5 的 Niagara/后处理移动端支持随版本变化，需按目标版本验证。"
+    ],
+    "optimization": {
+      "performance": [
+        "裁剪后处理",
+        "降低粒子覆盖",
+        "简化材质"
+      ],
+      "memory": [
+        "减少 RT",
+        "粒子池化"
+      ],
+      "package": [
+        "共享粒子/材质"
+      ],
+      "iteration": [
+        "特效预算评审",
+        "GPU 抓帧回归"
+      ],
+      "stability": [
+        "低端机自动降档",
+        "防止过热"
+      ],
+      "notWorth": "后处理/粒子占比很低时，削减对体验的伤害大于性能收益。"
+    },
+    "verify": [
+      "stat GPU 中后处理/粒子 pass 耗时下降。",
+      "目标机型帧率与发热改善。",
+      "画面风格仍符合美术要求。"
+    ]
+  },
+  {
+    "id": "mob-10",
+    "name": "移动端工具链：Arm Mobile Studio / RenderDoc / stat RHI / 功耗",
+    "aliases": [
+      "Arm Mobile Studio",
+      "RenderDoc",
+      "stat RHI",
+      "stat GPU",
+      "GPU 采样",
+      "功耗",
+      "机型分级"
+    ],
+    "type": [
+      "通用",
+      "FPS",
+      "MOBA",
+      "开放世界"
+    ],
+    "domain": "solution",
+    "category": "移动端渲染",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "用 stat RHI/stat GPU 做快速分诊，用 RenderDoc/Arm Mobile Studio/AGI 抓帧定位 pass 与带宽，再结合功耗/温度做机型分级。",
+    "problem": "移动端性能问题无法只靠编辑器统计定位；不同 GPU 厂商工具不同；帧率与发热/功耗需共同优化。",
+    "mechanism": "stat RHI 给出 draw call/RT/带宽相关计数；stat GPU 给出 pass 耗时；RenderDoc/AGI/Mali 工具抓帧查看管线、纹理、overdraw 与计数器；功耗/温度通过系统 API 或外部工具采样。",
+    "pros": [
+      "从统计到抓帧形成闭环",
+      "可定位具体 pass/材质",
+      "支持机型分级与回归"
+    ],
+    "cons": [
+      "工具链学习成本",
+      "抓帧有开销/兼容性问题",
+      "不同厂商工具差异大"
+    ],
+    "fit": [
+      "移动端性能优化",
+      "机型适配",
+      "发热/功耗治理"
+    ],
+    "unfit": [
+      "无移动端目标的项目",
+      "只做宏观统计即可的场景"
+    ],
+    "params": [
+      {
+        "k": "分诊",
+        "v": "stat RHI/GPU",
+        "note": "先看总量与 pass"
+      },
+      {
+        "k": "抓帧",
+        "v": "RenderDoc/AGI/Mali",
+        "note": "按 GPU 厂商"
+      },
+      {
+        "k": "功耗",
+        "v": "系统 API/外部工具",
+        "note": "与帧率共同预算"
+      },
+      {
+        "k": "机型矩阵",
+        "v": "低/中/高",
+        "note": "覆盖目标市场"
+      }
+    ],
+    "sources": [
+      "S078",
+      "S075",
+      "S131",
+      "S025",
+      "S132"
+    ],
+    "cases": [
+      {
+        "who": "Arm Mobile Studio",
+        "note": "Mali GPU 的抓帧与计数器",
+        "source": "S078"
+      },
+      {
+        "who": "RenderDoc",
+        "note": "跨平台抓帧与管线查看",
+        "source": "S075"
+      }
+    ],
+    "tags": [
+      "Arm Mobile Studio",
+      "RenderDoc",
+      "statRHI",
+      "statGPU",
+      "功耗",
+      "机型"
+    ],
+    "extra": false,
+    "gap": "各厂商工具的可用功能与 UE 版本兼容性需按目标平台验证。",
+    "reproduce": [
+      "在移动端设备上连接工具（Arm Mobile Studio/RenderDoc/AGI）。",
+      "用 stat RHI/stat GPU 先定位高耗时 pass。",
+      "抓取一帧，查看 draw call、纹理、overdraw 与带宽计数器。",
+      "针对最大项做材质/分辨率/后处理优化。",
+      "记录帧率、温度、功耗，建立机型档位基线。"
+    ],
+    "usage": [
+      "接入方式：设备连接 + 工具抓帧 + 引擎统计 + 自动化基准。",
+      "典型参数：先分诊后抓帧；按 GPU 厂商选工具；机型矩阵覆盖低/中/高。",
+      "集成点：与性能预算、设备分级、CI 基准联动。",
+      "版本差异：工具对 UE 版本/Android/iOS 的支持随版本变化，需在目标环境验证。"
+    ],
+    "optimization": {
+      "performance": [
+        "按 pass 优化",
+        "降低分辨率/带宽"
+      ],
+      "memory": [
+        "纹理/RT 预算"
+      ],
+      "package": [
+        "按档位裁剪"
+      ],
+      "iteration": [
+        "自动化机型基准",
+        "抓帧回归"
+      ],
+      "stability": [
+        "温控策略",
+        "低端机回退"
+      ],
+      "notWorth": "目标机型已稳定达标时，持续抓帧的投入可降低。"
+    },
+    "verify": [
+      "抓帧显示的瓶颈与 stat 统计一致。",
+      "优化后目标 pass 耗时/带宽下降。",
+      "机型矩阵基线稳定，无过热降频。"
+    ]
+  },
+  {
+    "id": "mob-11",
+    "name": "Mobile Deferred 渲染路径：适用条件与代价",
+    "aliases": [
+      "Mobile Deferred",
+      "移动端延迟渲染",
+      "G-Buffer Mobile"
+    ],
+    "type": [
+      "通用",
+      "FPS",
+      "开放世界",
+      "MOBA"
+    ],
+    "domain": "solution",
+    "category": "移动端渲染",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "可用但有条件",
+    "reliability": "B",
+    "level": "深入",
+    "summary": "Mobile Deferred 用 G-Buffer + 延迟光照支持更多动态光源，但在 TBDR 上带来额外带宽；只在光源/材质复杂度确实需要时启用。",
+    "problem": "Forward 在大量动态光源或复杂材质下成本线性增长；直接切 Deferred 又可能因 G-Buffer 带宽导致填充率/发热恶化。",
+    "mechanism": "Mobile Deferred 先写 G-Buffer（法线/粗糙度/金属度等），再逐光源做延迟光照；TBDR 下 G-Buffer 的读写与 resolve 增加带宽。Feature Level 与机型决定是否支持。",
+    "pros": [
+      "动态光源扩展性更好",
+      "复杂材质/多光源场景更可控",
+      "与桌面延迟管线心智一致"
+    ],
+    "cons": [
+      "G-Buffer 带宽/内存开销高",
+      "半透明仍需 Forward 路径",
+      "低端机可能不适配或收益为负"
+    ],
+    "fit": [
+      "多动态光源的室内/夜景",
+      "需要复杂材质的写实项目",
+      "中高端机型为主的移动项目"
+    ],
+    "unfit": [
+      "低端机为主的休闲项目",
+      "以不透明简单材质为主",
+      "带宽已经吃紧的场景"
+    ],
+    "params": [
+      {
+        "k": "渲染路径",
+        "v": "Mobile Deferred",
+        "note": "按机型/画质档启用"
+      },
+      {
+        "k": "G-Buffer 格式",
+        "v": "最小化附件",
+        "note": "压缩法线/粗糙度"
+      },
+      {
+        "k": "光源上限",
+        "v": "按预算",
+        "note": "逐光源成本"
+      },
+      {
+        "k": "回退",
+        "v": "Forward",
+        "note": "低端机默认"
+      }
+    ],
+    "sources": [
+      "S074",
+      "S131",
+      "S132"
+    ],
+    "cases": [
+      {
+        "who": "UE Scalability",
+        "note": "按设备/画质分级控制渲染特性",
+        "source": "S074"
+      },
+      {
+        "who": "Android GPU Inspector",
+        "note": "量化 G-Buffer 带宽与填充率",
+        "source": "S131"
+      }
+    ],
+    "tags": [
+      "Mobile Deferred",
+      "G-Buffer",
+      "TBDR",
+      "带宽",
+      "移动端"
+    ],
+    "extra": true,
+    "gap": "移动端 Deferred 的官方专项文档未单独稳定核验；本条以平台工具与工程实践归纳，需目标机型实测。",
+    "reproduce": [
+      "在同一移动场景分别启用 Mobile Forward 与 Mobile Deferred。",
+      "用 stat RHI/stat GPU 记录带宽与通道耗时。",
+      "增加动态光源数量，观察两条路径的成本曲线。",
+      "在低端/中端/高端机型各跑一次，记录帧率与发热。",
+      "按机型配置回退规则并验证画质档切换。"
+    ],
+    "usage": [
+      "接入方式：Project Settings 渲染路径 + Device Profile 分档。",
+      "典型参数：G-Buffer 附件最小化；动态光源上限；低端机回退 Forward。",
+      "集成点：与材质、光照、后处理、设备分级联动。",
+      "版本差异：移动端 Deferred 支持范围随版本变化，需按目标版本验证。"
+    ],
+    "optimization": {
+      "performance": [
+        "压缩 G-Buffer",
+        "限制动态光源",
+        "降低 RT 分辨率"
+      ],
+      "memory": [
+        "减少 G-Buffer 附件",
+        "纹理压缩"
+      ],
+      "package": [
+        "按 Feature Level 生成变体"
+      ],
+      "iteration": [
+        "机型矩阵跑测",
+        "画质档回归"
+      ],
+      "stability": [
+        "低端机回退",
+        "shader 变体覆盖"
+      ],
+      "notWorth": "低端机或简单材质场景用 Forward 更稳，Deferred 可能净亏。"
+    },
+    "verify": [
+      "Deferred 下带宽与帧时间在预算内。",
+      "目标机型无过热降频。",
+      "低端机回退 Forward 后功能/画质符合预期。"
+    ]
+  }
+]

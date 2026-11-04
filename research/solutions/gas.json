@@ -1,0 +1,652 @@
+[
+  {
+    "id": "gas-01",
+    "name": "GAS 架构：ASC、Ability、AttributeSet、Effect、Cue、Tag 的职责边界",
+    "aliases": ["AbilitySystemComponent", "GameplayAbility", "AttributeSet", "GameplayEffect", "GameplayCue", "GameplayTag", "GAS"],
+    "type": ["ARPG", "MOBA", "TPS", "通用"],
+    "domain": "solution",
+    "category": "技能系统（GAS）",
+    "engine": ["UE4", "UE5", "UE5.0–5.3", "UE5.4+"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "ASC 是技能运行时容器，Ability 描述“能做什么”，Effect 描述“改什么数值/状态”，AttributeSet 存数值，Cue 管表现，Tag 做条件与状态标记。",
+    "problem": "技能逻辑散落在角色/武器/UI 中，冷却、消耗、Buff、动画与网络复制各自实现，难以组合与调试。",
+    "mechanism": "ASC 持有 Ability 列表、激活状态与 Effect 容器；Ability 通过 Task 等待输入/动画/目标；Effect 修改 Attribute 或授予 Tag；Cue 通过 Tag 触发本地/远端表现；AttributeSet 复制数值并提供 PreAttributeChange/PostGameplayEffectExecute 钩子。",
+    "pros": ["职责分层清晰，可组合", "内置网络复制与预测支持", "数据驱动、便于策划迭代"],
+    "cons": ["学习曲线陡峭", "抽象层多，调试链路长", "对非战斗系统可能过重"],
+    "fit": ["中大型 ARPG/MOBA/联机动作游戏", "技能/词条/Buff 大量组合", "需要预测与回滚的联机玩法"],
+    "unfit": ["技能极少的单机原型", "纯回合制/无实时表现的轻量系统"],
+    "params": [
+      {"k": "ASC 归属", "v": "PlayerState 或 Pawn", "note": "跨死亡/重生需持久时用 PlayerState"},
+      {"k": "Ability 授予", "v": "GrantedAbilities/运行时", "note": "按角色/武器/模式"},
+      {"k": "Effect 周期", "v": "Instant/Duration/Infinite", "note": "按数值/状态语义"},
+      {"k": "Cue", "v": "Tag 驱动", "note": "表现与逻辑解耦"}
+    ],
+    "sources": ["S007", "S123", "S124", "S126", "S127"],
+    "cases": [
+      {"who": "Lyra 示例", "note": "用 GAS 组织武器/技能/输入与 UI", "source": "S007"},
+      {"who": "UE GAS 官方", "note": "ASC/Attribute/Effect/Cue 的标准分层", "source": "S123"}
+    ],
+    "tags": ["GAS", "ASC", "Ability", "Effect", "AttributeSet", "GameplayTag", "Cue"],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "启用 GameplayAbilities 插件，给角色添加 AbilitySystemComponent。",
+      "在 PlayerState/Pawn 初始化 ASC，设置 Owner/Avatar。",
+      "创建 AttributeSet（生命/攻击/蓝量）并添加到 ASC。",
+      "创建一个 Ability（消耗+冷却+伤害 Effect+Montage）。",
+      "授予 Ability 并绑定输入激活。",
+      "用 showdebug abilitysystem 观察 Ability/Effect/Tag 状态。"
+    ],
+    "usage": [
+      "接入方式：插件 + ASC 组件 + AttributeSet + Ability 蓝图/C++ + Effect/Cue 资产。",
+      "典型参数：ASC 归属按生命周期；Ability 按来源授予；Effect 按周期；Cue 按 Tag。",
+      "集成点：与输入、动画、UI、网络复制、AI 联动。",
+      "版本差异：GAS 插件在各 UE5 版本有 API/预测改进，需按目标版本核对。"
+    ],
+    "optimization": {
+      "performance": ["减少常驻 Ability/Effect 数", "Cue 批处理", "Tag 查询缓存"],
+      "memory": ["共享 Effect/Cue 资产", "避免每个技能复制大型配置"],
+      "package": ["按角色/模式分包技能资产"],
+      "iteration": ["数据驱动配置", "调试可视化"],
+      "stability": ["初始化顺序校验", "预测失败回退"],
+      "notWorth": "技能数量少且无联机预测需求时，自研轻量框架更直接。"
+    },
+    "verify": [
+      "showdebug abilitysystem 显示 Ability/Effect/Tag 正确。",
+      "服务器与客户端数值一致。",
+      "技能激活/取消无残留状态。"
+    ]
+  },
+  {
+    "id": "gas-02",
+    "name": "Ability 生命周期、Block/Cancel 与优先级",
+    "aliases": ["ActivateAbility", "EndAbility", "CancelAbility", "BlockAbilitiesWithTag", "Ability Priority"],
+    "type": ["ARPG", "MOBA", "TPS"],
+    "domain": "solution",
+    "category": "技能系统（GAS）",
+    "engine": ["UE4", "UE5", "UE5.0–5.3", "UE5.4+"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "Ability 有明确生命周期与取消/阻断规则；用 Tag 阻断、优先级与取消策略避免技能互相打断造成状态错乱。",
+    "problem": "技能释放中被打断后仍扣蓝/进冷却；多个技能同时激活导致动画/Effect 冲突；输入缓冲与优先级不清。",
+    "mechanism": "Ability 激活时检查 Tag/消耗/冷却，运行 Task，结束或取消时走 EndAbility；BlockAbilitiesWithTag/CancelAbilitiesWithTag 在激活/授予时阻断或取消其他技能；优先级决定同时请求时的胜者。",
+    "pros": ["状态机明确，减少竞态", "Tag 规则可配置", "便于输入缓冲/连招"],
+    "cons": ["规则复杂易互相锁死", "优先级设计需要经验", "调试需要可视化"],
+    "fit": ["动作游戏连招/受击打断", "MOBA 控制链", "技能优先级明确的战斗"],
+    "unfit": ["技能极少且无打断需求", "纯被动系统"],
+    "params": [
+      {"k": "阻断 Tag", "v": "按状态（眩晕/施法）", "note": "避免互相锁死"},
+      {"k": "取消策略", "v": "按技能类型", "note": "受击/移动是否取消"},
+      {"k": "优先级", "v": "按玩法", "note": "同时请求时裁决"},
+      {"k": "输入缓冲", "v": "短窗口", "note": "提升连招手感"}
+    ],
+    "sources": ["S127", "S125", "S007", "S124"],
+    "cases": [
+      {"who": "Lyra", "note": "Ability 激活/取消与输入绑定", "source": "S007"},
+      {"who": "UE Using Gameplay Abilities", "note": "激活/取消/Tag 阻断", "source": "S127"}
+    ],
+    "tags": ["Ability", "生命周期", "Block", "Cancel", "优先级", "输入缓冲"],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "创建两个 Ability：普攻与重击，设置不同优先级。",
+      "给重击配置 BlockAbilitiesWithTag 与 CancelAbilitiesWithTag。",
+      "在普攻播放中触发重击，观察取消/阻断行为。",
+      "受击时取消当前 Ability，确认消耗/冷却是否按预期回滚。",
+      "用 showdebug abilitysystem 查看激活栈与 Tag。"
+    ],
+    "usage": [
+      "接入方式：Ability 蓝图/C++ 的 ActivationBlockedTags、CancelAbilitiesWithTag、Priority。",
+      "典型参数：阻断按状态；取消按技能类型；优先级按玩法；输入缓冲短窗口。",
+      "集成点：与输入、动画 Montage、受击/控制、网络预测联动。",
+      "版本差异：GAS 的取消/阻断 API 基本稳定，预测行为随版本改进，需实测。"
+    ],
+    "optimization": {
+      "performance": ["减少每帧 Tag 查询", "缓存阻断规则"],
+      "memory": ["共享 Ability 配置"],
+      "package": ["按角色分包"],
+      "iteration": ["连招/打断用例自动化"],
+      "stability": ["取消时清理 Task/Effect", "防 Tag 锁死"],
+      "notWorth": "技能无打断/连招时，复杂优先级规则是过度设计。"
+    },
+    "verify": [
+      "打断后无残留 Effect/冷却错误。",
+      "同时输入按优先级裁决。",
+      "showdebug 中 Tag 状态符合预期。"
+    ]
+  },
+  {
+    "id": "gas-03",
+    "name": "GameplayEffect 与 Buff/Debuff 叠加规则",
+    "aliases": ["GameplayEffect", "Stacking", "Duration", "Periodic", "Buff", "Debuff", "Modifier"],
+    "type": ["ARPG", "MOBA", "TPS"],
+    "domain": "solution",
+    "category": "技能系统（GAS）",
+    "engine": ["UE4", "UE5", "UE5.0–5.3", "UE5.4+"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "Effect 用 Modifier 改 Attribute、用 Duration/Periodic 控制时间、用 Stacking 规则处理叠加；复杂 Buff 应拆成可组合的小 Effect。",
+    "problem": "Buff 叠加/刷新/替换规则混乱，数值越叠越离谱；持续伤害/治疗与状态结束清理不干净。",
+    "mechanism": "Instant 立即修改；Duration/Infinite 持续并可按周期执行；Stacking 支持按层数聚合（Aggregate）或刷新时长；Modifier 的运算（Add/Multiply/Override）决定数值管线。",
+    "pros": ["规则内建、可配置", "支持周期/叠加/刷新", "与 Attribute/Tag/复制集成"],
+    "cons": ["Stacking 规则组合复杂", "周期 Effect 的性能与批量", "调试数值链路困难"],
+    "fit": ["Buff/Debuff 大量组合的 ARPG/MOBA", "持续伤害/治疗", "装备/天赋加成"],
+    "unfit": ["极简数值系统", "需要复杂公式且不适合 Modifier 的场景（可配合 ExecCalc）"],
+    "params": [
+      {"k": "Duration", "v": "Instant/Duration/Infinite", "note": "按语义"},
+      {"k": "Stacking", "v": "层数/刷新", "note": "定义上限与过期"},
+      {"k": "Period", "v": "按 tick 频率", "note": "避免过密"},
+      {"k": "Modifier 运算", "v": "Add/Multiply/Override", "note": "注意顺序"}
+    ],
+    "sources": ["S124", "S126", "S007", "S128"],
+    "cases": [
+      {"who": "UE Gameplay Effects", "note": "Duration/Periodic/Stacking 规则", "source": "S124"},
+      {"who": "ARPG 词条系统", "note": "用多个小 Effect 组合词条", "source": "S128"}
+    ],
+    "tags": ["GameplayEffect", "Buff", "Debuff", "Stacking", "Periodic", "Modifier"],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "创建 Duration Effect：加攻击力，设置 10 秒与 Modifier。",
+      "再创建一个同 Tag Effect，配置 Stacking 上限与刷新策略。",
+      "连续施加两次，观察层数与数值变化。",
+      "创建 Periodic Effect 做持续伤害，验证周期与结束清理。",
+      "用 showdebug abilitysystem 查看 Effect 容器与剩余时间。"
+    ],
+    "usage": [
+      "接入方式：Effect 蓝图/C++ 资产 + GEComponents（Duration/Periodic/Stacking）。",
+      "典型参数：Duration 按语义；Stacking 上限/刷新；Period 按 tick；Modifier 运算顺序。",
+      "集成点：与 AttributeSet、Tag、Cue、UI 联动。",
+      "版本差异：GAS 的 Stacking/Periodic 行为在版本间有细节差异，需按目标版本验证。"
+    ],
+    "optimization": {
+      "performance": ["减少高频 Periodic", "合并同类 Effect", "批量 Cue"],
+      "memory": ["共享 Effect 资产", "控制活跃 Effect 数"],
+      "package": ["按角色/技能分包"],
+      "iteration": ["数值表驱动", "Effect 组合测试"],
+      "stability": ["结束清理", "叠加上限", "防止无限刷新"],
+      "notWorth": "只有一两个固定 Buff 时，直接改 Attribute 更简单。"
+    },
+    "verify": [
+      "叠加层数与数值符合配置。",
+      "周期 Effect 按时触发并在结束时清理。",
+      "UI 显示的 Buff 与 ASC 状态一致。"
+    ]
+  },
+  {
+    "id": "gas-04",
+    "name": "AttributeSet：初始化顺序、复制与数值安全",
+    "aliases": ["AttributeSet", "Attribute", "Base Value", "Current Value", "初始化", "数值复制"],
+    "type": ["ARPG", "MOBA", "TPS"],
+    "domain": "solution",
+    "category": "技能系统（GAS）",
+    "engine": ["UE4", "UE5", "UE5.0–5.3", "UE5.4+"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "Attribute 分 Base/Current，复制与初始化顺序决定客户端预测与服务器权威是否一致；初始化必须在 ASC 拥有者/化身就绪后进行。",
+    "problem": "客户端看到满血而服务器已死亡；初始属性被 Effect 覆盖；预测修改与复制冲突导致数值回跳。",
+    "mechanism": "AttributeSet 通过 GE 修改 Base，Current 由 GE 执行与复制；PreAttributeChange 做钳制，PostGameplayEffectExecute 做派生结算；复制用 RepNotify/预测窗口。初始化通常在 PossessedBy/OnRep_PlayerState 后应用初始 GE。",
+    "pros": ["数值与复制内建", "钳制/派生钩子清晰", "支持预测"],
+    "cons": ["初始化时序易错", "预测与权威冲突难调", "大量 Attribute 有复制开销"],
+    "fit": ["生命/法力/攻击/防御等核心数值", "需要服务器权威的联机战斗"],
+    "unfit": ["纯单机且数值简单", "高频变化的临时数据（放普通属性）"],
+    "params": [
+      {"k": "初始化时机", "v": "ASC 就绪后", "note": "避免空 Avatar"},
+      {"k": "Base/Current", "v": "按语义", "note": "Base 存成长，Current 存战斗值"},
+      {"k": "复制", "v": "按需", "note": "非关键数值可不复制"},
+      {"k": "钳制", "v": "PreAttributeChange", "note": "防止负血/超上限"}
+    ],
+    "sources": ["S126", "S123", "S124", "S007"],
+    "cases": [
+      {"who": "UE AttributeSets", "note": "Base/Current、复制与初始化", "source": "S126"},
+      {"who": "Lyra", "note": "Attribute 初始化与预测", "source": "S007"}
+    ],
+    "tags": ["AttributeSet", "Attribute", "初始化", "复制", "预测", "数值"],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "创建 AttributeSet，声明 Health/MaxHealth/Attack。",
+      "在 ASC 初始化完成后应用初始 GE，设置 Base 值。",
+      "在 PreAttributeChange 中钳制 Health 到 [0, Max]。",
+      "在 PostGameplayEffectExecute 中处理死亡/派生。",
+      "双客户端验证数值复制与预测是否一致。"
+    ],
+    "usage": [
+      "接入方式：AttributeSet 子类 + 初始 GE + ASC 初始化流程。",
+      "典型参数：初始化在 ASC 就绪后；Base/Current 分离；只复制必要数值；钳制在 PreAttributeChange。",
+      "集成点：与 Effect、UI、死亡/重生、网络预测联动。",
+      "版本差异：GAS 的预测/复制实现在 UE5 版本间有改进，需按目标版本验证。"
+    ],
+    "optimization": {
+      "performance": ["减少复制 Attribute", "合并 GE"],
+      "memory": ["共享初始 GE"],
+      "package": ["按角色分包"],
+      "iteration": ["数值表驱动", "初始化顺序测试"],
+      "stability": ["钳制/死亡幂等", "预测失败回退"],
+      "notWorth": "单机且数值不参与网络的系统无需 GAS Attribute。"
+    },
+    "verify": [
+      "双客户端 Health/MaxHealth 一致。",
+      "死亡只触发一次，无负血显示。",
+      "预测修改在服务器确认后不回跳。"
+    ]
+  },
+  {
+    "id": "gas-05",
+    "name": "GameplayTag 规范：状态机、命名与查询成本",
+    "aliases": ["GameplayTag", "Tag 容器", "Tag 查询", "状态标记", "Tag 爆炸"],
+    "type": ["ARPG", "MOBA", "TPS", "通用"],
+    "domain": "solution",
+    "category": "技能系统（GAS）",
+    "engine": ["UE4", "UE5", "全版本"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "Tag 是 GAS 的条件/状态语言；用层级命名与固定词表表达状态，避免 Tag 爆炸与高频字符串查询。",
+    "problem": "Tag 命名随意、层级混乱，导致阻断/取消规则不可维护；每帧查询 Tag 造成开销。",
+    "mechanism": "Tag 由 Tag Manager 注册，支持父子层级与容器匹配（HasTag/HasMatchingTag）；ASC 维护 Loose/Asset Tags 并用于 Ability/Effect/Cue 判定。",
+    "pros": ["表达力强、可配置", "与 Ability/Effect/Cue 深度集成", "层级匹配减少重复"],
+    "cons": ["词表膨胀难治理", "字符串/层级误用导致规则失效", "查询频繁有成本"],
+    "fit": ["状态/控制/免疫/技能类别", "需要策划配置条件的系统"],
+    "unfit": ["极少量布尔状态", "非 GAS 系统"],
+    "params": [
+      {"k": "命名", "v": "域.对象.状态", "note": "固定前缀与层级"},
+      {"k": "词表", "v": "集中管理", "note": "禁止随意新增"},
+      {"k": "查询", "v": "缓存/事件驱动", "note": "避免每帧全量扫描"},
+      {"k": "Loose Tag", "v": "谨慎", "note": "便于调试但需治理"}
+    ],
+    "sources": ["S007", "S127", "S124", "S128"],
+    "cases": [
+      {"who": "Lyra", "note": "Tag 驱动状态/输入/技能", "source": "S007"},
+      {"who": "UE GAS 文档", "note": "Tag 在 Ability/Effect/Cue 中的使用", "source": "S127"}
+    ],
+    "tags": ["GameplayTag", "状态机", "命名规范", "Tag爆炸", "查询"],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "在 DefaultGameplayTags.ini 中定义层级 Tag（State.Dead、State.Stunned）。",
+      "给 Effect/Ability 配置阻断/取消 Tag。",
+      "运行时施加/移除 Tag，观察技能可用性变化。",
+      "用 showdebug abilitysystem 查看 Tag 容器。",
+      "在性能分析中检查 Tag 查询频率与开销。"
+    ],
+    "usage": [
+      "接入方式：Tag Manager/ini 定义 + Ability/Effect/Cue 配置。",
+      "典型参数：层级命名；集中词表；缓存查询；Loose Tag 仅调试。",
+      "集成点：与输入、动画状态机、UI、AI 联动。",
+      "版本差异：Tag 系统本身稳定，GAS 对 Tag 的使用方式随版本演进。"
+    ],
+    "optimization": {
+      "performance": ["缓存 Tag 查询", "事件驱动更新"],
+      "memory": ["共享 Tag 容器"],
+      "package": ["Tag 词表随代码/配置打包"],
+      "iteration": ["Tag 评审", "词表文档"],
+      "stability": ["禁止重复/冲突 Tag", "规则覆盖测试"],
+      "notWorth": "状态很少且无 GAS 时，枚举/布尔更简单。"
+    },
+    "verify": [
+      "Tag 变更后技能可用性立即正确。",
+      "showdebug 中 Tag 容器与预期一致。",
+      "Tag 查询无性能热点。"
+    ]
+  },
+  {
+    "id": "gas-06",
+    "name": "GAS 网络预测：PredictionKey、回滚与预测失效",
+    "aliases": ["PredictionKey", "预测", "回滚", "Rollback", "预测失效", "Network Prediction"],
+    "type": ["ARPG", "MOBA", "TPS"],
+    "domain": "solution",
+    "category": "技能系统（GAS）",
+    "engine": ["UE4", "UE5", "UE5.0–5.3", "UE5.4+"],
+    "maturity": "可用但有条件",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "客户端用 PredictionKey 预测 Ability/Effect 的即时结果，服务器确认后保留、拒绝则回滚；预测窗口与复制属性必须匹配，否则出现数值跳动。",
+    "problem": "高延迟下技能反馈滞后；客户端预测与服务器结果冲突导致回滚抖动；部分 Effect 不可预测却强行预测。",
+    "mechanism": "Ability 激活时生成 PredictionKey，预测性 GE 与 Cue 关联该 Key；服务器执行后确认或拒绝，客户端根据结果保留/回滚。Attribute 复制与预测窗口决定能否安全预测。",
+    "pros": ["显著改善高延迟手感", "与 GAS 内建集成", "服务器仍保持权威"],
+    "cons": ["预测失效场景多（随机/目标变化/服务器拒绝）", "回滚可见抖动", "调试复杂"],
+    "fit": ["联机动作/ARPG 的即时技能反馈", "MOBA 技能预表现"],
+    "unfit": ["结果强依赖服务器状态且无法安全预测的技能", "单机游戏"],
+    "params": [
+      {"k": "可预测范围", "v": "即时/短时 Effect", "note": "随机/目标依赖慎用"},
+      {"k": "回滚策略", "v": "平滑/直接", "note": "避免突兀跳动"},
+      {"k": "预测窗口", "v": "覆盖 RTT", "note": "过大易失效"},
+      {"k": "Cue", "v": "本地/远端区分", "note": "避免双播"}
+    ],
+    "sources": ["S007", "S004", "S058", "S094"],
+    "cases": [
+      {"who": "Lyra", "note": "Ability 预测与网络复制", "source": "S007"},
+      {"who": "Overwatch", "note": "客户端预测+服务器裁定的一般原则", "source": "S049"}
+    ],
+    "tags": ["GAS", "PredictionKey", "预测", "回滚", "网络", "抖动"],
+    "extra": false,
+    "gap": "GAS 预测的官方专项文档未单独核验；本条以 GAS 总览与网络同步资料归纳，具体行为需按版本实测。",
+    "reproduce": [
+      "在双客户端 PIE 中释放一个可预测的即时伤害技能。",
+      "开启 Net Emulate 增加延迟，观察客户端预表现。",
+      "让服务器拒绝该技能（Tag/距离/目标失效），观察回滚。",
+      "对比可预测与不可预测 Effect 的数值/表现差异。",
+      "用 showdebug abilitysystem 与网络日志确认 PredictionKey 状态。"
+    ],
+    "usage": [
+      "接入方式：Ability 标记预测、GE 使用 PredictionKey、Cue 区分本地/远端。",
+      "典型参数：只预测即时/短时结果；回滚平滑；窗口覆盖 RTT；Cue 去重。",
+      "集成点：与网络复制、动画、UI、伤害管线联动。",
+      "版本差异：GAS 预测能力在 UE5 版本间有改进，需按目标版本验证。"
+    ],
+    "optimization": {
+      "performance": ["减少预测 GE 数", "合并复制"],
+      "memory": ["共享 Effect"],
+      "package": ["按模式分包"],
+      "iteration": ["弱网自动化测试", "回滚可视化"],
+      "stability": ["预测失败可回退", "防止双播 Cue"],
+      "notWorth": "单机或低延迟局域网可关闭预测，减少复杂度。"
+    },
+    "verify": [
+      "高延迟下技能反馈及时且最终数值与服务器一致。",
+      "服务器拒绝时回滚可接受、无残留表现。",
+      "Cue 不重复播放。"
+    ]
+  },
+  {
+    "id": "gas-07",
+    "name": "GameplayCue：本地/远端表现与批量性能",
+    "aliases": ["GameplayCue", "Cue", "本地表现", "远端表现", "CueNotify", "特效"],
+    "type": ["ARPG", "MOBA", "TPS"],
+    "domain": "solution",
+    "category": "技能系统（GAS）",
+    "engine": ["UE4", "UE5", "UE5.0–5.3", "UE5.4+"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "Cue 用 Tag 触发特效/音效/镜头等表现，区分本地与远端执行；大量 Cue 需要批处理与 LOD，避免表现层成为瓶颈。",
+    "problem": "技能表现散落在 Ability 中，联机时本地/远端重复播放；大量 Cue 同时触发造成 CPU/GPU 峰值。",
+    "mechanism": "GameplayCueNotify（Static/Actor）按 Tag 匹配，Execute/Remove 处理开始与结束；Local/Remote 标志决定在哪端执行；Cue 由 GE/Ability 触发，表现与逻辑解耦。",
+    "pros": ["表现逻辑集中、可复用", "本地/远端可控", "与 Tag 驱动一致"],
+    "cons": ["Cue 数量多时管理复杂", "双端重复/缺失常见", "批量触发性能需治理"],
+    "fit": ["技能特效/音效/镜头反馈", "Buff 持续表现", "联机技能表现"],
+    "unfit": ["极少量一次性表现", "非 GAS 系统的特效"],
+    "params": [
+      {"k": "Cue 类型", "v": "Static/Actor", "note": "按是否需要生命周期"},
+      {"k": "执行端", "v": "Local/Remote/Both", "note": "避免双播"},
+      {"k": "批量", "v": "合并/节流", "note": "大量触发时限流"},
+      {"k": "LOD", "v": "距离/重要度", "note": "远处简化"}
+    ],
+    "sources": ["S007", "S124", "S125", "S078"],
+    "cases": [
+      {"who": "Lyra", "note": "Cue 驱动武器/技能表现", "source": "S007"},
+      {"who": "UE Gameplay Effects/Cues", "note": "Cue 的触发与执行端", "source": "S124"}
+    ],
+    "tags": ["GameplayCue", "Cue", "特效", "本地", "远端", "批量"],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "创建 GameplayCueNotify_Static，匹配 Tag（GameplayCue.Skill.Fire）。",
+      "在 Ability/Effect 中触发该 Tag，观察本地播放。",
+      "双客户端验证 Local/Remote 执行端是否重复。",
+      "同时触发大量 Cue，观察 CPU/GPU 峰值。",
+      "加入距离 LOD 与节流，复测性能。"
+    ],
+    "usage": [
+      "接入方式：CueNotify 资产 + Tag 匹配 + Ability/Effect 触发。",
+      "典型参数：Static/Actor 按生命周期；Local/Remote 去重；批量节流；距离 LOD。",
+      "集成点：与 Niagara、音频、相机、UI 联动。",
+      "版本差异：Cue 系统基本稳定，具体执行端行为需按版本验证。"
+    ],
+    "optimization": {
+      "performance": ["批量/节流", "距离 LOD", "简化特效"],
+      "memory": ["共享 Cue 资产", "池化 Actor Cue"],
+      "package": ["按技能分包"],
+      "iteration": ["Cue 预算评审", "双端对比测试"],
+      "stability": ["Remove 清理", "防双播"],
+      "notWorth": "Cue 很少且性能无忧时，不必引入批处理。"
+    },
+    "verify": [
+      "本地/远端表现不重复、不缺失。",
+      "大量 Cue 时帧时间可控。",
+      "Cue 结束正确清理。"
+    ]
+  },
+  {
+    "id": "gas-08",
+    "name": "输入与表现：Enhanced Input、Montage/Slot、ALI 与状态机融合",
+    "aliases": ["Enhanced Input", "Montage", "Slot", "Animation Layer Interface", "ALI", "动画层接口", "技能动画"],
+    "type": ["ARPG", "TPS", "FPS"],
+    "domain": "solution",
+    "category": "技能系统（GAS）",
+    "engine": ["UE5", "UE5.0–5.3", "UE5.4+"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "Enhanced Input 把技能输入映射到 Ability；Montage/Slot 负责身体动作覆盖，ALI 让技能动画层与移动/战斗状态机解耦。",
+    "problem": "技能输入硬编码、动画与逻辑耦合；上下半身动作互相覆盖；联机时动画通知与服务器判定不同步。",
+    "mechanism": "Input Action/Input Mapping Context 绑定到 Ability 激活；Montage 通过 Slot 插入动画蓝图层，Section/Notify 控制窗口；ALI 定义层接口，让不同状态机共享/覆盖动画层。",
+    "pros": ["输入可重映射、支持多设备", "动画层可组合", "Notify 可驱动判定窗口"],
+    "cons": ["层与 Slot 配置复杂", "Notify 时机受网络/帧率影响", "状态机与 GAS 状态需同步"],
+    "fit": ["动作游戏技能/连招", "TPS/FPS 上半身瞄准+下半身移动", "多武器动画"],
+    "unfit": ["无复杂动画的轻量技能", "纯 UI 技能"],
+    "params": [
+      {"k": "Input Action", "v": "按技能/动作", "note": "支持重绑定"},
+      {"k": "Slot", "v": "上/下半身分离", "note": "避免互相覆盖"},
+      {"k": "Montage Section", "v": "按阶段", "note": "连招/窗口"},
+      {"k": "ALI", "v": "按层接口", "note": "状态机共享"}
+    ],
+    "sources": ["S016", "S116", "S117", "S130", "S121"],
+    "cases": [
+      {"who": "Lyra", "note": "Enhanced Input + GAS + 动画层", "source": "S007"},
+      {"who": "UE Animation Slots", "note": "Slot 插入与权重", "source": "S117"}
+    ],
+    "tags": ["EnhancedInput", "Montage", "Slot", "ALI", "动画层", "状态机"],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "创建 Input Action 与 Mapping Context，绑定到 Ability 激活。",
+      "制作技能 Montage，设置 Slot 与 Section。",
+      "在动画蓝图中添加 Slot 节点，确保技能覆盖正确部位。",
+      "用 ALI 定义层接口，让移动/战斗状态机共享。",
+      "在 Notify 中触发判定/Effect，联机验证时机一致。"
+    ],
+    "usage": [
+      "接入方式：Enhanced Input 资产 + Ability 绑定 + Montage/Slot + ALI。",
+      "典型参数：Input Action 按技能；Slot 上下半身分离；Section 按阶段；ALI 按层。",
+      "集成点：与 GAS、动画蓝图、网络预测、相机联动。",
+      "版本差异：Enhanced Input 在 UE5 成为默认输入系统；GAS 绑定方式随版本有变化。"
+    ],
+    "optimization": {
+      "performance": ["减少同时播放的 Montage", "动画 LOD/降频"],
+      "memory": ["共享动画资产"],
+      "package": ["按角色/武器分包"],
+      "iteration": ["输入重绑定测试", "动画层预览"],
+      "stability": ["Notify 幂等", "网络下判定窗口一致"],
+      "notWorth": "技能动画简单且无上下半身分离需求时，直接 Montage 即可。"
+    },
+    "verify": [
+      "输入映射可重绑定且技能正确激活。",
+      "上下半身动画不互相覆盖。",
+      "联机下 Notify 判定窗口与服务器一致。"
+    ]
+  },
+  {
+    "id": "gas-09",
+    "name": "策划迭代：DataAsset/表格驱动、冷却消耗与伤害公式",
+    "aliases": ["DataAsset", "DataTable", "冷却", "消耗", "伤害公式", "结算管线", "ExecutionCalculation"],
+    "type": ["ARPG", "MOBA"],
+    "domain": "solution",
+    "category": "技能系统（GAS）",
+    "engine": ["UE4", "UE5", "全版本"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "把技能参数、冷却、消耗与伤害公式外置到 DataAsset/DataTable/ExecutionCalculation，让策划可迭代而不改代码；公式集中以利平衡与复盘。",
+    "problem": "技能数值硬编码，改一个数要改代码/重新编译；伤害公式散落导致平衡与日志不可追溯。",
+    "mechanism": "Skill Definition DataAsset 存冷却/消耗/Effect 类/动画；DataTable 存等级曲线；ExecutionCalculation 在 Effect 执行时读取 Attribute 并输出结算，可记录公式与来源。",
+    "pros": ["策划可独立迭代", "公式集中、可审计", "便于做平衡工具与模拟"],
+    "cons": ["过度数据驱动会增加资产与校验成本", "公式复杂后仍需要代码", "配置错误难发现"],
+    "fit": ["大量技能/等级的 ARPG/MOBA", "需要频繁平衡调整的项目"],
+    "unfit": ["技能极少且稳定", "公式需要复杂自定义模拟的场景"],
+    "params": [
+      {"k": "配置载体", "v": "DataAsset/DataTable", "note": "按粒度选择"},
+      {"k": "冷却/消耗", "v": "GE 或代码", "note": "统一入口"},
+      {"k": "伤害公式", "v": "ExecutionCalculation", "note": "集中结算"},
+      {"k": "校验", "v": "启动/CI", "note": "防止空配置"}
+    ],
+    "sources": ["S128", "S124", "S126", "S007"],
+    "cases": [
+      {"who": "UE Data Driven Gameplay", "note": "DataAsset/DataTable 驱动", "source": "S128"},
+      {"who": "ARPG 技能表", "note": "技能定义+等级曲线+公式", "source": "S007"}
+    ],
+    "tags": ["DataAsset", "DataTable", "冷却", "消耗", "伤害公式", "ExecutionCalculation"],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "创建 SkillDefinition DataAsset，包含冷却/消耗/Effect/动画字段。",
+      "用 DataTable 配等级曲线（伤害/耗蓝）。",
+      "创建 ExecutionCalculation 实现伤害公式并输出到 Attribute。",
+      "Ability 读取 DataAsset 激活并应用冷却/消耗 GE。",
+      "改表后不重编译，验证运行时生效。"
+    ],
+    "usage": [
+      "接入方式：DataAsset/DataTable + ExecutionCalculation + Ability 读取。",
+      "典型参数：配置按技能；冷却/消耗统一 GE；公式集中；启动校验。",
+      "集成点：与 GAS、UI、平衡工具、日志联动。",
+      "版本差异：DataAsset/DataTable API 稳定，GAS 的 ExecCalc 细节随版本演进。"
+    ],
+    "optimization": {
+      "performance": ["缓存配置查询", "避免运行时字符串查找"],
+      "memory": ["共享配置资产"],
+      "package": ["按角色/模式分包"],
+      "iteration": ["表格热重载", "平衡模拟"],
+      "stability": ["配置校验", "空值回退"],
+      "notWorth": "技能很少且不常调整时，硬编码更直接。"
+    },
+    "verify": [
+      "改表后运行时数值生效且无需重编译。",
+      "冷却/消耗/伤害与配置一致。",
+      "配置校验能发现缺失/非法值。"
+    ]
+  },
+  {
+    "id": "gas-10",
+    "name": "GAS 调试与常见坑：Tag 爆炸、Cue 性能、初始化顺序、预测抖动",
+    "aliases": ["showdebug abilitysystem", "GAS 调试", "Tag 爆炸", "初始化顺序", "预测抖动", "Cue 性能"],
+    "type": ["ARPG", "MOBA", "TPS", "通用"],
+    "domain": "solution",
+    "category": "技能系统（GAS）",
+    "engine": ["UE4", "UE5", "全版本"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "用 showdebug abilitysystem、日志与网络调试定位 GAS 问题；常见坑集中在 Tag 词表、Cue 批量、Attribute 初始化时序与预测回滚。",
+    "problem": "GAS 抽象层多，问题表现为“技能没反应/数值不对/表现重复”，难以定位。",
+    "mechanism": "showdebug abilitysystem 显示 ASC 的 Ability/Effect/Tag/OwnedTags；日志分类（LogAbilitySystem）输出激活/拒绝原因；网络调试查看复制与预测；性能工具看 Cue/Attribute 开销。",
+    "pros": ["官方调试入口完整", "可定位到具体 Ability/Effect", "与网络/性能工具联动"],
+    "cons": ["信息量大、需要经验", "部分内部状态需源码/日志", "预测问题复现成本高"],
+    "fit": ["GAS 项目联调/线上问题定位", "技能表现与数值异常排查"],
+    "unfit": ["非 GAS 系统", "极简单技能"],
+    "params": [
+      {"k": "调试命令", "v": "showdebug abilitysystem", "note": "查看 ASC 状态"},
+      {"k": "日志", "v": "LogAbilitySystem", "note": "定位拒绝原因"},
+      {"k": "网络", "v": "Net Emulate/日志", "note": "复现预测问题"},
+      {"k": "性能", "v": "stat game/GPU", "note": "Cue/Attribute 开销"}
+    ],
+    "sources": ["S007", "S107", "S108", "S025", "S004"],
+    "cases": [
+      {"who": "UE GAS 官方", "note": "showdebug/日志入口", "source": "S007"},
+      {"who": "UE Network Debugging", "note": "网络复制/预测调试", "source": "S107"}
+    ],
+    "tags": ["GAS调试", "showdebug", "Tag爆炸", "初始化", "预测抖动", "Cue性能"],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "在 PIE 中执行 showdebug abilitysystem，查看 ASC 状态。",
+      "开启 LogAbilitySystem 日志，复现技能未激活并查看拒绝原因。",
+      "用 Net Emulate 增加延迟，观察预测回滚与 Cue 双播。",
+      "统计 Cue/Effect 数量与 stat game 开销。",
+      "检查 Attribute 初始化顺序，确认初始值在 ASC 就绪后应用。"
+    ],
+    "usage": [
+      "接入方式：调试命令 + 日志分类 + 网络模拟 + 性能工具。",
+      "典型参数：showdebug 按需；日志级别按模块；弱网参数覆盖 RTT/丢包。",
+      "集成点：与 CI 自动化、线上日志、性能预算联动。",
+      "版本差异：调试输出格式随 GAS 版本变化，需按目标版本核对。"
+    ],
+    "optimization": {
+      "performance": ["减少 Cue/Effect 数", "Tag 查询缓存"],
+      "memory": ["共享资产"],
+      "package": ["按模式分包"],
+      "iteration": ["调试命令纳入开发流程", "弱网回归"],
+      "stability": ["初始化顺序校验", "预测失败回退"],
+      "notWorth": "技能极少且无网络时，调试成本低于引入完整 GAS 工具链。"
+    },
+    "verify": [
+      "showdebug 能定位到具体 Ability/Effect。",
+      "弱网下预测问题可复现并修复。",
+      "Cue/Effect 开销在预算内。"
+    ]
+  },
+  {
+    "id": "gas-11",
+    "name": "GAS vs 自研技能框架：选型与迁移成本",
+    "aliases": ["GAS vs 自研", "技能框架选型", "迁移成本", "自研技能系统"],
+    "type": ["ARPG", "MOBA", "TPS", "通用"],
+    "domain": "solution",
+    "category": "技能系统（GAS）",
+    "engine": ["UE4", "UE5", "全版本"],
+    "maturity": "生产验证",
+    "reliability": "B",
+    "level": "深入",
+    "summary": "GAS 提供完整的技能/数值/预测/表现分层，但学习曲线与抽象成本高；技能少、单机或团队规模小的项目自研更轻。",
+    "problem": "是否引入 GAS 常被“别人都在用”驱动，忽略团队能力、网络需求与迁移成本。",
+    "mechanism": "GAS 内建 Ability 生命周期、Effect 数值管线、Attribute 复制、Cue 表现、Tag 条件与预测；自研框架按项目需求裁剪，代码量小但需自己实现复制/预测/调试。",
+    "pros": ["GAS 功能完整、社区资料多", "自研灵活、可控、轻量", "按团队与网络需求选择"],
+    "cons": ["GAS 学习/迁移成本高", "自研重复造轮子、易缺预测/调试", "两者混用边界难划"],
+    "fit": ["GAS：中大型联机 ARPG/MOBA", "自研：单机/小团队/技能极简"],
+    "unfit": ["GAS：技能极少且无预测需求", "自研：需要复杂预测与大量组合"],
+    "params": [
+      {"k": "技能/词条规模", "v": "按数量与组合", "note": "组合越多越适合 GAS"},
+      {"k": "网络预测", "v": "是否需要", "note": "GAS 内建优势"},
+      {"k": "团队经验", "v": "C++/GAS 熟练度", "note": "学习曲线"},
+      {"k": "迁移成本", "v": "现有系统耦合", "note": "混合期成本"}
+    ],
+    "sources": ["S007", "S028", "S004", "S128"],
+    "cases": [
+      {"who": "Lyra", "note": "GAS 在官方示例中的完整接入", "source": "S007"},
+      {"who": "小团队自研", "note": "按需实现技能/冷却/表现，避免 GAS 抽象", "source": "S128"}
+    ],
+    "tags": ["GAS", "自研框架", "选型", "迁移", "学习曲线", "预测"],
+    "extra": false,
+    "gap": "选型结论依赖团队与项目约束，本条为条件性建议而非绝对结论。",
+    "reproduce": [
+      "列出项目技能/词条/网络预测需求与团队经验。",
+      "用 Lyra/ThirdPerson 模板做最小 GAS 接入验证。",
+      "评估自研框架需要实现的复制/预测/调试工作量。",
+      "做一个技能的原型对比（开发时间/调试体验/性能）。",
+      "根据对比结果决定是否迁移或混合。"
+    ],
+    "usage": [
+      "接入方式：GAS 用插件+ASC；自研用组件+自定义复制；可先局部混合。",
+      "典型参数：技能规模/预测需求/团队经验/迁移成本四项打分。",
+      "集成点：与网络、动画、UI、数值系统联动。",
+      "版本差异：GAS 的成熟度随 UE5 版本提升，选型时按目标版本评估。"
+    ],
+    "optimization": {
+      "performance": ["GAS 减少抽象层开销", "自研避免重复复制"],
+      "memory": ["共享配置/资产"],
+      "package": ["按模式分包"],
+      "iteration": ["原型对比", "渐进迁移"],
+      "stability": ["混合期边界清晰", "回归测试"],
+      "notWorth": "为“以后可能复杂”提前引入 GAS，往往是过度设计。"
+    },
+    "verify": [
+      "原型对比能量化开发/调试/性能差异。",
+      "迁移后技能行为与旧系统一致。",
+      "团队能独立维护所选方案。"
+    ]
+  }
+]

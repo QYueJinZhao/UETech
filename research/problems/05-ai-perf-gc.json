@@ -1,0 +1,287 @@
+[
+ {
+  "id": "pb-ai-01",
+  "topic": "topic-ai-nav",
+  "types": ["开放世界", "ARPG", "FPS"],
+  "title": "大量 AI 同屏导致 CPU 爆预算",
+  "statement": "同屏 AI 数量上升后，行为树/导航/感知每帧开销叠加，GameThread 与 AI 线程吃满。",
+  "scene": "开放世界据点、ARPG 群战、搜打撤 AI 小队。",
+  "symptoms": ["AI 相关 CPU 耗时随数量线性上升", "远处 AI 仍在完整 Tick", "帧率在遭遇战骤降"],
+  "rootCauseClass": "AI 调度与预算",
+  "rootCause": "所有 AI 同频率 Tick；感知/导航查询无分级；缺少 Mass/分区激活与 LOD AI。",
+  "candidates": [
+   {"sol": "ow-08", "tradeoff": "Mass+StateTree+分区激活适合大规模，但架构改造大。"},
+   {"sol": "arpg-04", "tradeoff": "行为树/StateTree 选型影响成本，但需配合调度。"},
+   {"sol": "tps-06", "tradeoff": "AI 感知/战斗逻辑优化能降单实体成本。"}
+  ],
+  "judgment": "先按距离/重要性分级 Tick 与感知，再考虑 Mass；不要给所有 AI 相同更新频率。",
+  "verification": ["stat AI/Insights 统计 AI 耗时与数量", "对比分级 Tick 前后帧率", "检查远处 AI 是否仍在感知"],
+  "sources": ["S028", "S021", "S054"]
+ },
+ {
+  "id": "pb-ai-02",
+  "topic": "topic-ai-nav",
+  "types": ["开放世界", "ARPG"],
+  "title": "大世界导航网格分区与动态障碍失效",
+  "statement": "World Partition 分区后 NavMesh 不连续，动态障碍/破坏后 AI 寻路失败或绕远路。",
+  "scene": "开放世界、可破坏场景、动态门/桥。",
+  "symptoms": ["跨区寻路失败", "AI 卡在边界", "动态障碍更新后路径不刷新"],
+  "rootCauseClass": "导航数据与分区",
+  "rootCause": "NavMesh 未按分区生成/拼接；动态障碍使用静态 NavMesh；导航查询未处理流送边界。",
+  "candidates": [
+   {"sol": "ow-09", "tradeoff": "分层/流场/分区导航能解决大世界，但实现复杂。"},
+   {"sol": "ow-08", "tradeoff": "Mass/分区激活能减少无效寻路，但不修复 NavMesh。"},
+   {"sol": "arpg-04", "tradeoff": "行为树层面的失败回退能兜底，但不能根治。"}
+  ],
+  "judgment": "大世界导航必须按分区生成并处理边界；动态障碍用动态 NavMesh/局部避让；不要只用一张全局 NavMesh 硬撑。",
+  "verification": ["跨区寻路用例", "动态障碍开关后路径对比", "检查 NavMesh 边界与流送"],
+  "sources": ["S028", "S054", "S012"]
+ },
+ {
+  "id": "pb-ai-03",
+  "topic": "topic-ai-nav",
+  "types": ["ARPG", "开放世界"],
+  "title": "Behavior Tree 与 StateTree 选型混乱",
+  "statement": "同一项目里行为树/StateTree/自定义状态机混用，逻辑分散、调试困难、性能不可控。",
+  "scene": "多敌人类型、Boss、群体 AI。",
+  "symptoms": ["同类 AI 两套实现", "状态难以追踪", "切换逻辑出现死循环"],
+  "rootCauseClass": "AI 架构选型",
+  "rootCause": "没有统一的 AI 架构约定；按个人习惯选择工具；缺少共享任务/条件库。",
+  "candidates": [
+   {"sol": "arpg-04", "tradeoff": "行为树 vs StateTree vs Mass 的对比能给出选型，但需要团队共识。"},
+   {"sol": "tps-06", "tradeoff": "感知/战斗逻辑可复用，但不解决架构分裂。"},
+   {"sol": "ow-08", "tradeoff": "大规模场景适合 Mass，但不适用于所有 AI。"}
+  ],
+  "judgment": "按“数量级/交互复杂度/网络权威”选型：少量复杂 Boss 用 StateTree/行为树，大规模群体用 Mass；不要混用到同类 AI。",
+  "verification": ["统计各 AI 使用的架构", "对比调试与性能数据", "检查共享任务/条件复用率"],
+  "sources": ["S028", "S054", "S031"]
+ },
+ {
+  "id": "pb-ai-04",
+  "topic": "topic-ai-nav",
+  "types": ["开放世界", "MOBA"],
+  "title": "Mass 实体与 Actor 交互（伤害/拾取）困难",
+  "statement": "使用 Mass 后，AI 实体与 Actor（玩家/投射物/掉落）的交互、伤害与拾取难以打通。",
+  "scene": "大规模单位、MOBA 小兵、开放世界人群。",
+  "symptoms": ["Mass 单位无法被命中", "掉落拾取失效", "状态与 Actor 不同步"],
+  "rootCauseClass": "Mass 与 Actor 边界",
+  "rootCause": "Mass 实体不走 Actor 碰撞/复制；交互仍按 Actor 设计；缺少桥接层。",
+  "candidates": [
+   {"sol": "ow-08", "tradeoff": "Mass 适合大规模，但需要设计 Actor 桥接与交互代理。"},
+   {"sol": "moba-06", "tradeoff": "MOBA 小兵/单位有成熟调度实践，可参考。"},
+   {"sol": "arpg-04", "tradeoff": "行为树/StateTree 适合复杂交互，但不适合超大规模。"}
+  ],
+  "judgment": "先明确“哪些单位必须是 Actor、哪些可以是 Mass”；交互用代理/事件桥接，不要让 Mass 直接承担 Actor 语义。",
+  "verification": ["构造命中/拾取用例", "检查 Mass 与 Actor 的桥接", "统计大规模下的交互成功率"],
+  "sources": ["S028", "S058", "S054"]
+ },
+ {
+  "id": "pb-ai-05",
+  "topic": "topic-ai-nav",
+  "types": ["FPS", "搜打撤"],
+  "title": "服务器 AI 成本与作弊面失控",
+  "statement": "AI 在客户端运行导致透视/自瞄类作弊，或全部放服务器导致 DS CPU 成本过高。",
+  "scene": "PVPvE、搜打撤 AI、合作射击。",
+  "symptoms": ["客户端能看到不该看到的 AI 信息", "DS CPU 随 AI 数量飙升", "AI 行为在双端不一致"],
+  "rootCauseClass": "权威与成本",
+  "rootCause": "AI 决策与感知没有明确权威边界；信息复制过宽；服务器 AI Tick 频率过高。",
+  "candidates": [
+   {"sol": "net-10", "tradeoff": "DS 规格/编排能扩成本，但不解决信息泄露。"},
+   {"sol": "gen-18", "tradeoff": "反作弊体系能约束客户端，但 AI 权威仍需设计。"},
+   {"sol": "ow-08", "tradeoff": "Mass/分区调度能降服务器成本，但需权威设计。"}
+  ],
+  "judgment": "AI 决策/感知服务器权威，客户端只拿必要表现信息；用分级 Tick/分区激活控成本，不要为了省钱把 AI 全放客户端。",
+  "verification": ["检查 AI 信息复制范围", "测量 DS CPU 与 AI 数量关系", "构造客户端透视测试"],
+  "sources": ["S048", "S036", "S028"]
+ },
+ {
+  "id": "pb-perf-01",
+  "topic": "topic-perf",
+  "types": ["通用"],
+  "title": "无法判断瓶颈在 CPU 还是 GPU",
+  "statement": "帧率低但团队各说各话：程序说 GPU 满，TA 说 CPU 满，缺少统一拆解。",
+  "scene": "项目优化初期、跨职能性能评审。",
+  "symptoms": ["stat 数据解读不一致", "优化方向反复", "改了没效果"],
+  "rootCauseClass": "性能观测",
+  "rootCause": "没有统一的帧时间拆解与瓶颈判定流程；只看平均帧率不看通道。",
+  "candidates": [
+   {"sol": "perf-01", "tradeoff": "Insights 总览能建立统一语言，但需要团队学习。"},
+   {"sol": "perf-16", "tradeoff": "预算方法论能给出判定顺序，但需要持续执行。"},
+   {"sol": "gen-05", "tradeoff": "自动化回归能固化指标，但不能替代单帧分析。"}
+  ],
+  "judgment": "先建立“GameThread/RenderThread/GPU/物理/IO”的统一拆解，再决定优化顺序；不要凭感觉改。",
+  "verification": ["同一场景采集 Insights 并拆解", "对比各通道耗时", "优化后复测同一基准"],
+  "sources": ["S044", "S021", "S002"]
+ },
+ {
+  "id": "pb-perf-02",
+  "topic": "topic-perf",
+  "types": ["通用"],
+  "title": "性能回归没有基线，改动后才发现掉帧",
+  "statement": "每次版本性能波动，但没有自动化基线，问题到上线前才暴露。",
+  "scene": "长线项目、多人协作、频繁合并。",
+  "symptoms": ["版本间帧率不可比", "无法定位哪次提交导致退化", "优化成果无法证明"],
+  "rootCauseClass": "性能回归",
+  "rootCause": "缺少固定基准场景/设备/采集脚本；指标未入库；阈值未定义。",
+  "candidates": [
+   {"sol": "gen-05", "tradeoff": "Gauntlet/自动化回归能固化，但需要设备与维护。"},
+   {"sol": "gen-06", "tradeoff": "机器人压测能覆盖联机场景，但不替代单机基准。"},
+   {"sol": "perf-17", "tradeoff": "阈值/报告体系能落地，但需要长期执行。"}
+  ],
+  "judgment": "先固定基准场景与设备，再把关键指标入库并设阈值；没有基线的优化都是猜。",
+  "verification": ["对比连续版本的基准数据", "检查 CI 是否阻断回归", "复现某次退化提交"],
+  "sources": ["S044", "S045", "S021"]
+ },
+ {
+  "id": "pb-perf-03",
+  "topic": "topic-perf",
+  "types": ["通用"],
+  "title": "不同设备/平台的性能数据不可比",
+  "statement": "在高端 PC 上优化有效，低端机/主机却更差；移动端与桌面数据混用导致误判。",
+  "scene": "跨平台项目、设备分级、外包协作。",
+  "symptoms": ["同一改动在不同设备效果相反", "移动端发热未纳入指标", "测试设备与目标机型不符"],
+  "rootCauseClass": "设备与指标",
+  "rootCause": "缺少目标设备矩阵；指标只看帧率不看功耗/温度；测试环境不一致。",
+  "candidates": [
+   {"sol": "mob-10", "tradeoff": "移动端工具链能测功耗/带宽，但需要真机。"},
+   {"sol": "perf-13", "tradeoff": "Arm Mobile Studio 能深挖移动 GPU，但学习成本高。"},
+   {"sol": "gen-12", "tradeoff": "画质分级能统一档位，但不解决测试矩阵。"}
+  ],
+  "judgment": "为每档设备定义基准与指标（帧时间、功耗、内存），在同一档位内比较；不要跨档位下结论。",
+  "verification": ["按档位记录基准", "对比同档位改动前后", "检查测试设备与目标机型"],
+  "sources": ["S044", "S074", "S021"]
+ },
+ {
+  "id": "pb-perf-04",
+  "topic": "topic-perf",
+  "types": ["通用", "MOBA"],
+  "title": "Tick 与 Actor 遍历造成隐性 CPU 开销",
+  "statement": "大量 Actor 每帧 Tick、全量遍历与距离计算，GameThread 被隐性开销吃掉。",
+  "scene": "MOBA 小兵/特效、开放世界 Actor、UI 管理器。",
+  "symptoms": ["GameThread 高但找不到明显热点", "Actor 数量与耗时正相关", "关闭部分系统后明显回升"],
+  "rootCauseClass": "Tick 与遍历",
+  "rootCause": "所有 Actor 默认 Tick；每帧全量 FindAll/距离排序；缺少事件驱动/分帧。",
+  "candidates": [
+   {"sol": "perf-02", "tradeoff": "CPU Timing 能定位 Tick 热点，是必要手段。"},
+   {"sol": "moba-09", "tradeoff": "MOBA 单位/特效调度有成熟实践，可参考。"},
+   {"sol": "ow-13", "tradeoff": "大世界 Actor 治理能降数量，但不解决 Tick 设计。"}
+  ],
+  "judgment": "默认关闭 Tick，按需开启；全量遍历改事件/分帧/空间索引；先量化再优化。",
+  "verification": ["Insights 统计 Tick 函数耗时", "对比关闭 Tick 后的 GameThread", "检查 FindAll/排序调用频率"],
+  "sources": ["S044", "S021", "S058"]
+ },
+ {
+  "id": "pb-perf-05",
+  "topic": "topic-perf",
+  "types": ["通用"],
+  "title": "内存与加载性能缺少持续监控",
+  "statement": "内存缓慢上涨、加载时间变长，但没有指标与告警，直到 OOM/用户投诉。",
+  "scene": "长线运营、大世界、移动端低内存设备。",
+  "symptoms": ["内存基线逐版本上涨", "加载时间悄悄变长", "线上崩溃率上升"],
+  "rootCauseClass": "内存与加载观测",
+  "rootCause": "没有 LLM/内存标签规范；加载阶段未拆解；缺少线上/自动化监控。",
+  "candidates": [
+   {"sol": "perf-04", "tradeoff": "Memory Insights 能定位分配来源，但需要标签规范。"},
+   {"sol": "perf-05", "tradeoff": "LoadTime 通道能拆解加载，但需要固定基准。"},
+   {"sol": "gen-04", "tradeoff": "线上可观测性/告警能兜底，但不能替代本地分析。"}
+  ],
+  "judgment": "把内存与加载纳入版本基线，按标签/阶段拆解；线上加崩溃与内存告警；不要等 OOM 才查。",
+  "verification": ["对比连续版本 LLM/加载时间", "检查内存标签覆盖率", "线上崩溃/内存告警复盘"],
+  "sources": ["S044", "S021", "S004"]
+ },
+ {
+  "id": "pb-gc-01",
+  "topic": "topic-gc",
+  "types": ["通用", "ARPG"],
+  "title": "GC 长停顿造成周期性卡顿",
+  "statement": "游戏每隔一段时间出现明显卡顿，trace 显示 GC 标记/清除占用长帧。",
+  "scene": "大世界、长时间游玩、大量 UObject 项目。",
+  "symptoms": ["周期性 hitch 与 GC 时间吻合", "对象数量多时更严重", "内存压力下更频繁"],
+  "rootCauseClass": "GC 停顿",
+  "rootCause": "全量 GC 一次扫描过多对象；UObject 数量失控；未启用增量 GC/集群。",
+  "candidates": [
+   {"sol": "gc-02", "tradeoff": "增量 GC 能把停顿拆帧，但会增加总开销与复杂度。"},
+   {"sol": "gc-03", "tradeoff": "GC 集群按生命周期分组能减少扫描，但需要架构配合。"},
+   {"sol": "gc-10", "tradeoff": "对象池能减少分配/回收，但不解决已有对象扫描。"}
+  ],
+  "judgment": "先减少 UObject 数量与生命周期，再启用增量 GC/集群；不要只靠调 GC 参数掩盖对象爆炸。",
+  "verification": ["Insights 抓 GC 事件与停顿", "统计 UObject 数量/类型", "对比增量/集群前后的 hitch"],
+  "sources": ["S083", "S084", "S085"]
+ },
+ {
+  "id": "pb-gc-02",
+  "topic": "topic-gc",
+  "types": ["通用", "开放世界"],
+  "title": "引用泄漏导致对象无法释放",
+  "statement": "关卡/UI 关闭后对象仍被引用，内存持续上涨，GC 无法回收。",
+  "scene": "关卡切换、UI 反复打开、管理器缓存。",
+  "symptoms": ["对象在 obj list 中持续存在", "Reference Viewer 显示意外强引用", "内存基线逐次抬高"],
+  "rootCauseClass": "引用与生命周期",
+  "rootCause": "蓝图/管理器持有硬引用；事件未解绑；TWeakObjectPtr 使用不当。",
+  "candidates": [
+   {"sol": "gc-04", "tradeoff": "引用语义治理能根治，但需要全项目排查。"},
+   {"sol": "gc-05", "tradeoff": "生命周期/销毁语义能减少残留，但不解决持有者。"},
+   {"sol": "load-08", "tradeoff": "卸载/峰值控制能缓解，但需要引用清单。"}
+  ],
+  "judgment": "先找持有者（Reference Viewer/内存快照），再解绑/弱引用；不要用强制 GC 掩盖泄漏。",
+  "verification": ["Reference Viewer 查强引用链", "连续开关 UI/关卡对比对象数", "检查事件解绑"],
+  "sources": ["S083", "S072", "S081"]
+ },
+ {
+  "id": "pb-gc-03",
+  "topic": "topic-gc",
+  "types": ["通用"],
+  "title": "高频容器/字符串分配造成 GC 压力",
+  "statement": "每帧创建大量 FString/TArray/临时 UObject，GC 频繁且 CPU 分配开销高。",
+  "scene": "UI 文本、日志、网络序列化、每帧查询。",
+  "symptoms": ["分配调用栈集中在字符串/容器", "GC 频率上升", "GameThread 分配开销明显"],
+  "rootCauseClass": "分配习惯",
+  "rootCause": "每帧拼接字符串；临时容器未复用；Blueprint 与 C++ 边界频繁拷贝。",
+  "candidates": [
+   {"sol": "gc-09", "tradeoff": "容器/字符串习惯优化能直接降分配，但需要代码规范。"},
+   {"sol": "gc-08", "tradeoff": "Blueprint VM/UStruct 选择能减少 UObject，但不解决字符串。"},
+   {"sol": "gc-06", "tradeoff": "GC 卡顿优化顺序能指导，但需要先降分配。"}
+  ],
+  "judgment": "先消除每帧字符串拼接与临时容器，再谈 GC 参数；用对象池/预分配替代高频 new。",
+  "verification": ["Memory Insights 看分配调用栈", "对比优化前后的分配次数", "检查每帧字符串拼接"],
+  "sources": ["S083", "S081", "S072"]
+ },
+ {
+  "id": "pb-gc-04",
+  "topic": "topic-gc",
+  "types": ["通用"],
+  "title": "对象池与 GC 的取舍错误",
+  "statement": "该用对象池的高频对象仍走 GC，或过度对象池导致状态残留/内存不释放。",
+  "scene": "子弹/特效/UI 条目、网络消息。",
+  "symptoms": ["高频对象造成 GC 峰值", "池化对象状态未重置", "池无限增长不释放"],
+  "rootCauseClass": "池化与 GC 取舍",
+  "rootCause": "没有按生命周期/频率分类；池缺少上限与重置；把池当万能解。",
+  "candidates": [
+   {"sol": "gc-10", "tradeoff": "对象池能降 GC，但需要生命周期与重置规范。"},
+   {"sol": "gc-02", "tradeoff": "增量 GC 能缓解停顿，但不适合极高频短命对象。"},
+   {"sol": "gc-11", "tradeoff": "增量/全量取舍能指导参数，但不解决对象设计。"}
+  ],
+  "judgment": "高频短命对象池化并设上限；长生命周期对象交给 GC/集群；池化必须重置状态并提供回收策略。",
+  "verification": ["统计对象生命周期/频率", "对比池化前后的 GC 与内存", "检查池上限/重置"],
+  "sources": ["S083", "S081", "S072"]
+ },
+ {
+  "id": "pb-gc-05",
+  "topic": "topic-gc",
+  "types": ["开放世界", "通用"],
+  "title": "加载/卸载造成内存碎片与峰值",
+  "statement": "频繁加载/卸载不同尺寸资源后，内存碎片增加，峰值抬高甚至分配失败。",
+  "scene": "大世界流送、关卡切换、长时间运行。",
+  "symptoms": ["可用内存足够但分配失败", "内存峰值逐次抬高", "碎片化指标恶化"],
+  "rootCauseClass": "内存碎片",
+  "rootCause": "分配尺寸不统一；卸载时机集中；缺少池/预留；流送块尺寸差异大。",
+  "candidates": [
+   {"sol": "gc-12", "tradeoff": "加载/卸载时机与碎片治理能缓解，但需要长期监控。"},
+   {"sol": "load-08", "tradeoff": "引用/卸载控制能降峰值，但不解决碎片。"},
+   {"sol": "gc-03", "tradeoff": "GC 集群能按生命周期回收，但不解决分配器碎片。"}
+  ],
+  "judgment": "统一常见分配尺寸、错峰卸载、对高频尺寸做池化；把碎片指标纳入长跑测试。",
+  "verification": ["长跑记录内存峰值/碎片", "对比错峰卸载前后", "检查大块分配失败日志"],
+  "sources": ["S083", "S081", "S072"]
+ }
+]

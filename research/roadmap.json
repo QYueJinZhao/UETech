@@ -1,0 +1,447 @@
+{
+  "stages": [
+    {
+      "id": "stage-0",
+      "name": "阶段 0：入门（能跑起来、能改东西）",
+      "goal": "建立编辑器/蓝图/资产/打包的最小闭环，能独立做一个小 Demo。",
+      "duration": "约 4–8 周（经验性建议，按投入时间浮动）",
+      "required": [
+        {
+          "title": "UE 编辑器与项目结构",
+          "basis": "公开资料支撑",
+          "sources": [
+            "S045"
+          ]
+        },
+        {
+          "title": "蓝图基础与通信",
+          "basis": "公开资料支撑",
+          "sources": [],
+          "videos": [
+            "BV1Cd4y1V7G5",
+            "BV1Sj411i7sZ",
+            "BV14hJ9z8EvQ"
+          ]
+        },
+        {
+          "title": "资产导入/材质/简单光照",
+          "basis": "公开资料支撑",
+          "sources": [
+            "S030",
+            "S064"
+          ]
+        }
+      ],
+      "projects": [
+        "做一个第一/第三人称小关卡：移动、拾取、简单 UI、打包运行。",
+        "用蓝图实现一个可交互道具与一个简单技能。",
+        "把项目打包到 Windows 并解决一次打包失败。"
+      ],
+      "acceptance": [
+        "能解释 Actor/Component/Level 的关系。",
+        "能独立定位并修复一次蓝图编译/打包错误。",
+        "能说清一次点击到画面反馈的链路。"
+      ],
+      "crossRefs": {
+        "topics": [
+          "topic-engineering",
+          "topic-loading"
+        ],
+        "solutions": [
+          "fps-13",
+          "load-01",
+          "phy-01"
+        ],
+        "videos": [
+          "BV1Cd4y1V7G5",
+          "BV1qYSvBHELW"
+        ]
+      }
+    },
+    {
+      "id": "stage-1",
+      "name": "阶段 1：系统掌握（能做一个可联机/可优化的原型）",
+      "goal": "掌握复制、动画、UI、性能分析基础，能做出 2–4 人联机原型并定位主要瓶颈。",
+      "duration": "约 8–16 周（经验性建议）",
+      "required": [
+        {
+          "title": "网络复制/RPC/权威",
+          "basis": "公开资料支撑",
+          "sources": [
+            "S004",
+            "S028"
+          ],
+          "videos": [
+            "BV1pT4y1p7UB",
+            "BV1w1t86cEsN"
+          ]
+        },
+        {
+          "title": "动画蓝图/蒙太奇/混合",
+          "basis": "公开资料支撑",
+          "sources": [
+            "S018"
+          ],
+          "videos": [
+            "BV1sptJ6TEPn"
+          ]
+        },
+        {
+          "title": "性能分析基础（stat/Insights）",
+          "basis": "公开资料支撑",
+          "sources": [
+            "S010",
+            "S025"
+          ],
+          "videos": [
+            "BV1Ay4y1q7Kj",
+            "BV18C4y1A7Np"
+          ]
+        },
+        {
+          "title": "GC 基础与引用语义",
+          "basis": "公开资料支撑",
+          "sources": [
+            "S071",
+            "S072"
+          ],
+          "videos": [
+            "BV17go5YQE8p"
+          ]
+        }
+      ],
+      "projects": [
+        "做一个 2–4 人联机射击/合作原型：服务器权威移动+开火+简单命中。",
+        "用 Insights 抓一次卡顿并定位到具体系统。",
+        "用 stat/CSV 做一次优化前后对比。"
+      ],
+      "acceptance": [
+        "能解释服务器权威/客户端预测的基本边界。",
+        "能用 stat unit 判断 CPU/GPU 瓶颈。",
+        "能说清 UPROPERTY 与弱引用对 GC 的影响。"
+      ],
+      "crossRefs": {
+        "topics": [
+          "topic-net",
+          "topic-perf",
+          "topic-gc",
+          "topic-loading",
+          "topic-movement"
+        ],
+        "solutions": [
+          "fps-01",
+          "fps-02",
+          "load-02",
+          "mov-01",
+          "net-02"
+        ],
+        "videos": [
+          "BV1w1t86cEsN",
+          "BV18C4y1A7Np",
+          "BV1e14y1t7uH"
+        ]
+      }
+    },
+    {
+      "id": "stage-2",
+      "name": "阶段 2：专项深入（选一个方向做到能解决真实问题）",
+      "goal": "在渲染/网络/性能/工具/动画/AI 中选一个方向，完成一个有量化指标的专项。",
+      "duration": "约 3–6 个月（经验性建议）",
+      "required": [
+        {
+          "title": "按方向选择：渲染管线/Lumen/Nanite 或 网络预测/回滚 或 Insights/预算",
+          "basis": "公开资料支撑",
+          "sources": [
+            "S001",
+            "S002",
+            "S010",
+            "S028"
+          ]
+        },
+        {
+          "title": "读一篇 GDC/Unreal Fest 演讲并复现其核心结论",
+          "basis": "公开资料支撑",
+          "sources": [
+            "S048",
+            "S051",
+            "S055"
+          ]
+        }
+      ],
+      "projects": [
+        "专项 A：做一个渲染通道级基准，定位并优化一个最贵 pass。",
+        "专项 B：做一个延迟补偿命中 Demo，统计不同 RTT 下的一致性。",
+        "专项 C：做一个 GC 卡顿复现与优化（对象数/池化/增量）。"
+      ],
+      "acceptance": [
+        "能给出优化前后的量化对比（帧时间/内存/带宽）。",
+        "能解释方案的代价与不适用场景，而不只是「能用」。",
+        "能把结论写成可复现步骤，供他人验证。"
+      ],
+      "crossRefs": {
+        "topics": [
+          "topic-render-basics",
+          "topic-gi",
+          "topic-net",
+          "topic-perf",
+          "topic-gc",
+          "topic-loading",
+          "topic-physics",
+          "topic-mobile",
+          "topic-movement"
+        ],
+        "solutions": [
+          "ow-03",
+          "ow-04",
+          "fps-06",
+          "gen-05",
+          "load-05",
+          "phy-04",
+          "mob-01",
+          "gas-06",
+          "net-05"
+        ],
+        "videos": [
+          "BV1pdwEzyELv",
+          "BV1kb411o7DU",
+          "BV1sS8q6bEDr",
+          "BV1GC4y1H71i"
+        ]
+      }
+    },
+    {
+      "id": "stage-3",
+      "name": "阶段 3：架构与团队（能定方案、带人、建流程）",
+      "goal": "能对一个品类做技术选型与预算，建立工具链/CI/可观测性，带 3–10 人完成可上线版本。",
+      "duration": "约 6–12 个月（经验性建议）",
+      "required": [
+        {
+          "title": "性能预算与跨平台分级",
+          "basis": "公开资料支撑",
+          "sources": [
+            "S074",
+            "S063"
+          ]
+        },
+        {
+          "title": "自动化测试/回归/压测",
+          "basis": "公开资料支撑",
+          "sources": [
+            "S043",
+            "S044",
+            "S036"
+          ]
+        },
+        {
+          "title": "资源管线/包体/热更",
+          "basis": "公开资料支撑",
+          "sources": [
+            "S030",
+            "S032",
+            "S031"
+          ]
+        },
+        {
+          "title": "反作弊与线上运维",
+          "basis": "公开资料支撑",
+          "sources": [
+            "S028",
+            "S081"
+          ]
+        }
+      ],
+      "projects": [
+        "为一个品类写技术方案：目标函数、约束、候选对比、预算、回退。",
+        "建立一条 CI：固定场景性能阈值 + 功能测试 + 包体报告。",
+        "带一次上线前压测与设备矩阵验证，输出风险清单。"
+      ],
+      "acceptance": [
+        "方案能被评审并说清取舍与风险。",
+        "团队能按流程复现性能/包体结论。",
+        "线上问题有可观测性与回放/审计链路。"
+      ],
+      "crossRefs": {
+        "topics": [
+          "topic-engineering",
+          "topic-asset",
+          "topic-anticheat",
+          "topic-perf",
+          "topic-mobile",
+          "topic-loading"
+        ],
+        "solutions": [
+          "gen-02",
+          "gen-04",
+          "gen-05",
+          "gen-06",
+          "gen-15",
+          "net-10",
+          "gas-11",
+          "load-10"
+        ],
+        "videos": [
+          "BV1waQuYeEWy"
+        ]
+      }
+    }
+  ],
+  "directions": [
+    {
+      "id": "dir-gameplay",
+      "name": "客户端 / Gameplay",
+      "forWhom": "喜欢做玩法、角色、交互与手感的人",
+      "path": [
+        "C++/蓝图与网络基础",
+        "GAS 或自研技能框架",
+        "动画/输入/相机手感",
+        "联机预测与回滚",
+        "性能与 GC 治理"
+      ],
+      "crossRefs": {
+        "topics": [
+          "topic-gas",
+          "topic-animation",
+          "topic-net",
+          "topic-gc",
+          "topic-movement"
+        ],
+        "solutions": [
+          "arpg-02",
+          "fps-13",
+          "gen-09",
+          "arpg-01",
+          "mov-03",
+          "gas-11"
+        ]
+      }
+    },
+    {
+      "id": "dir-render",
+      "name": "渲染与图形",
+      "forWhom": "对画面、管线、GPU 性能感兴趣的人",
+      "path": [
+        "图形学与管线基础",
+        "UE 渲染路径（延迟/前向）",
+        "Nanite/Lumen/VSM/TSR",
+        "RDG 与自定义 pass",
+        "通道级性能分析"
+      ],
+      "crossRefs": {
+        "topics": [
+          "topic-render-basics",
+          "topic-gi",
+          "topic-shader-pso",
+          "topic-mobile"
+        ],
+        "solutions": [
+          "ow-03",
+          "ow-04",
+          "rd-11",
+          "rd-18",
+          "mob-01",
+          "mob-10"
+        ],
+        "videos": [
+          "BV1gdA2zGEnb",
+          "BV1pdwEzyELv"
+        ]
+      }
+    },
+    {
+      "id": "dir-net",
+      "name": "网络与服务器",
+      "forWhom": "喜欢联机、架构、成本与稳定性的人",
+      "path": [
+        "复制/RPC/权威",
+        "预测/回滚/延迟补偿",
+        "Iris/Replication Graph",
+        "服务器编排与成本",
+        "反作弊与压测"
+      ],
+      "crossRefs": {
+        "topics": [
+          "topic-net",
+          "topic-anticheat"
+        ],
+        "solutions": [
+          "fps-01",
+          "fps-10",
+          "fps-11",
+          "gen-02",
+          "gen-03",
+          "net-05",
+          "net-08",
+          "net-10"
+        ],
+        "videos": [
+          "BV1w1t86cEsN",
+          "BV1g98R6SEMs"
+        ]
+      }
+    },
+    {
+      "id": "dir-tools",
+      "name": "工具与引擎",
+      "forWhom": "喜欢编辑器、管线、自动化、给别人提效的人",
+      "path": [
+        "编辑器扩展/Python",
+        "资产管线与校验",
+        "构建/包体/热更",
+        "自动化测试",
+        "引擎模块与自定义"
+      ],
+      "crossRefs": {
+        "topics": [
+          "topic-asset",
+          "topic-engineering"
+        ],
+        "solutions": [
+          "gen-07",
+          "gen-15",
+          "gen-05",
+          "load-07",
+          "mob-10"
+        ]
+      }
+    },
+    {
+      "id": "dir-perf",
+      "name": "性能与优化",
+      "forWhom": "喜欢定位瓶颈、做量化对比、跨平台调优的人",
+      "path": [
+        "stat/Insights 基础",
+        "CPU/GPU/内存通道",
+        "预算方法论",
+        "平台工具（PIX/RenderDoc/移动端）",
+        "自动化回归与线上分级"
+      ],
+      "crossRefs": {
+        "topics": [
+          "topic-perf",
+          "topic-gc",
+          "topic-shader-pso",
+          "topic-loading",
+          "topic-physics"
+        ],
+        "solutions": [
+          "gen-05",
+          "gen-11",
+          "gen-12",
+          "ow-13",
+          "load-09",
+          "phy-10",
+          "net-12"
+        ],
+        "videos": [
+          "BV1Yg4y1M7bT",
+          "BV14MNtzJEaF"
+        ]
+      }
+    }
+  ],
+  "notes": [
+    "「建议周期」为经验性建议，不是承诺；实际取决于每天投入时长与项目复杂度。",
+    "标「公开资料支撑」的条目可在 sources 中找到对应官方文档/演讲；标「经验性建议」的条目为方法论建议，需结合项目验证。",
+    "每个阶段都应产出可复现的记录（步骤、指标、对比），否则无法验收。"
+  ]
+}

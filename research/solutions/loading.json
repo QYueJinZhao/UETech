@@ -1,0 +1,592 @@
+[
+  {
+    "id": "load-01",
+    "name": "同步 vs 异步加载与 StreamableManager",
+    "aliases": ["LoadObject", "LoadClass", "FStreamableManager", "RequestAsyncLoad", "异步加载", "硬加载"],
+    "type": ["通用", "开放世界", "ARPG"],
+    "domain": "solution",
+    "category": "资源加载与流式管理",
+    "engine": ["UE4", "UE5", "全版本"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "入门",
+    "summary": "同步 Load 立即阻塞游戏线程；异步 StreamableManager 把磁盘/解压/构造移到后台，并在回调或句柄就绪后再使用对象。",
+    "problem": "运行时临时 LoadObject/LoadClass 会在游戏线程造成明显卡顿，尤其在大资产、机械盘或首包解压时。",
+    "mechanism": "同步加载直接解析包并构造 UObject，调用线程等待 IO；异步加载通过 FStreamableManager 注册请求，后台线程完成包读取/解压，游戏线程在下一帧或指定时机完成 PostLoad 与回调。软引用只保存路径，真正加载由请求触发。",
+    "pros": ["异步请求可显著降低单帧卡顿", "句柄/回调模型便于做加载画面与超时处理", "可与 Asset Manager/Primary Asset 规则配合"],
+    "cons": ["回调时机与对象生命周期需自己管理，容易空指针", "大量小请求会产生调度开销，需要合并/节流", "同步加载并非绝对禁止，编辑器工具与极小资产仍常用"],
+    "fit": ["运行时按需加载角色/武器/关卡区块", "打开 UI 前加载图标与字体", "流式边界预取"],
+    "unfit": ["启动关键路径上必须立即可用的极小资产", "编辑器批量导入/烘焙工具"],
+    "params": [
+      {"k": "请求粒度", "v": "按 Asset 或按组", "note": "过多小请求增加调度与回调开销"},
+      {"k": "优先级", "v": "按玩法紧急度", "note": "战斗关键资产应高于装饰资产"},
+      {"k": "超时/取消", "v": "按场景配置", "note": "切场景时要取消未完成请求，避免回调打到已销毁对象"}
+    ],
+    "sources": ["S030", "S032", "S071"],
+    "cases": [
+      {"who": "UE 官方 Asset Management", "note": "推荐用 Asset Manager 统一管理 Primary Asset 的加载/卸载", "source": "S030"},
+      {"who": "Zen Loader", "note": "IoStore/Zen 改变包读取与加载路径，异步收益更依赖存储布局", "source": "S032"}
+    ],
+    "tags": ["异步加载", "StreamableManager", "LoadObject", "硬引用", "卡顿"],
+    "extra": false,
+    "gap": "具体 API 行为随版本演进，接入前需以目标版本源码/文档复核。",
+    "reproduce": [
+      "在空项目新建一个较大的静态网格或关卡，记录同步 LoadObject 时的帧时间。",
+      "用 FStreamableManager（或 UAssetManager 的 LoadPrimaryAsset）改写为 RequestAsyncLoad。",
+      "在回调中生成 Actor 或替换材质，确认对象在回调触发后才可用。",
+      "用 stat unit / stat game 对比同步与异步两种实现的 hitch。",
+      "切换地图时调用 CancelHandle 取消未完成请求，确认无回调访问已销毁对象。"
+    ],
+    "usage": [
+      "接入方式：C++ 用 FStreamableManager + FStreamableHandle；蓝图用 Async Load Asset / Async Load Class Asset 节点。",
+      "典型参数：按玩法紧急度分组请求，组内合并；对关键资产保留短超时与失败回退。",
+      "集成点：与 Asset Manager 的 Primary Asset 规则、加载画面、对象池配合。",
+      "版本差异：UE4 已有 StreamableManager；UE5 推荐结合 Asset Manager 与 Zen/IoStore 的加载路径。"
+    ],
+    "optimization": {
+      "performance": ["合并同帧请求，限制每帧完成回调数量", "把非关键资产延迟到战斗间隙", "避免在 Tick 中反复发起同一请求"],
+      "memory": ["加载完成后的句柄及时释放", "对只读数据使用共享指针而非复制"],
+      "package": ["按使用频率与区域分块，避免一次加载整章"],
+      "iteration": ["给加载请求打标签，便于在 Insights 中按功能过滤"],
+      "stability": ["对回调做 IsValid 检查与取消订阅", "加载失败要有占位资源"],
+      "notWorth": "极小且启动必需的资产直接同步加载，异步只会增加复杂度。"
+    },
+    "verify": [
+      "stat unit / stat game 对比同步与异步的 GameThread 峰值。",
+      "Unreal Insights LoadTime 通道确认请求在后台完成、主线程无长阻塞。",
+      "断网/删除包的情况下验证失败回退与错误日志。"
+    ]
+  },
+  {
+    "id": "load-02",
+    "name": "软引用：SoftObjectPtr / SoftClassPtr / PrimaryAssetId",
+    "aliases": ["SoftObjectPtr", "SoftClassPtr", "TSoftObjectPtr", "PrimaryAssetId", "软引用", "路径引用"],
+    "type": ["通用", "开放世界", "ARPG", "MOBA"],
+    "domain": "solution",
+    "category": "资源加载与流式管理",
+    "engine": ["UE4", "UE5", "全版本"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "软引用只保存资产路径或 PrimaryAssetId，不把目标资产打进当前包的硬依赖；使用时再显式加载，是控制包体与内存的第一道闸门。",
+    "problem": "硬引用会把被引用资产及其依赖全部打进包并可能随宿主一起加载；配置表、技能表、掉落表若全用硬引用，包体与内存会失控。",
+    "mechanism": "UProperty 的硬引用在 Cook 时形成依赖并随对象加载；SoftObjectPtr 存 FSoftObjectPath，SoftClassPtr 存类路径，PrimaryAssetId 存 AssetManager 管理的类型+名称。软引用需要 Load/AsyncLoad 才得到有效对象，未加载时 IsNull/IsPending。",
+    "pros": ["显著降低硬依赖与包体", "支持按需加载与热更替换", "PrimaryAssetId 便于做规则化扫描与分包"],
+    "cons": ["使用前必须检查有效性并处理加载失败", "路径字符串重构资产时易断", "软引用滥用会让加载时机分散、难以预算"],
+    "fit": ["技能/掉落/商店等配置表", "UI 图标与音频按需加载", "跨区域引用的装饰资产"],
+    "unfit": ["高频访问的核心角色组件", "必须随宿主同步存在的关键依赖"],
+    "params": [
+      {"k": "引用类型", "v": "SoftObjectPtr / SoftClassPtr / PrimaryAssetId", "note": "按是否需要类型信息与 AssetManager 规则选择"},
+      {"k": "加载时机", "v": "进入区域/打开界面前", "note": "不要等到使用瞬间才同步加载"},
+      {"k": "空值策略", "v": "占位资源 + 日志", "note": "避免空引用直接崩溃"}
+    ],
+    "sources": ["S030", "S071", "S072"],
+    "cases": [
+      {"who": "UE 官方 Asset Management", "note": "Primary Asset 规则用于扫描、分包与按需加载", "source": "S030"},
+      {"who": "Lyra 示例", "note": "用软引用与 Asset Manager 组织角色/武器资产", "source": "S007"}
+    ],
+    "tags": ["软引用", "SoftObjectPtr", "PrimaryAssetId", "包体", "硬引用"],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "新建两个资产 A/B，A 中分别用硬引用和 SoftObjectPtr 指向 B。",
+      "用 Reference Viewer 或 Size Map 查看 A 的依赖是否包含 B。",
+      "Cook 后对比包体/Asset Registry 依赖，确认软引用未把 B 拉进同一 Chunk。",
+      "运行时调用 SoftObjectPtr.LoadSynchronous 与 AsyncLoad，观察卡顿差异。",
+      "把 B 改名/移动，验证软引用修复流程与 PrimaryAssetId 的稳定性。"
+    ],
+    "usage": [
+      "接入方式：UPROPERTY 声明 TSoftObjectPtr/TSoftClassPtr；配置表存 PrimaryAssetId 字符串。",
+      "典型参数：加载组按功能划分；对 UI/音频使用共享缓存避免重复加载。",
+      "集成点：与 Asset Manager 的 Primary Asset Types、Chunk 规则、加载画面联动。",
+      "版本差异：UE5 的 Asset Registry 与 IoStore 对软引用解析更依赖挂载顺序，需在目标版本验证。"
+    ],
+    "optimization": {
+      "performance": ["批量解析软引用，避免逐个同步 Load", "对频繁访问的对象缓存强指针"],
+      "memory": ["缓存强指针要有明确释放点", "不要为了省事把软引用全部转成硬引用"],
+      "package": ["按 Primary Asset 类型设置 Chunk", "把可选内容移出首包"],
+      "iteration": ["用 Reference Viewer 做依赖审计", "禁止在配置表中直接硬引用大资产"],
+      "stability": ["对空软引用做占位与告警", "改名后跑一遍引用修复"],
+      "notWorth": "始终随宿主加载且体积极小的资产，硬引用更简单可靠。"
+    },
+    "verify": [
+      "Reference Viewer / Asset Audit 确认硬依赖数量下降。",
+      "Size Map 与 Cook 日志确认目标资产未进入错误 Chunk。",
+      "运行时空引用计数与加载失败日志为零。"
+    ]
+  },
+  {
+    "id": "load-03",
+    "name": "Asset Manager 与 Primary Data Asset",
+    "aliases": ["UAssetManager", "PrimaryDataAsset", "Primary Asset Type", "Asset Manager Settings", "资产管理器"],
+    "type": ["通用", "开放世界", "ARPG", "MOBA"],
+    "domain": "solution",
+    "category": "资源加载与流式管理",
+    "engine": ["UE4", "UE5", "UE5.0–5.3", "UE5.4+"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "把可加载资产登记为 Primary Asset，用 Asset Manager 统一做扫描、分包、按类型加载/卸载与规则校验，避免散落的路径字符串。",
+    "problem": "项目里到处硬编码资产路径，无法统一分包、预加载、审计与热更；不同系统各自加载导致重复与泄漏。",
+    "mechanism": "PrimaryDataAsset 声明 AssetType 与 ChunkId；Asset Manager 在启动/编辑器扫描 Asset Registry，按类型与规则加载 Primary Asset，并管理 Bundle（如 UI、Gameplay）与卸载。蓝图/C++ 通过 GetPrimaryAssetId 与 LoadPrimaryAsset 访问。",
+    "pros": ["统一的资产登记与加载入口", "天然支持 Chunk/按需下载与 Bundle 分组", "便于审计、热更与自动化测试"],
+    "cons": ["需要前期设计 AssetType/Bundle，改造成本高", "规则配置错误会导致漏扫或错包", "对非 Primary Asset 的普通资产仍要单独治理"],
+    "fit": ["中大型项目的角色/武器/技能/关卡配置", "需要按章节或模式分包", "多平台差异化内容"],
+    "unfit": ["极小原型或单人项目", "完全动态生成的 Procedural 内容"],
+    "params": [
+      {"k": "AssetType", "v": "按领域划分（角色/武器/技能/UI）", "note": "类型过细增加管理成本"},
+      {"k": "Bundle", "v": "UI / Gameplay / 平台", "note": "按使用时机分组，避免一次全载"},
+      {"k": "ChunkId", "v": "按章节/DLC/模式", "note": "与 Cook 规则一致"},
+      {"k": "扫描规则", "v": "路径/类/标签", "note": "规则要可测试，避免漏资产"}
+    ],
+    "sources": ["S030", "S098", "S071"],
+    "cases": [
+      {"who": "UE 官方 Asset Management", "note": "Primary Asset + Bundle + Chunk 的标准组合", "source": "S030"},
+      {"who": "Lyra", "note": "用 Asset Manager 组织游戏功能与体验资产", "source": "S007"}
+    ],
+    "tags": ["AssetManager", "PrimaryDataAsset", "Bundle", "Chunk", "资产登记"],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "项目设置启用 Asset Manager，并添加自定义 Primary Asset Type。",
+      "新建 PrimaryDataAsset 子类，填写 AssetType、Bundle 与 ChunkId。",
+      "在 Asset Manager Settings 配置扫描路径与规则。",
+      "编辑器执行 Scan/Verify，确认资产被正确登记。",
+      "运行时通过 LoadPrimaryAsset 加载指定 Bundle，观察依赖与卸载。",
+      "Cook 后检查 Chunk 划分与包体，确认目标资产进入预期 Chunk。"
+    ],
+    "usage": [
+      "接入方式：C++ 继承 UPrimaryDataAsset；蓝图用 Primary Data Asset 蓝图类；项目设置登记类型与规则。",
+      "典型参数：每个 AssetType 对应一种加载策略；Bundle 按 UI/Gameplay/平台拆分。",
+      "集成点：与 Chunk 分包、加载画面、DLC/补丁、资产审计联动。",
+      "版本差异：UE5 的 Asset Manager 与 IoStore/Chunk 规则更紧密，Cook 配置需按版本复核。"
+    ],
+    "optimization": {
+      "performance": ["按 Bundle 分批加载，避免一次性拉全类型", "启动只加载必要类型"],
+      "memory": ["明确 UnloadPrimaryAsset 时机", "对共享依赖做引用计数检查"],
+      "package": ["AssetType 与 Chunk 一一对应", "可选内容放独立 Chunk"],
+      "iteration": ["把扫描规则纳入 CI 校验", "新资产必须带 AssetType 标签"],
+      "stability": ["对漏扫资产做启动告警", "Chunk 规则变更后跑全量 Cook 验证"],
+      "notWorth": "资产数量很少且无分包需求时，直接用软引用更轻。"
+    },
+    "verify": [
+      "Asset Manager 的 Scan/Verify 日志无遗漏。",
+      "LoadPrimaryAsset 后 stat memory 与引用计数符合预期。",
+      "Cook 产物中 Chunk 大小与内容符合设计。"
+    ]
+  },
+  {
+    "id": "load-04",
+    "name": "Level Streaming：Always Loaded / Blueprint / Volume",
+    "aliases": ["Level Streaming", "子关卡", "Streaming Volume", "Always Loaded", "关卡流送"],
+    "type": ["开放世界", "ARPG", "搜打撤", "通用"],
+    "domain": "solution",
+    "category": "资源加载与流式管理",
+    "engine": ["UE4", "UE5", "全版本"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "入门",
+    "summary": "用持久关卡 + 子关卡把世界切成可显式加载/卸载的单元，Always Loaded 常驻，Blueprint 与 Volume 负责按剧情或空间触发。",
+    "problem": "整张地图一次加载会超出内存；需要按区域、任务或副本切换内容，并控制加载时机。",
+    "mechanism": "持久关卡始终存在；子关卡通过 Level Streaming Volume 的可见性、蓝图 LoadStreamLevel/UnloadStreamLevel 或 Always Loaded 标志管理。加载是异步的，但默认可能在边界造成 hitch，需要预加载与过渡。",
+    "pros": ["显式可控，适合副本/线性关卡/任务切换", "工具链成熟，调试直观", "可与数据层/世界分区混合使用"],
+    "cons": ["大规模世界的手工切分与边界维护成本高", "流送体积重叠/遗漏会造成卡顿或穿帮", "多人协作时关卡文件冲突"],
+    "fit": ["副本、章节、室内外切换", "小型到中型开放区域", "需要精确控制加载时机的线性流程"],
+    "unfit": ["公里级无缝世界", "高频动态增删的大量小单元"],
+    "params": [
+      {"k": "单元粒度", "v": "按房间/区域/章节", "note": "过细增加管理成本"},
+      {"k": "预加载距离", "v": "大于玩家可见边界", "note": "避免进入时才加载"},
+      {"k": "常驻内容", "v": "最小化", "note": "Always Loaded 会推高基础内存"}
+    ],
+    "sources": ["S011", "S097", "S003"],
+    "cases": [
+      {"who": "UE 官方 Level Streaming", "note": "持久关卡/子关卡/体积/蓝图四种控制方式", "source": "S011"},
+      {"who": "传统线性关卡项目", "note": "按章节显式加载，配合过场遮挡", "source": "S097"}
+    ],
+    "tags": ["Level Streaming", "子关卡", "Streaming Volume", "Always Loaded", "关卡切换"],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "新建地图并添加两个子关卡，把其中一个设为 Always Loaded。",
+      "放置 Level Streaming Volume，调整体积覆盖玩家路径。",
+      "在关卡蓝图中调用 LoadStreamLevel/UnloadStreamLevel，勾选 Make Visible After Load。",
+      "用 stat levels / stat streaming 观察加载状态与耗时。",
+      "让玩家高速穿过边界，确认预加载距离足够、无明显 hitch。",
+      "卸载后检查 Actor 引用是否释放，避免跨关卡悬挂指针。"
+    ],
+    "usage": [
+      "接入方式：Levels 窗口管理子关卡；蓝图/C++ 调用流送接口；Volume 控制空间触发。",
+      "典型参数：单元按房间/区域；预加载距离大于可见距离；常驻内容最小化。",
+      "集成点：与存档、任务状态、Data Layer、World Partition 协作。",
+      "版本差异：UE5 仍支持传统流送；新大世界项目更推荐 World Partition。"
+    ],
+    "optimization": {
+      "performance": ["预加载而非即时加载", "合并过小的子关卡", "用遮挡/过场掩盖切换"],
+      "memory": ["卸载后清理引用", "常驻关卡只保留共享系统"],
+      "package": ["按章节/区域 Cook 分包"],
+      "iteration": ["用 Levels 窗口与自动化传送测试", "给子关卡命名规范"],
+      "stability": ["对加载失败做回退与日志", "避免在流送回调中直接销毁调用者"],
+      "notWorth": "小型单关卡项目不需要流送，直接一张图更简单。"
+    },
+    "verify": [
+      "stat levels / stat streaming 确认子关卡按预期加载/卸载。",
+      "高速移动与传送测试无长 hitch。",
+      "内存峰值与卸载后的常驻内存符合预算。"
+    ]
+  },
+  {
+    "id": "load-05",
+    "name": "World Partition + Data Layers + Level Instance",
+    "aliases": ["World Partition", "Data Layer", "Level Instance", "OFPA", "运行时网格"],
+    "type": ["开放世界", "ARPG", "搜打撤"],
+    "domain": "solution",
+    "category": "资源加载与流式管理",
+    "engine": ["UE5", "UE5.0–5.3", "UE5.4+"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "World Partition 用运行时网格自动流送，Data Layer 控制逻辑分层，Level Instance 复用建筑/房间；三者组合替代手工子关卡管理。",
+    "problem": "公里级世界手工切分关卡不可维护；任务状态、区域变化与复用建筑需要独立的加载/显示控制。",
+    "mechanism": "WP 把世界切成网格单元，按流送源与加载范围加载；Data Layer 为 Actor 打逻辑层标签，可在运行时加载/卸载或仅切换可见性；Level Instance 把一组 Actor 封装为可复用单元，支持实例化与编辑。",
+    "pros": ["自动流送，适合超大世界", "Data Layer 支持任务/天气/区域状态切换", "Level Instance 降低重复内容制作成本"],
+    "cons": ["配置复杂，单元尺寸/加载范围调优成本高", "与旧流送工具链/插件迁移成本", "Data Layer 状态与存档一致性需额外设计"],
+    "fit": ["开放世界", "大副本 ARPG", "搜打撤大地图"],
+    "unfit": ["小型线性关卡", "需要逐帧精确控制加载的极特殊场景"],
+    "params": [
+      {"k": "网格尺寸", "v": "按内容密度与视距", "note": "过小增加管理开销，过大造成内存峰值"},
+      {"k": "加载范围", "v": "大于可见距离", "note": "可按设备动态缩放"},
+      {"k": "Data Layer", "v": "按任务/区域/平台", "note": "区分 Editor 与 Runtime 层"},
+      {"k": "Level Instance", "v": "建筑/房间/模块", "note": "避免重复 Actor 膨胀"}
+    ],
+    "sources": ["S003", "S099", "S100", "S101", "S014"],
+    "cases": [
+      {"who": "UE5 开放世界模板", "note": "默认启用 WP/OFPA/Data Layers/HLOD", "source": "S003"},
+      {"who": "Epic 官方 Data Layers", "note": "运行时加载/卸载与可见性切换", "source": "S099"}
+    ],
+    "tags": ["World Partition", "Data Layer", "Level Instance", "OFPA", "流送"],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "用开放世界模板新建地图，确认 World Partition 已启用。",
+      "在 World Settings 设置网格尺寸与加载范围。",
+      "启用 OFPA 并保存，观察 Actor 独立文件。",
+      "创建 Data Layer，把任务/区域内容分配到不同层。",
+      "用 Level Instance 复用一组建筑，检查运行时加载行为。",
+      "传送玩家跨越多个单元，用 stat streaming 与 Insights LoadTime 观察加载与 hitch。"
+    ],
+    "usage": [
+      "接入方式：World Partition 地图 + Data Layer 资产 + Level Instance Actor。",
+      "典型参数：网格按内容密度；加载范围按设备档位动态缩放；Data Layer 按任务状态切换。",
+      "集成点：与 HLOD、Nanite、虚拟纹理、PCG、存档系统联动。",
+      "版本差异：WP 自 UE5 引入，5.x 各版本在 Data Layer/HLOD/流送源 API 上有演进，需按目标版本核对。"
+    ],
+    "optimization": {
+      "performance": ["按设备缩放加载范围", "控制流送源数量", "HLOD 降低远景 draw call"],
+      "memory": ["单元尺寸与密度匹配内存预算", "及时卸载非活动 Data Layer"],
+      "package": ["按区域/章节分块 Cook", "可选内容独立 Chunk"],
+      "iteration": ["WP 可视化窗口 + 自动化巡航测试", "Data Layer 命名规范"],
+      "stability": ["Data Layer 状态纳入存档", "流送边界加预加载/遮挡"],
+      "notWorth": "小型线性关卡用传统 Level Streaming 更可控。"
+    },
+    "verify": [
+      "stat streaming / stat levels 观察单元加载与卸载。",
+      "Insights LoadTime 确认无主线程长阻塞。",
+      "内存峰值在设备预算内，Data Layer 切换无残留 Actor。"
+    ]
+  },
+  {
+    "id": "load-06",
+    "name": "预加载、预缓存与加载画面",
+    "aliases": ["Preload", "Precache", "加载画面", "Loading Screen", "异步蓝图节点", "预取"],
+    "type": ["通用", "开放世界", "ARPG", "MOBA", "FPS"],
+    "domain": "solution",
+    "category": "资源加载与流式管理",
+    "engine": ["UE4", "UE5", "全版本"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "在进入战斗/切场景前把关键资产预热到内存，用加载画面与进度反馈掩盖不可避免的等待，避免首次使用瞬间卡顿。",
+    "problem": "首次开火、首次技能、首次进入区域时的同步加载会造成明显卡顿；玩家对无反馈的等待更敏感。",
+    "mechanism": "预加载在安全窗口（加载画面、过场、匹配等待）发起异步请求并等待句柄完成；预缓存可包括 PSO/材质/纹理/动画。加载画面读取进度并保持最小渲染开销。",
+    "pros": ["把卡顿移到可接受窗口", "进度反馈改善等待体验", "可与匹配/过场/传送整合"],
+    "cons": ["预加载过多会推高内存峰值与加载时长", "进度估算不准会造成假进度", "加载画面本身也有渲染/IO 成本"],
+    "fit": ["竞技射击开局前预热武器/地图", "ARPG 进入副本前预热技能/怪物", "开放世界传送前预热目标区域"],
+    "unfit": ["内存极紧的移动端全量预载", "无法预测下一步内容的完全开放玩法"],
+    "params": [
+      {"k": "预加载集合", "v": "按玩法关键路径", "note": "不是全部资产"},
+      {"k": "预热窗口", "v": "加载/匹配/过场", "note": "避免在战斗帧内"},
+      {"k": "进度权重", "v": "按资产大小/数量", "note": "避免进度条跳变"},
+      {"k": "超时", "v": "按平台 IO 设定", "note": "失败要可回退"}
+    ],
+    "sources": ["S030", "S032", "S042", "S010"],
+    "cases": [
+      {"who": "竞技射击", "note": "开局加载画面预热地图与武器，减少首次交火卡顿", "source": "S048"},
+      {"who": "UE PSO Precaching", "note": "PSO 预缓存减少首次绘制卡顿", "source": "S042"}
+    ],
+    "tags": ["预加载", "Precache", "加载画面", "PSO", "首次卡顿"],
+    "extra": false,
+    "gap": "预加载集合的最优解依赖项目内容与平台 IO，需用实测而非通用数字。",
+    "reproduce": [
+      "记录首次使用某资产（如开火特效/技能）时的帧时间。",
+      "在加载画面或匹配等待中用 StreamableManager 预加载该资产集合。",
+      "加入进度条，按请求完成数/资产大小加权更新。",
+      "加载完成后立即触发一次使用，确认无首次卡顿。",
+      "用 stat unit / Insights LoadTime 对比预加载前后的峰值。"
+    ],
+    "usage": [
+      "接入方式：加载画面 Widget + 异步加载句柄；PSO 预缓存用引擎配置/收集流程。",
+      "典型参数：预加载集合按玩法关键路径；进度权重按资产大小；设置超时与失败回退。",
+      "集成点：与匹配、传送、过场、PSO 收集、内存预算联动。",
+      "版本差异：UE5 的 PSO 预缓存与 Zen/IoStore 加载路径与 UE4 不同，需按版本验证。"
+    ],
+    "optimization": {
+      "performance": ["只预热关键路径", "分帧完成回调", "用后台线程做解压/构造"],
+      "memory": ["预加载后按场景释放", "用内存预算上限约束集合大小"],
+      "package": ["把预加载内容放在首包或目标 Chunk", "避免跨 Chunk 抖动"],
+      "iteration": ["把预加载集合配置化，便于策划调整", "自动化首次使用测试"],
+      "stability": ["加载失败回退到低配占位", "取消时清理句柄"],
+      "notWorth": "使用频率极低且体量小的资产，按需异步加载即可。"
+    },
+    "verify": [
+      "首次使用帧时间与稳态帧时间接近。",
+      "Insights LoadTime 显示预加载在安全窗口完成。",
+      "内存峰值不超过预算，加载画面帧率稳定。"
+    ]
+  },
+  {
+    "id": "load-07",
+    "name": "Pak / IoStore 与 Chunk 分包",
+    "aliases": ["Pak", "IoStore", "UTOC", "UCAS", "Chunk", "分包", "补丁", "按需下载"],
+    "type": ["通用", "开放世界", "FPS", "MOBA"],
+    "domain": "solution",
+    "category": "资源加载与流式管理",
+    "engine": ["UE4", "UE5", "UE5.0–5.3", "UE5.4+"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "Cook 时按 Chunk 划分内容，运行时通过 Pak/IoStore 挂载与按需下载；分包决定首包大小、补丁增量与加载并行度。",
+    "problem": "单包体积过大导致下载/安装门槛高、补丁全量替换、首包启动慢；不分包也无法按模式/区域按需安装。",
+    "mechanism": "Cook 将资产按 ChunkId 分配到不同 Pak（或 IoStore 的 UTOC/UCAS），Pak 可加密/压缩并在启动或运行时挂载；Chunk 与 Primary Asset 规则、Asset Manager 的按需下载配合，实现首包+追加包与补丁差分。",
+    "pros": ["首包可控，支持按需下载", "补丁可按 Chunk 差分，减少更新体积", "IoStore 改善加载并行与内存映射"],
+    "cons": ["Chunk 规划错误会导致跨包依赖缺失或重复", "挂载顺序/加密/压缩增加调试复杂度", "补丁与版本兼容需要严格流程"],
+    "fit": ["手游/主机分章节或模式下载", "大型多人游戏的补丁治理", "Server/Client 内容分离"],
+    "unfit": ["极小项目单包更简单", "内容量小且无更新需求的原型"],
+    "params": [
+      {"k": "Chunk 粒度", "v": "按章节/模式/平台", "note": "过细增加挂载与补丁管理成本"},
+      {"k": "首包内容", "v": "启动+首章", "note": "必须能进入首个可玩场景"},
+      {"k": "压缩/加密", "v": "按平台与安全需求", "note": "影响 CPU 与加载时间"},
+      {"k": "IoStore", "v": "按版本与平台启用", "note": "需验证工具链与补丁流程"}
+    ],
+    "sources": ["S098", "S032", "S030", "S028"],
+    "cases": [
+      {"who": "UE 官方 Cooking/Chunks", "note": "ChunkId 与 Primary Asset 规则决定分包", "source": "S098"},
+      {"who": "Zen Loader/IoStore", "note": "更高效的包布局与加载路径", "source": "S032"}
+    ],
+    "tags": ["Pak", "IoStore", "Chunk", "补丁", "首包", "分包"],
+    "extra": false,
+    "gap": "IoStore 的启用条件与补丁工具链随版本/平台变化，需以目标版本 Cook 流程验证。",
+    "reproduce": [
+      "在项目设置中启用 Chunk 划分，给 Primary Asset 配置 ChunkId。",
+      "执行 Cook，检查生成的 Pak/IoStore 文件与 Chunk 对应关系。",
+      "用 UnrealPak 或挂载流程验证运行时能按 Chunk 加载内容。",
+      "模拟缺失 Chunk，确认按需下载/报错路径符合预期。",
+      "做一次小改动的补丁 Cook，对比补丁体积是否只含变更 Chunk。"
+    ],
+    "usage": [
+      "接入方式：Project Settings 的 Packaging/Chunk 配置 + Primary Asset 规则 + 启动挂载逻辑。",
+      "典型参数：首包含启动与首章；章节/模式/平台各自 Chunk；压缩按平台选择。",
+      "集成点：与 Asset Manager、DLC、补丁系统、Server/Client 分包联动。",
+      "版本差异：UE4 以 Pak 为主；UE5 推荐评估 IoStore，但需验证平台与工具链。"
+    ],
+    "optimization": {
+      "performance": ["合理 Chunk 大小以利并行加载", "避免单 Chunk 过大", "IoStore 减少随机读"],
+      "memory": ["按需挂载/卸载 Pak", "避免重复共享依赖"],
+      "package": ["首包最小可玩", "补丁按 Chunk 差分", "剔除未使用资产"],
+      "iteration": ["Chunk 规则纳入 CI", "补丁体积回归测试"],
+      "stability": ["挂载失败要有明确日志与回退", "版本号与 Chunk 清单绑定"],
+      "notWorth": "内容量小、无更新计划的项目用单 Pak 更省事。"
+    },
+    "verify": [
+      "Cook 日志与包体报告显示 Chunk 划分符合设计。",
+      "首包安装后可进入首个场景，追加 Chunk 可按需下载。",
+      "补丁体积只含变更内容，挂载/运行无缺失依赖。"
+    ]
+  },
+  {
+    "id": "load-08",
+    "name": "内存与卸载：引用计数、泄漏与峰值控制",
+    "aliases": ["引用计数", "卸载", "内存泄漏", "Memory Leak", "TWeakObjectPtr", "对象生命周期"],
+    "type": ["通用", "开放世界", "ARPG"],
+    "domain": "solution",
+    "category": "资源加载与流式管理",
+    "engine": ["UE4", "UE5", "全版本"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "UE 的 UObject 由 GC 管理，但资产卸载不及时或强引用悬挂会造成内存持续上涨；关键是明确所有权、用弱引用观察、在安全点释放。",
+    "problem": "跨关卡/跨区域切换后内存不下降，长时间运行 OOM；异步回调持有已销毁对象；缓存无上限。",
+    "mechanism": "UObject 可达性由 GC 标记；UPROPERTY 强引用、TArray/Map 中的裸指针、蓝图变量、委托绑定都可能让对象不可回收。TWeakObjectPtr 不阻止回收，但需要 IsValid 检查。流送卸载只标记可回收，实际回收取决于 GC 与引用。",
+    "pros": ["GC 自动管理大部分生命周期", "弱引用可安全观察对象", "流送/Asset Manager 提供卸载入口"],
+    "cons": ["GC 时机不确定，卸载不等于立即释放", "隐蔽强引用难排查", "大对象频繁分配/释放造成碎片与峰值"],
+    "fit": ["跨关卡/区域的长会话游戏", "大量动态生成 Actor 的玩法", "需要缓存但又怕泄漏的系统"],
+    "unfit": ["极短生命周期的小工具", "完全无 UObject 的纯数据计算"],
+    "params": [
+      {"k": "引用类型", "v": "强/弱/共享", "note": "按所有权选择"},
+      {"k": "缓存上限", "v": "按内存预算", "note": "必须有淘汰策略"},
+      {"k": "GC 配置", "v": "按平台与帧预算", "note": "增量 GC 降低单帧峰值"},
+      {"k": "卸载点", "v": "区域/关卡切换", "note": "配合流送与 Asset Manager"}
+    ],
+    "sources": ["S071", "S072", "S081", "S083"],
+    "cases": [
+      {"who": "UE Memory Insights", "note": "按类别追踪内存与泄漏趋势", "source": "S081"},
+      {"who": "Unreal Object Handling", "note": "GC、引用与对象生命周期官方说明", "source": "S072"}
+    ],
+    "tags": ["GC", "引用计数", "内存泄漏", "TWeakObjectPtr", "卸载", "内存峰值"],
+    "extra": false,
+    "gap": "GC 配置的最佳值依项目对象数量与帧预算，需用 Insights/Memory Report 实测。",
+    "reproduce": [
+      "在关卡中生成一批 Actor 并缓存到成员变量，切换关卡后观察内存。",
+      "把缓存改为 TWeakObjectPtr 或显式清空，再次切换并对比。",
+      "用 obj list class / stat memory 查看对象数量与类别。",
+      "用 Memory Insights 抓取快照，定位未释放的资产类别。",
+      "开启增量 GC，观察单帧 GC 峰值是否下降。"
+    ],
+    "usage": [
+      "接入方式：明确 UPROPERTY 所有权；观察用 TWeakObjectPtr；卸载用 Asset Manager/流送接口。",
+      "典型参数：缓存上限按内存预算；GC 增量配置按平台；卸载点放在区域/关卡切换。",
+      "集成点：与流送、对象池、Asset Manager、存档系统联动。",
+      "版本差异：UE5 的 GC 集群/增量 GC 配置与 UE4 有差异，需按版本核对。"
+    ],
+    "optimization": {
+      "performance": ["减少每帧分配", "用对象池复用高频 Actor", "增量 GC 平滑峰值"],
+      "memory": ["缓存设上限与淘汰", "及时清空委托与容器", "避免裸指针持有 UObject"],
+      "package": ["减少常驻大资产", "按需加载纹理/网格"],
+      "iteration": ["内存快照纳入 CI", "泄漏回归用例"],
+      "stability": ["弱引用使用前 IsValid", "异步回调绑定生命周期"],
+      "notWorth": "对象极少且生命周期与关卡一致时，不必引入复杂池化。"
+    },
+    "verify": [
+      "stat memory / obj list 显示对象数量在卸载后回落。",
+      "Memory Insights 快照无持续增长的类别。",
+      "长时间运行的内存曲线平稳，无 OOM。"
+    ]
+  },
+  {
+    "id": "load-09",
+    "name": "加载预算、IO 带宽与观测",
+    "aliases": ["加载预算", "IO 带宽", "Insights LoadTime", "stat streaming", "Asset Audit", "Size Map"],
+    "type": ["通用", "开放世界", "FPS", "MOBA"],
+    "domain": "solution",
+    "category": "资源加载与流式管理",
+    "engine": ["UE5", "UE4", "全版本"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "把加载时间拆成 IO、解压、构造、GPU 上传四段并设定预算；用 Insights LoadTime、stat streaming、Asset Audit、Size Map 定位超支与 hitch。",
+    "problem": "加载慢或卡顿但不知道瓶颈在磁盘、CPU 解压、UObject 构造还是显存上传；没有预算就无法判断优化优先级。",
+    "mechanism": "加载时间由包读取（存储带宽/随机读）、解压（CPU）、对象构造/PostLoad、纹理/网格上传共同决定。Insights LoadTime 通道记录请求与阶段；stat streaming 给出流送状态；Asset Audit 与 Size Map 给出资产体积与依赖。",
+    "pros": ["把优化从猜测变成测量", "可区分 IO/CPU/GPU 瓶颈", "资产体积与依赖可视化"],
+    "cons": ["Trace 有开销，长时间采集文件巨大", "不同平台存储特性差异大", "Size Map 的估算依赖 Cook 设置"],
+    "fit": ["首包/关卡切换优化", "开放世界流送 hitch 排查", "移动端内存与包体治理"],
+    "unfit": ["极小项目无加载问题", "无法复现的偶发 IO 抖动（需线上埋点）"],
+    "params": [
+      {"k": "加载预算", "v": "按场景设定上限", "note": "拆分 IO/解压/构造/上传"},
+      {"k": "Trace 时长", "v": "覆盖完整加载窗口", "note": "过长文件影响分析"},
+      {"k": "存储", "v": "SSD/HDD/移动闪存", "note": "随机读差异显著"},
+      {"k": "资产阈值", "v": "按 Size Map 排序", "note": "优先处理头部资产"}
+    ],
+    "sources": ["S010", "S025", "S030", "S081", "S032"],
+    "cases": [
+      {"who": "Unreal Insights", "note": "LoadTime 通道记录加载请求与阶段", "source": "S010"},
+      {"who": "Asset Audit", "note": "按大小/类型审计资产与依赖", "source": "S030"}
+    ],
+    "tags": ["加载预算", "IO", "Insights", "LoadTime", "Size Map", "Asset Audit"],
+    "extra": false,
+    "gap": "具体阈值须按目标平台实测，本库不给出通用毫秒数。",
+    "reproduce": [
+      "启动 Unreal Insights 并开启 LoadTime 通道。",
+      "执行一次完整的关卡切换/传送，记录从请求到可玩的耗时。",
+      "在 Trace 中拆分 IO、解压、构造与上传阶段，找出最大项。",
+      "用 Asset Audit/Size Map 找出体积与依赖最大的资产。",
+      "针对头部资产做分包/压缩/降分辨率，再复测同一路径。"
+    ],
+    "usage": [
+      "接入方式：Insights + stat streaming + Asset Audit/Size Map；CI 中可加自动化加载计时。",
+      "典型参数：预算按场景（首启/切图/传送）；Trace 覆盖完整窗口；资产阈值按体积排序。",
+      "集成点：与 Cook/Chunk、纹理流送、内存预算、自动化测试联动。",
+      "版本差异：UE5 的 Insights 通道与 Zen/IoStore 指标更细，UE4 部分统计口径不同。"
+    ],
+    "optimization": {
+      "performance": ["减少随机读与重复解压", "合并小文件", "异步构造"],
+      "memory": ["按需上传纹理", "控制流送池大小"],
+      "package": ["头部资产降规格/换压缩", "剔除未使用依赖"],
+      "iteration": ["把加载耗时纳入 CI 基线", "定期跑 Asset Audit"],
+      "stability": ["对慢存储做降级策略", "加载失败可回退"],
+      "notWorth": "加载耗时已远低于玩家可接受窗口时，继续压缩收益有限。"
+    },
+    "verify": [
+      "同一路径的加载耗时在优化后下降且无回归。",
+      "Insights 中主线程无长阻塞，IO 并行度合理。",
+      "Asset Audit 显示头部资产体积下降，包体符合预算。"
+    ]
+  },
+  {
+    "id": "load-10",
+    "name": "包体与分发：首包、补丁、Server/Client 分包",
+    "aliases": ["首包", "补丁", "DLC", "Server Client 分包", "Pak 挂载", "分发"],
+    "type": ["通用", "FPS", "MOBA", "开放世界"],
+    "domain": "solution",
+    "category": "资源管线与包体",
+    "engine": ["UE4", "UE5", "UE5.0–5.3", "UE5.4+"],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "用 Chunk + Pak/IoStore 把首包压到“可进入首个可玩场景”，其余按章节/模式/平台按需下载；Server 与 Client 分离避免把客户端表现资源打进 DS。",
+    "problem": "首包过大影响转化；补丁全量替换成本高；DS 包包含大量客户端专用资产浪费部署与内存。",
+    "mechanism": "Cook 规则按 ChunkId 与目标平台生成 Pak/IoStore；启动挂载首包，运行时按需下载/挂载追加包；补丁通过 Chunk 差分；Server Cook 排除客户端专用资产（材质/动画/UI 等）并用独立 Target 配置。",
+    "pros": ["首包与安装体积可控", "补丁增量小", "DS 包更小、部署更快"],
+    "cons": ["Chunk/平台矩阵复杂，CI 成本高", "分包错误造成运行时缺资源", "补丁兼容与回滚需要流程"],
+    "fit": ["手游分章节下载", "大型端游/主机补丁治理", "专用服务器部署"],
+    "unfit": ["内容量小且无更新需求的项目", "单机一次性发布且无 DLC"],
+    "params": [
+      {"k": "首包目标", "v": "可进入首个可玩场景", "note": "按平台商店限制设定"},
+      {"k": "Chunk 矩阵", "v": "章节/模式/平台/语言", "note": "避免组合爆炸"},
+      {"k": "Server 排除", "v": "表现层资产", "note": "用独立 Cook Target"},
+      {"k": "补丁策略", "v": "按 Chunk 差分", "note": "保留版本清单"}
+    ],
+    "sources": ["S098", "S028", "S129", "S032"],
+    "cases": [
+      {"who": "UE 官方 Cooking/Chunks", "note": "Chunk 与 Primary Asset 规则", "source": "S098"},
+      {"who": "Dedicated Server", "note": "Server Target 与客户端资产分离", "source": "S028"}
+    ],
+    "tags": ["首包", "补丁", "DLC", "Server", "Client", "分发"],
+    "extra": false,
+    "gap": "商店首包限制与平台补丁规则需按发行平台核对，本库不给出具体 MB 数。",
+    "reproduce": [
+      "建立 Client 与 Server 两个 Cook Target，分别配置包含/排除规则。",
+      "按章节/模式设置 Chunk，Cook 后检查包体分布。",
+      "启动 Client 首包进入首个场景，验证追加 Chunk 的下载/挂载。",
+      "制作一个小补丁，对比补丁体积与变更 Chunk。",
+      "启动 DS，确认客户端专用资产未被打入 Server 包。"
+    ],
+    "usage": [
+      "接入方式：Cook Target + Chunk 规则 + 启动挂载/下载逻辑；DS 用独立 Target。",
+      "典型参数：首包只含启动与首章；Chunk 按章节/模式/平台；Server 排除表现资产。",
+      "集成点：与 Asset Manager、商店 SDK、补丁系统、CI 联动。",
+      "版本差异：UE5 的 IoStore/Chunk 工具链与 UE4 不同，补丁流程需按版本验证。"
+    ],
+    "optimization": {
+      "performance": ["减少首包解压与挂载时间", "并行下载/挂载"],
+      "memory": ["按需挂载", "卸载非活动 Chunk"],
+      "package": ["首包最小化", "补丁差分", "Server 裁剪"],
+      "iteration": ["包体报表纳入 CI", "Chunk 规则变更需全量验证"],
+      "stability": ["缺包检测与回退", "版本清单与 Chunk 绑定"],
+      "notWorth": "单机小项目单包发布最简单，分包收益不足以覆盖流程成本。"
+    },
+    "verify": [
+      "首包安装后可进入首个场景，追加内容按需可用。",
+      "补丁体积只含变更 Chunk，回滚可用。",
+      "DS 包体显著小于 Client，且无客户端资产依赖错误。"
+    ]
+  }
+]

@@ -1,0 +1,1652 @@
+[
+  {
+    "id": "net-01",
+    "name": "帧同步 vs 状态同步：确定性、带宽、作弊面与回放",
+    "aliases": [
+      "Lockstep",
+      "Deterministic",
+      "帧同步",
+      "状态同步",
+      "回放",
+      "断线重连"
+    ],
+    "type": [
+      "MOBA",
+      "FPS",
+      "搜打撤",
+      "开放世界",
+      "通用"
+    ],
+    "domain": "solution",
+    "category": "网络同步与延迟补偿",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "帧同步只同步输入并依赖确定性模拟，带宽低、回放天然；状态同步同步状态快照，权威清晰但带宽高。选择取决于确定性能力、作弊面与重连需求。",
+    "problem": "品类需要不同同步模型，但常被“统一架构”绑架；帧同步在浮点/物理不一致时崩坏，状态同步在大量单位时带宽爆炸。",
+    "mechanism": "帧同步：所有客户端按相同 tick 应用输入，模拟必须确定性；状态同步：服务器模拟并复制状态，客户端插值/预测。回放/重连在帧同步下需重演输入，状态同步下需快照+增量。",
+    "pros": [
+      "帧同步带宽低、回放精确",
+      "状态同步权威清晰、易反作弊",
+      "可按品类混合"
+    ],
+    "cons": [
+      "帧同步确定性要求极高",
+      "状态同步带宽/服务器成本高",
+      "混合架构复杂度高"
+    ],
+    "fit": [
+      "MOBA/RTS/格斗可用帧同步或确定性状态同步",
+      "FPS/搜打撤倾向服务器权威状态同步",
+      "开放世界可混合"
+    ],
+    "unfit": [
+      "跨平台浮点差异无法治理的帧同步",
+      "大量单位全量状态同步"
+    ],
+    "params": [
+      {
+        "k": "确定性",
+        "v": "定点/固定步长",
+        "note": "帧同步核心"
+      },
+      {
+        "k": "tick",
+        "v": "按玩法",
+        "note": "影响精度与带宽"
+      },
+      {
+        "k": "重连",
+        "v": "快照/重演",
+        "note": "帧同步成本高"
+      },
+      {
+        "k": "作弊面",
+        "v": "输入/状态",
+        "note": "状态同步权威更强"
+      }
+    ],
+    "sources": [
+      "S004",
+      "S058",
+      "S059",
+      "S094",
+      "S096"
+    ],
+    "cases": [
+      {
+        "who": "MOBA 帧同步",
+        "note": "输入重演+确定性模拟",
+        "source": "S058"
+      },
+      {
+        "who": "Source 引擎",
+        "note": "服务器权威+客户端预测",
+        "source": "S059"
+      }
+    ],
+    "tags": [
+      "帧同步",
+      "状态同步",
+      "确定性",
+      "回放",
+      "重连",
+      "作弊面"
+    ],
+    "extra": false,
+    "gap": "MOBA 具体厂商架构的一手公开资料有限；本条以通用同步模型与公开演讲归纳，不针对单一产品断言实现细节。",
+    "reproduce": [
+      "用同一输入序列在两端跑固定步长模拟，比较结果是否一致。",
+      "引入浮点/物理差异，观察帧同步漂移。",
+      "改为服务器状态同步+客户端插值，比较带宽与一致性。",
+      "模拟断线重连，分别测试快照恢复与输入重演成本。",
+      "用 Net Emulate 对比两种模型在延迟/丢包下的表现。"
+    ],
+    "usage": [
+      "接入方式：帧同步需自建确定性模拟/输入协议；状态同步用 UE 复制/Iris。",
+      "典型参数：固定步长/tick；快照频率；重连策略；作弊面评估。",
+      "集成点：与输入、物理、回放、匹配、反作弊联动。",
+      "版本差异：UE 的复制系统演进（Iris）影响状态同步实现，帧同步通常自研。"
+    ],
+    "optimization": {
+      "performance": [
+        "帧同步降低带宽",
+        "状态同步裁剪复制"
+      ],
+      "memory": [
+        "快照/输入缓存"
+      ],
+      "package": [
+        "共享协议/配置"
+      ],
+      "iteration": [
+        "确定性回归测试",
+        "回放工具"
+      ],
+      "stability": [
+        "重连一致性",
+        "浮点治理"
+      ],
+      "notWorth": "小型合作游戏用简单状态同步即可，帧同步的确定性成本不划算。"
+    },
+    "verify": [
+      "帧同步在目标平台确定性一致。",
+      "状态同步带宽在预算内。",
+      "断线重连可恢复到一致状态。"
+    ]
+  },
+  {
+    "id": "net-02",
+    "name": "属性复制、Replication Condition 与 Push Model",
+    "aliases": [
+      "Replication",
+      "COND_",
+      "Push Model",
+      "属性复制",
+      "条件复制",
+      "带宽"
+    ],
+    "type": [
+      "FPS",
+      "TPS",
+      "MOBA",
+      "通用"
+    ],
+    "domain": "solution",
+    "category": "网络同步与延迟补偿",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "属性复制默认按 NetUpdateFrequency 发送；用 Replication Condition 与 Push Model 只发必要字段/变更，显著降低带宽与 CPU。",
+    "problem": "全量属性每帧复制导致带宽浪费；大量无关字段同步到所有客户端；属性变更检测开销高。",
+    "mechanism": "Replicated 属性按条件（OwnerOnly/SkipOwner/InitialOnly/自定义）过滤；Push Model 让属性在修改时标记 dirty，避免每帧比较；复制频率与优先级控制发送节奏。",
+    "pros": [
+      "带宽与 CPU 双降",
+      "条件复制语义清晰",
+      "与 Iris 兼容"
+    ],
+    "cons": [
+      "条件配置错误导致不同步",
+      "Push Model 需改造属性设置",
+      "调试复制缺失较难"
+    ],
+    "fit": [
+      "大量 Actor/属性的联机游戏",
+      "带宽敏感的手游/主机",
+      "需要精细复制的项目"
+    ],
+    "params": [
+      {
+        "k": "条件",
+        "v": "OwnerOnly/SkipOwner/自定义",
+        "note": "按可见性"
+      },
+      {
+        "k": "Push Model",
+        "v": "按需启用",
+        "note": "标记 dirty"
+      },
+      {
+        "k": "频率",
+        "v": "按重要度",
+        "note": "NetUpdateFrequency"
+      },
+      {
+        "k": "优先级",
+        "v": "按玩法",
+        "note": "NetPriority"
+      }
+    ],
+    "sources": [
+      "S102",
+      "S004",
+      "S005",
+      "S104"
+    ],
+    "cases": [
+      {
+        "who": "UE Replicate Actor Properties",
+        "note": "条件复制与 Push Model",
+        "source": "S102"
+      },
+      {
+        "who": "Iris Filtering",
+        "note": "相关性过滤进一步裁剪",
+        "source": "S104"
+      }
+    ],
+    "tags": [
+      "属性复制",
+      "ReplicationCondition",
+      "PushModel",
+      "带宽",
+      "NetUpdateFrequency"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "给 Actor 添加 Replicated 属性，观察默认复制频率。",
+      "设置 COND_OwnerOnly/COND_SkipOwner，验证可见性。",
+      "启用 Push Model，修改属性后观察 dirty 标记与发送。",
+      "用 net stat 对比启用前后的带宽。",
+      "多客户端验证无缺失/错发。"
+    ],
+    "usage": [
+      "接入方式：UPROPERTY(Replicated/ReplicatedUsing) + Replication Condition + Push Model 宏。",
+      "典型参数：按可见性选条件；高频属性用 Push；频率按重要度。",
+      "集成点：与 Iris/Replication Graph、预测、UI 联动。",
+      "版本差异：Push Model 在 UE5 中更成熟，具体宏/配置按版本核对。"
+    ],
+    "optimization": {
+      "performance": [
+        "条件复制/Push",
+        "降低频率"
+      ],
+      "memory": [
+        "减少复制字段"
+      ],
+      "package": [
+        "共享配置"
+      ],
+      "iteration": [
+        "带宽报表",
+        "复制缺失测试"
+      ],
+      "stability": [
+        "条件覆盖测试",
+        "Push 标记完整"
+      ],
+      "notWorth": "小型合作游戏属性少、带宽充裕时，默认复制足够。"
+    },
+    "verify": [
+      "net stat 显示带宽下降。",
+      "客户端无属性缺失。",
+      "条件复制符合可见性规则。"
+    ],
+    "unfit": [
+      "纯单机/无联机需求的项目",
+      "Actor 极少且更新频率极低的场景"
+    ]
+  },
+  {
+    "id": "net-03",
+    "name": "RPC：Server/Client/Multicast 与可靠性",
+    "aliases": [
+      "Server RPC",
+      "Client RPC",
+      "Multicast",
+      "Reliable",
+      "Unreliable",
+      "RPC"
+    ],
+    "type": [
+      "FPS",
+      "TPS",
+      "MOBA",
+      "通用"
+    ],
+    "domain": "solution",
+    "category": "网络同步与延迟补偿",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "RPC 用于事件/命令传输；Server RPC 上传意图，Client/Multicast 下发表现。可靠 RPC 保证到达但有重发/顺序成本，不可靠 RPC 适合高频表现。",
+    "problem": "用属性复制表达一次性事件（开火/技能）造成状态冗余；可靠 RPC 滥用导致带宽/延迟；多播造成双端重复表现。",
+    "mechanism": "Server RPC 在服务器执行；Client RPC 在拥有者客户端执行；Multicast 在相关客户端执行。Reliable 保证到达并可能重发，Unreliable 不保证但开销低。",
+    "pros": [
+      "事件语义清晰",
+      "可靠/不可靠可选",
+      "与 Actor 相关性配合"
+    ],
+    "cons": [
+      "可靠 RPC 重发/顺序成本",
+      "多播双端重复",
+      "RPC 不是状态同步替代"
+    ],
+    "fit": [
+      "开火/技能触发/交互命令",
+      "一次性表现事件",
+      "UI/音效通知"
+    ],
+    "unfit": [
+      "高频连续状态（应用属性复制）",
+      "需要严格顺序的大消息"
+    ],
+    "params": [
+      {
+        "k": "方向",
+        "v": "Server/Client/Multicast",
+        "note": "按语义"
+      },
+      {
+        "k": "可靠性",
+        "v": "Reliable/Unreliable",
+        "note": "事件重要性"
+      },
+      {
+        "k": "频率",
+        "v": "按事件",
+        "note": "避免每帧"
+      },
+      {
+        "k": "校验",
+        "v": "服务器",
+        "note": "防作弊"
+      }
+    ],
+    "sources": [
+      "S004",
+      "S102",
+      "S107",
+      "S058"
+    ],
+    "cases": [
+      {
+        "who": "UE Networking",
+        "note": "RPC 方向/可靠性",
+        "source": "S004"
+      },
+      {
+        "who": "Overwatch",
+        "note": "事件与状态分离",
+        "source": "S058"
+      }
+    ],
+    "tags": [
+      "RPC",
+      "ServerRPC",
+      "ClientRPC",
+      "Multicast",
+      "Reliable",
+      "Unreliable"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "实现 Server RPC 处理开火请求，服务器校验后执行。",
+      "用 Multicast 播放枪口特效，观察双端是否重复。",
+      "把高频事件改为 Unreliable，比较带宽/丢包表现。",
+      "用 Net Emulate 丢包，观察 Reliable 重发与延迟。",
+      "用 net stat/日志确认 RPC 次数与带宽。"
+    ],
+    "usage": [
+      "接入方式：UFUNCTION(Server/Client/NetMulticast, Reliable/Unreliable)。",
+      "典型参数：方向按语义；可靠性按事件；频率避免每帧；服务器校验。",
+      "集成点：与属性复制、预测、表现层联动。",
+      "版本差异：RPC 语义稳定，Iris 下实现细节有变化。"
+    ],
+    "optimization": {
+      "performance": [
+        "减少 RPC 频率",
+        "不可靠用于表现"
+      ],
+      "memory": [
+        "减少参数大小"
+      ],
+      "package": [
+        "共享协议"
+      ],
+      "iteration": [
+        "RPC 次数报表"
+      ],
+      "stability": [
+        "服务器校验",
+        "丢包回退"
+      ],
+      "notWorth": "持续状态用属性复制，不应改用高频 RPC。"
+    },
+    "verify": [
+      "RPC 方向/执行端正确。",
+      "丢包下关键事件仍到达（可靠）或表现可接受（不可靠）。",
+      "带宽与 RPC 次数在预算内。"
+    ]
+  },
+  {
+    "id": "net-04",
+    "name": "Actor 相关性：Relevancy、Owner、NetPriority 与 NetUpdateFrequency",
+    "aliases": [
+      "Relevancy",
+      "Owner",
+      "NetPriority",
+      "NetUpdateFrequency",
+      "相关性",
+      "复制裁剪"
+    ],
+    "type": [
+      "FPS",
+      "MOBA",
+      "开放世界",
+      "通用"
+    ],
+    "domain": "solution",
+    "category": "网络同步与延迟补偿",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "服务器只向“相关”客户端复制 Actor；用 Relevancy/Owner/优先级/更新频率控制谁收到什么、多久一次，是带宽治理的第一层。",
+    "problem": "所有 Actor 复制给所有客户端，带宽随人数/世界规模爆炸；远处/无关 Actor 占用预算。",
+    "mechanism": "Actor 相关性由距离/自定义规则决定；Owner 影响 RPC/属性条件；NetPriority 决定发送顺序；NetUpdateFrequency 决定更新频率。Iris/Replication Graph 可替换默认相关性。",
+    "pros": [
+      "直接降低带宽",
+      "规则可按玩法定制",
+      "与优先级/频率组合"
+    ],
+    "cons": [
+      "相关性规则错误导致缺失/瞬移",
+      "大规模动态规则 CPU 成本",
+      "调试复杂"
+    ],
+    "fit": [
+      "大世界/多人 FPS/MOBA",
+      "大量 Actor 的场景",
+      "带宽敏感项目"
+    ],
+    "unfit": [
+      "小型合作游戏",
+      "所有 Actor 都必须全量可见的玩法"
+    ],
+    "params": [
+      {
+        "k": "相关性",
+        "v": "距离/自定义",
+        "note": "按可见性"
+      },
+      {
+        "k": "NetPriority",
+        "v": "按重要度",
+        "note": "战斗关键更高"
+      },
+      {
+        "k": "NetUpdateFrequency",
+        "v": "按距离/重要度",
+        "note": "远处降频"
+      },
+      {
+        "k": "Owner",
+        "v": "按控制关系",
+        "note": "影响 RPC 条件"
+      }
+    ],
+    "sources": [
+      "S004",
+      "S104",
+      "S105",
+      "S103"
+    ],
+    "cases": [
+      {
+        "who": "UE Relevancy",
+        "note": "Actor 相关性与优先级",
+        "source": "S004"
+      },
+      {
+        "who": "Iris Filtering/Prioritization",
+        "note": "更细的过滤与预算",
+        "source": "S104"
+      }
+    ],
+    "tags": [
+      "Relevancy",
+      "Owner",
+      "NetPriority",
+      "NetUpdateFrequency",
+      "相关性",
+      "带宽"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "在多人场景中观察远处 Actor 的复制情况。",
+      "设置 NetUpdateFrequency 按距离降频。",
+      "调整 NetPriority，观察发送顺序。",
+      "自定义 Relevancy 规则，验证相关客户端收到/不收到。",
+      "用 net stat/Network Profiler 对比带宽。"
+    ],
+    "usage": [
+      "接入方式：AActor::IsNetRelevantFor/NetUpdateFrequency/NetPriority；Iris 过滤器。",
+      "典型参数：距离/自定义相关性；优先级按重要度；远处降频。",
+      "集成点：与 Iris/Replication Graph、休眠、流送联动。",
+      "版本差异：Iris 在 UE5 中逐步成熟，默认相关性行为需按版本验证。"
+    ],
+    "optimization": {
+      "performance": [
+        "相关性裁剪",
+        "降频",
+        "休眠"
+      ],
+      "memory": [
+        "减少复制 Actor"
+      ],
+      "package": [
+        "共享配置"
+      ],
+      "iteration": [
+        "带宽报表",
+        "相关性可视化"
+      ],
+      "stability": [
+        "边界测试",
+        "防瞬移"
+      ],
+      "notWorth": "小规模对局所有 Actor 都相关时，复杂相关性规则收益有限。"
+    },
+    "verify": [
+      "无关 Actor 不复制给客户端。",
+      "带宽随距离/人数增长可控。",
+      "相关性边界无缺失/瞬移。"
+    ]
+  },
+  {
+    "id": "net-05",
+    "name": "Replication Graph：空间裁剪与大规模复制",
+    "aliases": [
+      "Replication Graph",
+      "空间分区",
+      "复制图",
+      "大规模复制"
+    ],
+    "type": [
+      "FPS",
+      "MOBA",
+      "开放世界"
+    ],
+    "domain": "solution",
+    "category": "网络同步与延迟补偿",
+    "engine": [
+      "UE4",
+      "UE5",
+      "UE5.0–5.3"
+    ],
+    "maturity": "可用但有条件",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "Replication Graph 用空间网格/自定义节点组织 Actor，按客户端位置裁剪复制，适合大量 Actor 的大世界/多人对局。",
+    "problem": "默认相关性在大规模地图/大量 Actor 时 CPU/带宽开销高；需要更粗粒度、可定制的复制裁剪。",
+    "mechanism": "复制图把 Actor 分配到节点（Grid/AlwaysRelevant/自定义），每帧按客户端位置收集相关 Actor；可配置频率/优先级与休眠。",
+    "pros": [
+      "大规模场景裁剪高效",
+      "可定制节点",
+      "与休眠/优先级配合"
+    ],
+    "cons": [
+      "配置复杂",
+      "与 Iris 的职责/兼容需评估",
+      "调试成本"
+    ],
+    "fit": [
+      "大世界/大规模 FPS",
+      "大量 Actor 的 MOBA/开放世界"
+    ],
+    "unfit": [
+      "小规模对局",
+      "需要细粒度自定义复制的新项目（可优先 Iris）"
+    ],
+    "params": [
+      {
+        "k": "网格",
+        "v": "按世界尺度",
+        "note": "过细开销大"
+      },
+      {
+        "k": "节点",
+        "v": "Grid/AlwaysRelevant",
+        "note": "按 Actor 类型"
+      },
+      {
+        "k": "频率",
+        "v": "按节点",
+        "note": "控制更新"
+      },
+      {
+        "k": "休眠",
+        "v": "配合",
+        "note": "进一步降本"
+      }
+    ],
+    "sources": [
+      "S006",
+      "S004",
+      "S103",
+      "S105"
+    ],
+    "cases": [
+      {
+        "who": "UE Replication Graph",
+        "note": "官方大规模复制方案",
+        "source": "S006"
+      },
+      {
+        "who": "Fortnite",
+        "note": "大规模对局的复制裁剪需求",
+        "source": "S006"
+      }
+    ],
+    "tags": [
+      "ReplicationGraph",
+      "空间裁剪",
+      "大规模",
+      "复制图",
+      "带宽"
+    ],
+    "extra": false,
+    "gap": "Replication Graph 与 Iris 的版本兼容/取舍需按目标版本评估。",
+    "reproduce": [
+      "启用 Replication Graph 插件并配置复制图。",
+      "把 Actor 分配到 Grid/AlwaysRelevant 节点。",
+      "多客户端移动，观察相关 Actor 集合变化。",
+      "用 net stat/Network Profiler 对比默认相关性的带宽。",
+      "调整网格/频率，测试大规模场景。"
+    ],
+    "usage": [
+      "接入方式：Replication Graph 插件 + 自定义节点/路由。",
+      "典型参数：网格尺寸；节点类型；频率；休眠。",
+      "集成点：与相关性、休眠、Iris 评估联动。",
+      "版本差异：UE5 推荐评估 Iris，Replication Graph 的支持状态需按版本确认。"
+    ],
+    "optimization": {
+      "performance": [
+        "空间裁剪",
+        "降频",
+        "休眠"
+      ],
+      "memory": [
+        "减少复制 Actor"
+      ],
+      "package": [
+        "共享配置"
+      ],
+      "iteration": [
+        "复制可视化",
+        "带宽报表"
+      ],
+      "stability": [
+        "边界测试",
+        "节点覆盖完整"
+      ],
+      "notWorth": "小规模对局用默认相关性/Iris 更简单。"
+    },
+    "verify": [
+      "相关 Actor 集合随位置正确变化。",
+      "带宽显著下降。",
+      "无缺失/瞬移。"
+    ]
+  },
+  {
+    "id": "net-06",
+    "name": "Iris 复制：过滤、优先级与迁移",
+    "aliases": [
+      "Iris",
+      "Iris Filtering",
+      "Iris Prioritization",
+      "复制系统迁移"
+    ],
+    "type": [
+      "FPS",
+      "MOBA",
+      "开放世界",
+      "通用"
+    ],
+    "domain": "solution",
+    "category": "网络同步与延迟补偿",
+    "engine": [
+      "UE5",
+      "UE5.0–5.3",
+      "UE5.4+"
+    ],
+    "maturity": "可用但有条件",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "Iris 是 UE5 的新复制系统，用过滤器/优先级/预算做更高效的复制；新项目可优先评估，旧项目需评估迁移成本与兼容性。",
+    "problem": "旧复制系统在大量 Actor/复杂相关性下效率低；带宽预算无法精细分配。",
+    "mechanism": "Iris 把复制对象/描述符组织为数据流，过滤器决定相关性，优先级在预算内排序；支持 Push Model/压缩与自定义过滤器。",
+    "pros": [
+      "更高效的复制管线",
+      "细粒度过滤/优先级",
+      "与 Push Model 配合"
+    ],
+    "cons": [
+      "迁移成本/兼容性",
+      "文档与案例相对少",
+      "调试工具需适应"
+    ],
+    "fit": [
+      "新 UE5 多人项目",
+      "大规模 Actor/带宽敏感",
+      "需要精细优先级"
+    ],
+    "unfit": [
+      "小型项目/旧版本",
+      "依赖旧复制 API 的插件"
+    ],
+    "params": [
+      {
+        "k": "过滤器",
+        "v": "空间/自定义",
+        "note": "决定相关性"
+      },
+      {
+        "k": "优先级",
+        "v": "按重要度",
+        "note": "预算内排序"
+      },
+      {
+        "k": "预算",
+        "v": "按带宽",
+        "note": "控制发送量"
+      },
+      {
+        "k": "迁移",
+        "v": "按版本",
+        "note": "评估兼容"
+      }
+    ],
+    "sources": [
+      "S005",
+      "S104",
+      "S105",
+      "S106"
+    ],
+    "cases": [
+      {
+        "who": "UE Iris",
+        "note": "官方新复制系统",
+        "source": "S005"
+      },
+      {
+        "who": "UE Migrate to Iris",
+        "note": "迁移步骤与注意点",
+        "source": "S106"
+      }
+    ],
+    "tags": [
+      "Iris",
+      "复制过滤",
+      "优先级",
+      "迁移",
+      "带宽"
+    ],
+    "extra": false,
+    "gap": "Iris 成熟度随 UE5 版本变化，本库不给出版本断言；接入前查目标版本 Release Notes。",
+    "reproduce": [
+      "在目标版本启用 Iris，运行多人 PIE。",
+      "配置过滤器/优先级，观察复制集合与带宽。",
+      "对比默认复制系统的带宽/CPU。",
+      "迁移一个现有 Actor，验证属性/RPC 行为。",
+      "用 net stat/Insights Networking 观察效果。"
+    ],
+    "usage": [
+      "接入方式：项目设置启用 Iris + 过滤器/优先级配置 + 迁移现有复制代码。",
+      "典型参数：过滤器按空间/玩法；优先级按重要度；预算按带宽。",
+      "集成点：与 Push Model、Replication Graph 评估、网络调试联动。",
+      "版本差异：Iris 在 UE5 各版本持续演进，必须按目标版本验证。"
+    ],
+    "optimization": {
+      "performance": [
+        "过滤/优先级/预算",
+        "Push Model"
+      ],
+      "memory": [
+        "减少复制描述符"
+      ],
+      "package": [
+        "共享配置"
+      ],
+      "iteration": [
+        "迁移回归",
+        "带宽报表"
+      ],
+      "stability": [
+        "兼容性测试",
+        "回退开关"
+      ],
+      "notWorth": "小规模项目用默认复制即可，迁移 Iris 成本可能大于收益。"
+    },
+    "verify": [
+      "Iris 下功能与旧系统一致。",
+      "带宽/CPU 有可量化改善。",
+      "无复制缺失/兼容性错误。"
+    ]
+  },
+  {
+    "id": "net-07",
+    "name": "客户端预测与服务器回滚",
+    "aliases": [
+      "Client Prediction",
+      "Rollback",
+      "预测",
+      "回滚",
+      "Reconciliation"
+    ],
+    "type": [
+      "FPS",
+      "TPS",
+      "ARPG",
+      "MOBA"
+    ],
+    "domain": "solution",
+    "category": "网络同步与延迟补偿",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "客户端先本地模拟输入以保证即时反馈，服务器确认后用快照校正/回滚重演；关键是校正平滑与预测范围界定。",
+    "problem": "高延迟下操作滞后；纯服务器权威会让移动/技能反馈不可接受。",
+    "mechanism": "客户端保存输入历史与模拟状态；服务器返回权威状态，客户端比较后回滚到权威帧并重演后续输入；对不可预测结果（随机/目标变化）不预测或延迟确认。",
+    "pros": [
+      "即时反馈",
+      "服务器仍权威",
+      "可覆盖移动/技能/物理"
+    ],
+    "cons": [
+      "实现复杂",
+      "回滚可见抖动",
+      "预测错误导致状态不一致"
+    ],
+    "fit": [
+      "FPS/TPS/ARPG 的移动与技能",
+      "MOBA 技能预表现",
+      "高延迟网络"
+    ],
+    "unfit": [
+      "回合制/低交互",
+      "强随机/强依赖服务器状态的逻辑"
+    ],
+    "params": [
+      {
+        "k": "预测范围",
+        "v": "移动/即时技能",
+        "note": "随机/目标慎用"
+      },
+      {
+        "k": "历史窗口",
+        "v": "覆盖 RTT+抖动",
+        "note": "过大内存/过小失效"
+      },
+      {
+        "k": "校正",
+        "v": "平滑/直接",
+        "note": "防橡皮筋"
+      },
+      {
+        "k": "回滚重演",
+        "v": "输入序列",
+        "note": "确定性"
+      }
+    ],
+    "sources": [
+      "S004",
+      "S058",
+      "S059",
+      "S094"
+    ],
+    "cases": [
+      {
+        "who": "Source/CS",
+        "note": "服务器权威+客户端预测",
+        "source": "S059"
+      },
+      {
+        "who": "Overwatch",
+        "note": "预测+回滚+延迟补偿",
+        "source": "S058"
+      }
+    ],
+    "tags": [
+      "客户端预测",
+      "回滚",
+      "Reconciliation",
+      "校正",
+      "延迟"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "实现客户端移动预测，服务器返回权威位置。",
+      "用 Net Emulate 增加延迟，观察校正/回滚。",
+      "保存输入历史并重演，验证位置收敛。",
+      "对技能做预测，服务器拒绝时回滚。",
+      "调整平滑/窗口，测试橡皮筋与内存。"
+    ],
+    "usage": [
+      "接入方式：CMC 内建预测 + 自定义技能预测；服务器权威回包。",
+      "典型参数：预测范围；历史窗口；校正平滑；回滚确定性。",
+      "集成点：与 GAS 预测、物理、动画、延迟补偿联动。",
+      "版本差异：CMC/网络复制预测细节随版本演进，需实测。"
+    ],
+    "optimization": {
+      "performance": [
+        "限制预测对象",
+        "降低回包频率"
+      ],
+      "memory": [
+        "历史窗口按 RTT"
+      ],
+      "package": [
+        "共享配置"
+      ],
+      "iteration": [
+        "弱网回归",
+        "回放分析"
+      ],
+      "stability": [
+        "预测失败回退",
+        "防抖动"
+      ],
+      "notWorth": "低延迟局域网/回合制无需预测。"
+    },
+    "verify": [
+      "高延迟下操作反馈及时。",
+      "校正后位置/状态与服务器一致。",
+      "回滚无严重抖动。"
+    ]
+  },
+  {
+    "id": "net-08",
+    "name": "命中验证与 Lag Compensation / Server Rewind",
+    "aliases": [
+      "Lag Compensation",
+      "Server Rewind",
+      "延迟补偿",
+      "回溯",
+      "命中验证"
+    ],
+    "type": [
+      "FPS",
+      "TPS"
+    ],
+    "domain": "solution",
+    "category": "网络同步与延迟补偿",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "服务器按玩家开火时刻回溯历史位置做命中判定，兼顾高延迟公平与服务器权威；回溯窗口/频率与作弊面需平衡。",
+    "problem": "高延迟玩家瞄准历史位置却打不中；客户端命中又不可信。",
+    "mechanism": "服务器保存 Actor 历史变换；收到开火命令时按时间戳回溯角色碰撞到过去位置，做射线/形状检测，再恢复；窗口覆盖 RTT+抖动。",
+    "pros": [
+      "高延迟下公平",
+      "服务器权威",
+      "与预测/插值配合"
+    ],
+    "cons": [
+      "历史缓存内存/CPU",
+      "回溯窗口被利用（peeker's advantage）",
+      "快速移动目标误差"
+    ],
+    "fit": [
+      "竞技射击",
+      "TPS 射击",
+      "需要精确命中的联机动作"
+    ],
+    "unfit": [
+      "近战/范围技能为主",
+      "低延迟局域网"
+    ],
+    "params": [
+      {
+        "k": "回溯窗口",
+        "v": "覆盖 RTT",
+        "note": "过大被利用"
+      },
+      {
+        "k": "历史频率",
+        "v": "按 tick",
+        "note": "精度/内存"
+      },
+      {
+        "k": "插值",
+        "v": "历史采样",
+        "note": "平滑"
+      },
+      {
+        "k": "校验",
+        "v": "服务器",
+        "note": "防客户端伪造"
+      }
+    ],
+    "sources": [
+      "S058",
+      "S059",
+      "S094",
+      "S096"
+    ],
+    "cases": [
+      {
+        "who": "Overwatch",
+        "note": "服务器回溯命中",
+        "source": "S058"
+      },
+      {
+        "who": "Source",
+        "note": "Lag Compensation 实现",
+        "source": "S059"
+      }
+    ],
+    "tags": [
+      "LagCompensation",
+      "ServerRewind",
+      "命中验证",
+      "回溯",
+      "公平"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "服务器保存角色历史变换（按 tick）。",
+      "客户端开火命令带时间戳，服务器回溯目标位置。",
+      "做射线检测并恢复位置，返回命中结果。",
+      "用 Net Emulate 高低延迟对比命中率。",
+      "调整窗口，观察公平性与被利用风险。"
+    ],
+    "usage": [
+      "接入方式：自定义历史缓存 + 服务器回溯检测；UE 无内建通用回溯。",
+      "典型参数：窗口覆盖 RTT；历史频率按 tick；插值采样；服务器校验。",
+      "集成点：与预测、插值、反作弊、武器系统联动。",
+      "版本差异：需自研或使用插件，按项目实现验证。"
+    ],
+    "optimization": {
+      "performance": [
+        "限制历史对象",
+        "降低历史频率"
+      ],
+      "memory": [
+        "环形缓冲"
+      ],
+      "package": [
+        "共享配置"
+      ],
+      "iteration": [
+        "命中率报表",
+        "弱网测试"
+      ],
+      "stability": [
+        "窗口上限",
+        "防伪造时间戳"
+      ],
+      "notWorth": "近战/范围技能不需要精确回溯。"
+    },
+    "verify": [
+      "高延迟玩家命中率合理。",
+      "服务器判定无客户端伪造。",
+      "回溯开销在预算内。"
+    ]
+  },
+  {
+    "id": "net-09",
+    "name": "插值、外推与输入缓冲",
+    "aliases": [
+      "Interpolation",
+      "Extrapolation",
+      "Input Buffer",
+      "插值",
+      "外推",
+      "输入缓冲"
+    ],
+    "type": [
+      "FPS",
+      "TPS",
+      "MOBA",
+      "通用"
+    ],
+    "domain": "solution",
+    "category": "网络同步与延迟补偿",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "客户端在收到的快照之间插值以获得平滑，必要时短窗外推；输入缓冲吸收抖动。外推过长会导致急转错误。",
+    "problem": "快照频率低于渲染帧率导致抖动；丢包造成卡顿；高抖动下输入/表现不平滑。",
+    "mechanism": "插值在历史快照间按时间采样；外推用速度/加速度预测未来；输入缓冲累积少量输入再发送以吸收抖动。",
+    "pros": [
+      "平滑表现",
+      "实现相对简单",
+      "与预测配合"
+    ],
+    "cons": [
+      "插值增加延迟",
+      "外推误差（急转/碰撞）",
+      "缓冲增加输入延迟"
+    ],
+    "fit": [
+      "所有状态同步多人游戏",
+      "高抖动网络",
+      "载具/角色移动"
+    ],
+    "unfit": [
+      "需要零延迟反馈的竞技（仍需预测）",
+      "确定性帧同步"
+    ],
+    "params": [
+      {
+        "k": "插值延迟",
+        "v": "1-2 快照",
+        "note": "平滑 vs 延迟"
+      },
+      {
+        "k": "外推上限",
+        "v": "短窗口",
+        "note": "防急转错误"
+      },
+      {
+        "k": "输入缓冲",
+        "v": "按抖动",
+        "note": "吸收丢包"
+      },
+      {
+        "k": "快照频率",
+        "v": "按带宽",
+        "note": "越高越平滑"
+      }
+    ],
+    "sources": [
+      "S004",
+      "S058",
+      "S060",
+      "S094"
+    ],
+    "cases": [
+      {
+        "who": "Gaffer On Games",
+        "note": "快照插值/外推",
+        "source": "S060"
+      },
+      {
+        "who": "Overwatch",
+        "note": "插值+预测",
+        "source": "S058"
+      }
+    ],
+    "tags": [
+      "插值",
+      "外推",
+      "输入缓冲",
+      "抖动",
+      "平滑"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "降低快照频率，观察角色抖动。",
+      "加入插值，比较平滑度与延迟。",
+      "启用短窗外推，测试急转/碰撞误差。",
+      "加入输入缓冲，观察抖动吸收与输入延迟。",
+      "用 Net Emulate 丢包/抖动验证。"
+    ],
+    "usage": [
+      "接入方式：自定义快照缓冲/插值；UE 默认移动复制已有部分平滑。",
+      "典型参数：插值 1-2 快照；外推短窗；输入缓冲按抖动；快照频率按带宽。",
+      "集成点：与预测、延迟补偿、动画联动。",
+      "版本差异：默认复制插值行为随版本变化，需实测。"
+    ],
+    "optimization": {
+      "performance": [
+        "降低快照频率",
+        "限制外推对象"
+      ],
+      "memory": [
+        "缓冲窗口"
+      ],
+      "package": [
+        "共享配置"
+      ],
+      "iteration": [
+        "弱网测试",
+        "平滑度评估"
+      ],
+      "stability": [
+        "外推上限",
+        "丢包回退"
+      ],
+      "notWorth": "帧同步/局域网无需插值外推。"
+    },
+    "verify": [
+      "弱网下表现平滑。",
+      "外推无严重急转错误。",
+      "输入延迟可接受。"
+    ]
+  },
+  {
+    "id": "net-10",
+    "name": "Tick 频率、DS 规格与云原生编排",
+    "aliases": [
+      "Dedicated Server",
+      "Tick Rate",
+      "DS",
+      "云原生",
+      "弹性扩缩",
+      "服务器成本"
+    ],
+    "type": [
+      "FPS",
+      "MOBA",
+      "搜打撤",
+      "通用"
+    ],
+    "domain": "solution",
+    "category": "匹配与对局编排",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "tick 越高判定越精确但 CPU/带宽越高；DS 规格与编排决定单局成本。按品类选择 tick，并用容器/编排做弹性扩缩与区域部署。",
+    "problem": "盲目追求高 tick 导致服务器成本失控；固定 DS 无法应对峰值；区域延迟与合规要求。",
+    "mechanism": "服务器 tick 决定模拟/复制频率；DS 的 CPU/内存/带宽规格决定可承载人数；容器化+编排（K8s/云平台）支持弹性扩缩、滚动更新与区域部署。",
+    "pros": [
+      "成本与体验可调",
+      "弹性扩缩应对峰值",
+      "区域部署降低延迟"
+    ],
+    "cons": [
+      "高 tick 成本高",
+      "编排/运维复杂",
+      "跨区域一致性/合规"
+    ],
+    "fit": [
+      "竞技射击/MOBA/搜打撤",
+      "大规模在线游戏",
+      "需要弹性扩缩的项目"
+    ],
+    "unfit": [
+      "小型合作/单机",
+      "固定低并发项目"
+    ],
+    "params": [
+      {
+        "k": "tick",
+        "v": "按品类",
+        "note": "越高越精确也越贵"
+      },
+      {
+        "k": "DS 规格",
+        "v": "CPU/内存/带宽",
+        "note": "按承载人数"
+      },
+      {
+        "k": "编排",
+        "v": "容器/平台",
+        "note": "弹性扩缩"
+      },
+      {
+        "k": "区域",
+        "v": "按玩家分布",
+        "note": "降低延迟"
+      }
+    ],
+    "sources": [
+      "S028",
+      "S129",
+      "S057",
+      "S056"
+    ],
+    "cases": [
+      {
+        "who": "UE Dedicated Server",
+        "note": "DS 打包/部署",
+        "source": "S028"
+      },
+      {
+        "who": "云原生编排",
+        "note": "弹性扩缩与区域部署",
+        "source": "S129"
+      }
+    ],
+    "tags": [
+      "TickRate",
+      "DedicatedServer",
+      "云原生",
+      "编排",
+      "服务器成本"
+    ],
+    "extra": false,
+    "gap": "具体 DS 规格/成本数字依云厂商与项目，本库不给出通用数字。",
+    "reproduce": [
+      "用 DS 打包并部署到测试环境。",
+      "调整 tick，观察 CPU/带宽/命中精度。",
+      "压测不同人数下的 DS 资源占用。",
+      "用容器编排做扩缩容与滚动更新。",
+      "在不同区域部署，测量玩家延迟。"
+    ],
+    "usage": [
+      "接入方式：DS Target 打包 + 容器/云平台 + 编排配置。",
+      "典型参数：tick 按品类；DS 规格按人数；编排策略；区域选择。",
+      "集成点：与匹配、反作弊、监控、计费联动。",
+      "版本差异：DS 打包/部署工具链随 UE 版本变化，需按目标版本验证。"
+    ],
+    "optimization": {
+      "performance": [
+        "按品类定 tick",
+        "裁剪复制",
+        "休眠"
+      ],
+      "memory": [
+        "DS 内存裁剪"
+      ],
+      "package": [
+        "Server 包裁剪"
+      ],
+      "iteration": [
+        "压测/成本报表"
+      ],
+      "stability": [
+        "弹性扩缩",
+        "故障转移"
+      ],
+      "notWorth": "低并发合作游戏用单机/房间服即可。"
+    },
+    "verify": [
+      "tick 与成本符合目标。",
+      "压测下 DS 稳定。",
+      "区域部署延迟达标。"
+    ]
+  },
+  {
+    "id": "net-11",
+    "name": "反作弊与服务器权威边界",
+    "aliases": [
+      "Anti-Cheat",
+      "服务器权威",
+      "移动校验",
+      "作弊面",
+      "安全边界"
+    ],
+    "type": [
+      "FPS",
+      "搜打撤",
+      "MOBA",
+      "通用"
+    ],
+    "domain": "solution",
+    "category": "服务器权威与反作弊",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "关键判定必须在服务器：命中、伤害、移动、经济、掉落；客户端只做表现与输入。反作弊是分层工程，不是单一 SDK。",
+    "problem": "客户端决定命中/伤害/移动导致作弊；服务器过度信任客户端 RPC；经济/掉落可被篡改。",
+    "mechanism": "服务器校验输入合法性、移动速度/位置、命中时间戳与目标状态；关键数据服务器生成；客户端预测只用于表现。配合加密、完整性校验、行为检测与封禁策略。",
+    "pros": [
+      "从架构上消除大部分作弊面",
+      "与预测/回滚兼容",
+      "可分层加固"
+    ],
+    "cons": [
+      "服务器成本/复杂度",
+      "校验过严影响手感",
+      "新型作弊需持续对抗"
+    ],
+    "fit": [
+      "竞技射击/搜打撤/MOBA",
+      "任何有经济/排名的多人游戏"
+    ],
+    "unfit": [
+      "纯单机",
+      "合作 PvE 且无经济价值"
+    ],
+    "params": [
+      {
+        "k": "权威边界",
+        "v": "命中/伤害/移动/经济",
+        "note": "服务器裁定"
+      },
+      {
+        "k": "移动校验",
+        "v": "速度/位置/时间",
+        "note": "防瞬移"
+      },
+      {
+        "k": "输入校验",
+        "v": "频率/范围",
+        "note": "防宏/伪造"
+      },
+      {
+        "k": "检测",
+        "v": "行为/完整性",
+        "note": "分层"
+      }
+    ],
+    "sources": [
+      "S028",
+      "S058",
+      "S059",
+      "S004"
+    ],
+    "cases": [
+      {
+        "who": "Source/CS",
+        "note": "服务器权威+客户端预测",
+        "source": "S059"
+      },
+      {
+        "who": "Overwatch",
+        "note": "服务器裁定关键结果",
+        "source": "S058"
+      }
+    ],
+    "tags": [
+      "反作弊",
+      "服务器权威",
+      "移动校验",
+      "安全",
+      "作弊面"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "列出所有客户端可影响的判定，标记必须服务器裁定的项。",
+      "把命中/伤害改为服务器执行，客户端只发输入。",
+      "加入移动速度/位置/时间戳校验。",
+      "模拟伪造 RPC/瞬移，验证被拒绝。",
+      "记录拒绝日志并接入监控。"
+    ],
+    "usage": [
+      "接入方式：服务器权威逻辑 + 校验 + 日志/监控 + 可选反作弊 SDK。",
+      "典型参数：权威边界；移动/输入校验阈值；检测策略。",
+      "集成点：与预测、回滚、匹配、封禁系统联动。",
+      "版本差异：UE 本身不提供完整反作弊，需项目/第三方实现。"
+    ],
+    "optimization": {
+      "performance": [
+        "校验抽样/分层",
+        "日志采样"
+      ],
+      "memory": [
+        "限制历史数据"
+      ],
+      "package": [
+        "Server 包裁剪"
+      ],
+      "iteration": [
+        "作弊演练",
+        "规则更新"
+      ],
+      "stability": [
+        "误封/漏封监控"
+      ],
+      "notWorth": "无经济/排名的纯合作游戏可降低反作弊投入。"
+    },
+    "verify": [
+      "伪造输入/瞬移被服务器拒绝。",
+      "关键结果无法由客户端篡改。",
+      "误封率与性能开销可接受。"
+    ]
+  },
+  {
+    "id": "net-12",
+    "name": "网络观测与压测：Net Emulate、Insights Networking、机器人",
+    "aliases": [
+      "Net Emulate",
+      "PktLag",
+      "PktLoss",
+      "Insights Networking",
+      "机器人压测",
+      "断线重连"
+    ],
+    "type": [
+      "FPS",
+      "MOBA",
+      "搜打撤",
+      "通用"
+    ],
+    "domain": "solution",
+    "category": "性能与工具链",
+    "engine": [
+      "UE4",
+      "UE5",
+      "全版本"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "用 Net Emulate 复现弱网，用 Insights Networking/Network Profiler 看带宽与 RPC，用机器人压测验证承载与重连；三者构成网络质量闭环。",
+    "problem": "线上卡顿/橡皮筋无法复现；带宽超支不知道来源；服务器承载与重连未验证。",
+    "mechanism": "Net Emulate 注入延迟/丢包/重复；Insights/Network Profiler 记录复制/RPC/带宽；机器人模拟输入并压测 DS；重连测试验证快照/重演。",
+    "pros": [
+      "可复现、可量化",
+      "覆盖客户端/服务器",
+      "可纳入 CI"
+    ],
+    "cons": [
+      "模拟与真实网络差异",
+      "Trace 开销/文件大",
+      "机器人行为不真实"
+    ],
+    "fit": [
+      "联机项目调优/压测",
+      "弱网体验验证",
+      "服务器容量规划"
+    ],
+    "unfit": [
+      "单机项目",
+      "无网络测试环境"
+    ],
+    "params": [
+      {
+        "k": "延迟",
+        "v": "按目标市场",
+        "note": "覆盖高低分位"
+      },
+      {
+        "k": "丢包",
+        "v": "按比例",
+        "note": "含突发"
+      },
+      {
+        "k": "Trace",
+        "v": "Networking 通道",
+        "note": "控制时长"
+      },
+      {
+        "k": "机器人",
+        "v": "按并发",
+        "note": "模拟真实行为"
+      }
+    ],
+    "sources": [
+      "S108",
+      "S036",
+      "S107",
+      "S004",
+      "S028"
+    ],
+    "cases": [
+      {
+        "who": "UE Network Emulation",
+        "note": "PktLag/PktLoss 参数",
+        "source": "S108"
+      },
+      {
+        "who": "UE Network Profiler",
+        "note": "复制/RPC 带宽分析",
+        "source": "S036"
+      }
+    ],
+    "tags": [
+      "NetEmulate",
+      "PktLag",
+      "PktLoss",
+      "Insights",
+      "压测",
+      "重连"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "在 PIE/独立客户端启用 Net Emulate，设置延迟/丢包。",
+      "复现橡皮筋/技能失效/重连问题。",
+      "用 Insights Networking 或 Network Profiler 抓取带宽/RPC。",
+      "部署机器人并发压测 DS。",
+      "测试断线重连与追赶。"
+    ],
+    "usage": [
+      "接入方式：控制台 Net Emulate + Insights/Profiler + 机器人框架。",
+      "典型参数：延迟/丢包按目标市场；Trace 时长；并发按容量。",
+      "集成点：与 CI、监控、服务器编排联动。",
+      "版本差异：Net Emulate 命令/Insights 通道随版本变化，需按目标版本核对。"
+    ],
+    "optimization": {
+      "performance": [
+        "按 Trace 结果裁剪复制/RPC"
+      ],
+      "memory": [
+        "控制 Trace 文件"
+      ],
+      "package": [
+        "共享测试配置"
+      ],
+      "iteration": [
+        "弱网回归",
+        "压测基线"
+      ],
+      "stability": [
+        "重连一致性",
+        "故障注入"
+      ],
+      "notWorth": "单机项目无需网络压测。"
+    },
+    "verify": [
+      "弱网问题可稳定复现并修复。",
+      "带宽/RPC 来源清晰。",
+      "压测与重连达标。"
+    ]
+  }
+]

@@ -1,0 +1,1204 @@
+[
+  {
+    "id": "arpg-01",
+    "name": "ARPG 动画：Motion Matching vs 状态机/Blend Space",
+    "aliases": [
+      "Motion Matching",
+      "Pose Search",
+      "动画状态机",
+      "Blend Space"
+    ],
+    "type": [
+      "ARPG",
+      "TPS"
+    ],
+    "domain": "solution",
+    "category": "动画系统",
+    "engine": [
+      "UE5.4+",
+      "UE5.5+"
+    ],
+    "maturity": "可用但有条件",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "移动/闪避/转向用 Motion Matching 提升自然度，攻击/受击/技能用状态机+蒙太奇保证精确帧控制。",
+    "problem": "ARPG 既要移动自然，又要攻击/受击帧精确；纯状态机过渡多、纯 Motion Matching 又难精确控制战斗动作。",
+    "mechanism": "Motion Matching 负责 locomotion（起步/停步/转向/斜坡），状态机/蒙太奇负责战斗动作；用动画通知/游戏标签同步判定窗口；按距离/重要性降低更新频率。",
+    "pros": [
+      "移动自然、减少状态爆炸",
+      "战斗动作仍可精确控制",
+      "可按角色类型混合使用"
+    ],
+    "cons": [
+      "动画数据/内存成本高",
+      "两套系统衔接（进入战斗/受击）需要精心设计",
+      "联机回滚时动画状态同步复杂"
+    ],
+    "fit": [
+      "ARPG 移动/战斗混合",
+      "TPS/开放世界角色"
+    ],
+    "unfit": [
+      "动画量很少的小项目",
+      "格斗级精确帧控制（可用专门方案）"
+    ],
+    "params": [
+      {
+        "k": "数据库",
+        "v": "覆盖移动集",
+        "note": "越大越自然"
+      },
+      {
+        "k": "战斗",
+        "v": "蒙太奇/状态机",
+        "note": "精确帧"
+      },
+      {
+        "k": "更新",
+        "v": "按距离降频",
+        "note": "大量敌人"
+      }
+    ],
+    "sources": [
+      "S009",
+      "S051",
+      "S053",
+      "S018",
+      "S093",
+      "S085"
+    ],
+    "cases": [
+      {
+        "who": "TLOU2",
+        "note": "Motion Matching 落地经验",
+        "source": "S053"
+      },
+      {
+        "who": "Ubisoft",
+        "note": "GDC 2016 系统讲解",
+        "source": "S051"
+      }
+    ],
+    "tags": [
+      "Motion Matching",
+      "ARPG",
+      "动画",
+      "状态机"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "启用 Pose Search/Motion Matching 插件，准备移动动画数据库。",
+      "在 AnimBP locomotion 用 Motion Matching，战斗用 Montage/状态机。",
+      "用官方 Game Animation Sample 工程对照配置。",
+      "设置进入战斗/受击的切换规则，避免两套系统打架。",
+      "在斜坡/急转/停步/受击场景对比纯状态机版本。"
+    ],
+    "usage": [
+      "接入方式：Pose Search 数据库 + AnimBP 节点；战斗 Montage。",
+      "典型参数：数据库覆盖移动集；查询每帧或降频；战斗精确帧用状态机。",
+      "集成点：与 arpg-03 攻击窗口、arpg-10 动画预算、联机回滚配合。",
+      "版本差异：Motion Matching 在 UE5.4+ 内置程度不同，按文档核对。"
+    ],
+    "optimization": {
+      "performance": [
+        "降低查询频率/候选数",
+        "远处角色降频"
+      ],
+      "memory": [
+        "数据库压缩/裁剪"
+      ],
+      "package": [
+        "动画数据包体预算"
+      ],
+      "iteration": [
+        "示例工程基线 + A/B 录制"
+      ],
+      "stability": [
+        "缺动作时回退姿势"
+      ],
+      "notWorth": "动画量小或强风格化时状态机更直接。"
+    },
+    "verify": [
+      "`stat anim`/Insights 看动画查询耗时。",
+      "移动自然度提升且战斗帧控制不退化。",
+      "联机下动画状态不频繁跳变。"
+    ]
+  },
+  {
+    "id": "arpg-02",
+    "name": "ARPG 技能/属性：GAS vs 自研",
+    "aliases": [
+      "GAS",
+      "AttributeSet",
+      "GameplayEffect",
+      "技能"
+    ],
+    "type": [
+      "ARPG",
+      "MOBA"
+    ],
+    "domain": "solution",
+    "category": "内容生产与工具链",
+    "engine": [
+      "UE4",
+      "UE5"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "GAS 用 Ability/Effect/Attribute/Tag 组织技能与数值，自带复制与预测；自研适合特殊数值模型但联机成本高。",
+    "problem": "ARPG 的技能/buff/词条/冷却组合极多，硬编码不可维护；联机还要服务器权威与预测。",
+    "mechanism": "GameplayAbility 描述技能流程，GameplayEffect 描述伤害/buff/冷却，AttributeSet 存生命/攻击等；GameplayTag 做状态条件；预测键处理客户端预测。",
+    "pros": [
+      "数据驱动、可组合",
+      "复制/预测有现成机制",
+      "调试工具/社区成熟"
+    ],
+    "cons": [
+      "学习曲线陡、运行时开销",
+      "预测键/网络配置错误会导致状态错乱",
+      "重度定制时框架会限制"
+    ],
+    "fit": [
+      "联机 ARPG",
+      "技能组合多的项目"
+    ],
+    "unfit": [
+      "纯单机轻量项目",
+      "数值模型完全不适合 Effect 体系"
+    ],
+    "params": [
+      {
+        "k": "技能",
+        "v": "GameplayAbility",
+        "note": "流程/冷却/消耗"
+      },
+      {
+        "k": "数值",
+        "v": "AttributeSet+Effect",
+        "note": "避免硬编码"
+      },
+      {
+        "k": "预测",
+        "v": "PredictionKey",
+        "note": "联机"
+      }
+    ],
+    "sources": [
+      "S007",
+      "S035"
+    ],
+    "cases": [
+      {
+        "who": "UE GAS",
+        "note": "官方 Ability/Effect/Attribute 体系",
+        "source": "S007"
+      }
+    ],
+    "tags": [
+      "GAS",
+      "ARPG",
+      "技能",
+      "属性"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "启用 GAS 插件，建立 ASC/AttributeSet/Ability。",
+      "配置一个伤害技能与一个 buff，验证 Effect/Tag/冷却。",
+      "联机下用 PredictionKey 测试预测与回滚。",
+      "对比自研框架的代码量、复制与调试成本。",
+      "在大量技能/词条组合下测试性能。"
+    ],
+    "usage": [
+      "接入方式：GAS 插件 + ASC + AttributeSet + GameplayEffect。",
+      "典型参数：技能=Ability；数值=AttributeSet+Effect；预测=PredictionKey。",
+      "集成点：与 moba-03、UI 冷却、存档数值配合。",
+      "版本差异：GAS 在 UE5 持续更新，复制/预测配置按文档。"
+    ],
+    "optimization": {
+      "performance": [
+        "Effect 执行避免每帧创建",
+        "Tag 查询缓存"
+      ],
+      "memory": [
+        "AttributeSet 精简"
+      ],
+      "package": [
+        "技能/数值配置数据化"
+      ],
+      "iteration": [
+        "GAS 日志与调试可视化"
+      ],
+      "stability": [
+        "预测键冲突保护"
+      ],
+      "notWorth": "技能少且单机时自研更轻。"
+    },
+    "verify": [
+      "联机预测与服务器结果一致。",
+      "技能/词条组合下帧时间稳定。",
+      "UI 冷却/资源显示无错乱。"
+    ]
+  },
+  {
+    "id": "arpg-03",
+    "name": "命中判定：AnimNotify/多段碰撞 vs 服务器判定",
+    "aliases": [
+      "AnimNotify",
+      "hit window",
+      "多段碰撞",
+      "服务器判定"
+    ],
+    "type": [
+      "ARPG",
+      "TPS",
+      "MOBA"
+    ],
+    "domain": "solution",
+    "category": "网络同步与延迟补偿",
+    "engine": [
+      "UE4",
+      "UE5"
+    ],
+    "maturity": "生产验证",
+    "reliability": "B",
+    "level": "深入",
+    "summary": "用动画通知/多段碰撞定义攻击命中窗口，服务器按窗口做权威判定；客户端只做预表现，避免「动画没到就掉血」。",
+    "problem": "ARPG 攻击判定必须与动画前摇/挥砍对齐；纯客户端判定易作弊，纯服务器又可能因延迟错过窗口。",
+    "mechanism": "动画通知标记命中窗口；服务器在窗口内做射线/形状/多段碰撞查询；客户端预测播放受击/伤害数字，服务器确认后修正；联机用延迟补偿或窗口放宽。",
+    "pros": [
+      "动作与判定对齐、手感可信",
+      "服务器权威、可回放",
+      "多段碰撞支持大范围技能"
+    ],
+    "cons": [
+      "动画/判定窗口同步维护成本高",
+      "高延迟下窗口放宽会误判",
+      "多段碰撞查询成本高"
+    ],
+    "fit": [
+      "ARPG 近战/技能",
+      "联机动作游戏"
+    ],
+    "unfit": [
+      "纯投射物/即时命中（用射线更简单）"
+    ],
+    "params": [
+      {
+        "k": "窗口",
+        "v": "按动画帧/毫秒",
+        "note": "与动画对齐"
+      },
+      {
+        "k": "查询",
+        "v": "射线/形状/多段",
+        "note": "按技能"
+      },
+      {
+        "k": "补偿",
+        "v": "窗口放宽/回溯",
+        "note": "高延迟"
+      }
+    ],
+    "sources": [
+      "S009",
+      "S059",
+      "S007"
+    ],
+    "cases": [
+      {
+        "who": "联机 ARPG",
+        "note": "服务器权威+动画窗口是通用做法",
+        "source": "S007"
+      }
+    ],
+    "tags": [
+      "AnimNotify",
+      "命中窗口",
+      "ARPG",
+      "服务器判定"
+    ],
+    "extra": false,
+    "gap": "具体 ARPG 厂商的命中窗口实现未公开；本条为动画/网络通用推导。",
+    "reproduce": [
+      "在攻击动画上放置 AnimNotify/Notify State，定义命中窗口。",
+      "服务器在窗口内做射线/形状查询，判定命中。",
+      "客户端播放预表现，不等服务器回包。",
+      "用多段碰撞处理长武器/范围技能。",
+      "高延迟下测试「动画没到就掉血」是否可接受，必要时放宽窗口。"
+    ],
+    "usage": [
+      "接入方式：AnimNotify + 服务器查询 + 客户端预表现。",
+      "典型参数：窗口按动画帧/毫秒；查询射线/形状/多段；补偿窗口放宽/回溯。",
+      "集成点：与 arpg-01 动画、fps-06 回溯、GAS 技能配合。",
+      "版本差异：AnimNotify 机制稳定，网络判定需项目实现。"
+    ],
+    "optimization": {
+      "performance": [
+        "窗口内限制查询次数",
+        "多段碰撞缓存"
+      ],
+      "memory": [
+        "无额外"
+      ],
+      "package": [
+        "无"
+      ],
+      "iteration": [
+        "命中窗口可视化"
+      ],
+      "stability": [
+        "动画取消/打断时清理窗口"
+      ],
+      "notWorth": "非动作玩法不需要逐帧窗口。"
+    },
+    "verify": [
+      "命中窗口与动画表现一致。",
+      "高延迟下无明显「隔空掉血」。",
+      "服务器查询耗时在预算内。"
+    ]
+  },
+  {
+    "id": "arpg-04",
+    "name": "敌人 AI：行为树 vs StateTree vs Mass",
+    "aliases": [
+      "Behavior Tree",
+      "StateTree",
+      "Mass",
+      "敌人AI"
+    ],
+    "type": [
+      "ARPG",
+      "开放世界",
+      "搜打撤"
+    ],
+    "domain": "solution",
+    "category": "AI与导航",
+    "engine": [
+      "UE4",
+      "UE5"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "精英/Boss 用行为树或 StateTree 做复杂决策；大量杂兵用 Mass 批量调度；按重要性分层是主流。",
+    "problem": "ARPG 敌人数量与行为复杂度差异大；统一用 BT 会让杂兵吃 CPU，统一用 Mass 又难做 Boss 表演。",
+    "mechanism": "BT 用黑板/装饰器/服务组织决策；StateTree 用分层状态与任务；Mass 用 Fragment/Processor 批量；按距离/类型切换更新频率与表现精度。",
+    "pros": [
+      "BT 成熟、易调试",
+      "StateTree 更现代、可复用",
+      "Mass 扩展数量级"
+    ],
+    "cons": [
+      "BT 大规模性能有限",
+      "StateTree 生态/案例较少",
+      "Mass 表现层整合复杂"
+    ],
+    "fit": [
+      "ARPG 精英/Boss + 杂兵",
+      "开放世界生态"
+    ],
+    "unfit": [
+      "单一类型少量敌人（选一种即可）"
+    ],
+    "params": [
+      {
+        "k": "分层",
+        "v": "Boss/精英/杂兵",
+        "note": "按重要性"
+      },
+      {
+        "k": "更新",
+        "v": "远处降频",
+        "note": "省 CPU"
+      },
+      {
+        "k": "感知",
+        "v": "视线/听觉",
+        "note": "按玩法"
+      }
+    ],
+    "sources": [
+      "S039",
+      "S013",
+      "S008",
+      "S019"
+    ],
+    "cases": [
+      {
+        "who": "UE AI",
+        "note": "行为树/感知/EQS 官方体系",
+        "source": "S039"
+      },
+      {
+        "who": "UE StateTree",
+        "note": "分层状态机",
+        "source": "S013"
+      }
+    ],
+    "tags": [
+      "行为树",
+      "StateTree",
+      "Mass",
+      "ARPG"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "Boss 用行为树/StateTree，杂兵用 Mass 批量调度。",
+      "按距离/重要性分层：近处全逻辑，远处降频/休眠。",
+      "用 EQS/感知做决策输入资料。",
+      "在 100+ 敌人场景测试 CPU。",
+      "对比全 Actor+BT 与分层方案。"
+    ],
+    "usage": [
+      "接入方式：BT/StateTree + Mass + 感知/EQS。",
+      "典型参数：Boss/精英/杂兵分层；远处降频；感知视线/听觉。",
+      "集成点：与 tps-06、ow-08、导航配合。",
+      "版本差异：StateTree/Mass 在 5.x 演进，按文档。"
+    ],
+    "optimization": {
+      "performance": [
+        "分层更新",
+        "感知降频",
+        "EQS 缓存"
+      ],
+      "memory": [
+        "黑板/状态精简"
+      ],
+      "package": [
+        "AI 资源复用"
+      ],
+      "iteration": [
+        "AI 调试可视化"
+      ],
+      "stability": [
+        "切换 LOD 时行为不中断"
+      ],
+      "notWorth": "敌人少且行为复杂时统一 BT 更易维护。"
+    },
+    "verify": [
+      "大规模敌人帧时间稳定。",
+      "远处降频不导致行为异常。",
+      "Boss 行为可调试复现。"
+    ]
+  },
+  {
+    "id": "arpg-05",
+    "name": "联机 ARPG：服务器权威 + 预测 + 回滚",
+    "aliases": [
+      "co-op ARPG",
+      "server authority",
+      "prediction",
+      "联机"
+    ],
+    "type": [
+      "ARPG",
+      "TPS"
+    ],
+    "domain": "solution",
+    "category": "网络同步与延迟补偿",
+    "engine": [
+      "UE4",
+      "UE5"
+    ],
+    "maturity": "生产验证",
+    "reliability": "B",
+    "level": "深入",
+    "summary": "伤害/掉落/冷却由服务器裁定，移动/技能表现客户端预测，冲突时回滚；联机 ARPG 常用 2–4 人 co-op 而非大规模 PvP。",
+    "problem": "ARPG 联机既要动作流畅，又要防止刷伤害/刷掉落；大规模 PvP 还会放大同步与反作弊成本。",
+    "mechanism": "服务器权威属性/技能/掉落；客户端预测移动与技能表现；GAS 预测键或自研校验；掉落/结算用事务；高延迟用窗口放宽/回滚。",
+    "pros": [
+      "手感与安全兼顾",
+      "可按 co-op/PvP 调整权威度",
+      "与 GAS 体系兼容"
+    ],
+    "cons": [
+      "回滚/校正实现复杂",
+      "高延迟 co-op 体验下降",
+      "掉落/结算事务增加后端复杂度"
+    ],
+    "fit": [
+      "2–4 人 co-op ARPG",
+      "小规模 PvP"
+    ],
+    "unfit": [
+      "大规模开放世界 PvP（需专门架构）"
+    ],
+    "params": [
+      {
+        "k": "权威",
+        "v": "伤害/掉落/冷却",
+        "note": "服务器"
+      },
+      {
+        "k": "预测",
+        "v": "移动/技能表现",
+        "note": "客户端"
+      },
+      {
+        "k": "回滚",
+        "v": "位置/技能状态",
+        "note": "冲突校正"
+      }
+    ],
+    "sources": [
+      "S007",
+      "S004",
+      "S045"
+    ],
+    "cases": [
+      {
+        "who": "UE GAS/复制",
+        "note": "官方体系提供权威+预测基础",
+        "source": "S007"
+      }
+    ],
+    "tags": [
+      "联机",
+      "ARPG",
+      "权威",
+      "预测",
+      "回滚"
+    ],
+    "extra": false,
+    "gap": "国产联机 ARPG 的一手架构资料少；本条为 UE 官方能力与通用网络推导。",
+    "reproduce": [
+      "伤害/掉落/冷却服务器权威，移动/技能表现客户端预测。",
+      "用 PredictionKey/自定义回滚处理技能状态冲突。",
+      "2–4 人 co-op 下测试延迟与回滚。",
+      "用 `net PktLag` 模拟不同网络。",
+      "记录回滚频率与玩家感知。"
+    ],
+    "usage": [
+      "接入方式：服务器权威 + 客户端预测/回滚；GAS 或自研。",
+      "典型参数：权威=伤害/掉落/冷却；预测=移动/技能表现；回滚=位置/技能状态。",
+      "集成点：与 arpg-02、fps-01、gen-13 存档配合。",
+      "版本差异：GAS/Iris/Mover 能力按版本核对。"
+    ],
+    "optimization": {
+      "performance": [
+        "只预测关键表现",
+        "回滚窗口按 RTT"
+      ],
+      "memory": [
+        "状态历史固定容量"
+      ],
+      "package": [
+        "无"
+      ],
+      "iteration": [
+        "回滚可视化"
+      ],
+      "stability": [
+        "回滚时 UI/特效可撤销"
+      ],
+      "notWorth": "纯单机或延迟不敏感的合作可简化。"
+    },
+    "verify": [
+      "高延迟下技能/伤害结果一致。",
+      "回滚无频繁闪烁。",
+      "`stat net` 带宽在预算内。"
+    ]
+  },
+  {
+    "id": "arpg-06",
+    "name": "副本/无缝加载：Level Streaming vs 分区预加载",
+    "aliases": [
+      "dungeon streaming",
+      "无缝副本",
+      "预加载",
+      "Level Streaming"
+    ],
+    "type": [
+      "ARPG",
+      "开放世界"
+    ],
+    "domain": "solution",
+    "category": "大世界与流式加载",
+    "engine": [
+      "UE4",
+      "UE5"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "小副本用 Level Streaming 显式加载；大世界副本用 World Partition 分区+预加载，过场/电梯做遮挡与异步加载。",
+    "problem": "ARPG 副本切换频繁，黑屏加载破坏沉浸；无缝加载又容易在边界卡顿/掉帧。",
+    "mechanism": "Level Streaming 按体积/蓝图显式加载；World Partition 按流送源；过场/狭缝用遮挡+异步加载+内存预算；预加载关键资产避免战斗 hitch。",
+    "pros": [
+      "无缝体验好",
+      "可按副本类型选择方案",
+      "与 World Partition 兼容"
+    ],
+    "cons": [
+      "内存峰值/加载时机难调",
+      "边界 hitch/穿帮",
+      "副本状态与流送生命周期耦合"
+    ],
+    "fit": [
+      "ARPG 副本",
+      "开放世界室内外切换"
+    ],
+    "unfit": [
+      "小型线性关卡",
+      "频繁切换且内存极紧的移动端"
+    ],
+    "params": [
+      {
+        "k": "加载方式",
+        "v": "显式/分区",
+        "note": "按规模"
+      },
+      {
+        "k": "预加载",
+        "v": "关键资产",
+        "note": "避免战斗 hitch"
+      },
+      {
+        "k": "遮挡",
+        "v": "过场/狭缝",
+        "note": "掩盖加载"
+      }
+    ],
+    "sources": [
+      "S011",
+      "S003",
+      "S032",
+      "S030"
+    ],
+    "cases": [
+      {
+        "who": "UE Level Streaming",
+        "note": "官方关卡流送",
+        "source": "S011"
+      }
+    ],
+    "tags": [
+      "副本",
+      "无缝",
+      "流送",
+      "ARPG"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "小副本用 Level Streaming 显式加载/卸载。",
+      "大世界副本用 World Partition 分区 + 预加载关键资产。",
+      "过场/电梯用遮挡+异步加载掩盖。",
+      "测试进出副本的加载时间与 hitch。",
+      "对比两种方式的实现成本。"
+    ],
+    "usage": [
+      "接入方式：Level Streaming 或 World Partition + 预加载。",
+      "典型参数：显式/分区；预加载关键资产；遮挡过场。",
+      "集成点：与 ow-01/05、Asset Manager 配合。",
+      "版本差异：WP 为 UE5 方案，4.x 用 Level Streaming。"
+    ],
+    "optimization": {
+      "performance": [
+        "预加载/异步",
+        "遮挡加载",
+        "分块"
+      ],
+      "memory": [
+        "卸载非必要区域"
+      ],
+      "package": [
+        "副本按章节分块"
+      ],
+      "iteration": [
+        "自动化进出副本测试"
+      ],
+      "stability": [
+        "加载失败要有回退/重试"
+      ],
+      "notWorth": "小型线性副本直接 Level Streaming 足够。"
+    },
+    "verify": [
+      "进出副本无长时间黑屏/hitch。",
+      "`stat streaming`/Insights LoadTime 达标。",
+      "内存峰值可控。"
+    ]
+  },
+  {
+    "id": "arpg-07",
+    "name": "掉落/词条/数值：DataTable/Data Asset vs 硬编码",
+    "aliases": [
+      "DataTable",
+      "Data Asset",
+      "词条",
+      "数值"
+    ],
+    "type": [
+      "ARPG",
+      "MOBA"
+    ],
+    "domain": "solution",
+    "category": "内容生产与工具链",
+    "engine": [
+      "UE4",
+      "UE5"
+    ],
+    "maturity": "生产验证",
+    "reliability": "B",
+    "level": "进阶",
+    "summary": "用 DataTable/Data Asset 承载物品、词条、掉落表与技能数值，配合校验与版本化，避免策划改数值要改代码。",
+    "problem": "ARPG 的数值/词条/掉落表变化频繁，硬编码导致每次调整都要程序介入，且容易出错。",
+    "mechanism": "DataTable 存结构化数值；Primary Data Asset 存复杂配置；掉落用加权表/等级曲线；Data Validation 校验引用/范围；版本化存档兼容。",
+    "pros": [
+      "策划可独立迭代",
+      "结构化、可校验",
+      "便于做平衡与数据分析"
+    ],
+    "cons": [
+      "DataTable 大量行时编辑/合并体验差",
+      "引用错误会在运行时才暴露（需校验）",
+      "复杂词条逻辑仍需代码"
+    ],
+    "fit": [
+      "ARPG 数值/掉落",
+      "MOBA 英雄/装备"
+    ],
+    "unfit": [
+      "极小项目/数值极少"
+    ],
+    "params": [
+      {
+        "k": "存储",
+        "v": "DataTable/Data Asset",
+        "note": "按复杂度"
+      },
+      {
+        "k": "校验",
+        "v": "Data Validation",
+        "note": "引用/范围"
+      },
+      {
+        "k": "版本",
+        "v": "schema/迁移",
+        "note": "存档兼容"
+      }
+    ],
+    "sources": [
+      "S030",
+      "S031",
+      "S035"
+    ],
+    "cases": [
+      {
+        "who": "UE Data Validation",
+        "note": "官方资产校验",
+        "source": "S031"
+      }
+    ],
+    "tags": [
+      "DataTable",
+      "词条",
+      "掉落",
+      "数值",
+      "ARPG"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "把物品/词条/掉落表建为 DataTable 或 Data Asset。",
+      "用 Data Validation 校验 ID 唯一/引用有效/数值范围。",
+      "加入 schema 版本与迁移。",
+      "让策划在编辑器改数值并预览。",
+      "在 CI 中跑数据校验。"
+    ],
+    "usage": [
+      "接入方式：DataTable/Data Asset + Data Validation + 版本化。",
+      "典型参数：存储=DataTable/Asset；校验=规则；版本=schema/迁移。",
+      "集成点：与 gen-07 工具链、gen-13 存档配合。",
+      "版本差异：Data Validation 插件在 4.x/5.x 均可用，规则按版本。"
+    ],
+    "optimization": {
+      "performance": [
+        "查表缓存",
+        "避免运行时字符串查找"
+      ],
+      "memory": [
+        "按需加载数据表"
+      ],
+      "package": [
+        "数据表分块/压缩"
+      ],
+      "iteration": [
+        "热重载/预览"
+      ],
+      "stability": [
+        "数据错误在加载时暴露而非运行时崩溃"
+      ],
+      "notWorth": "数值极少且固定时硬编码也可接受。"
+    },
+    "verify": [
+      "Data Validation 无阻断错误。",
+      "策划改数值无需改代码即可生效。",
+      "运行时查表耗时可控。"
+    ]
+  },
+  {
+    "id": "arpg-08",
+    "name": "技能特效：Niagara 预算与降级",
+    "aliases": [
+      "Niagara",
+      "VFX",
+      "overdraw",
+      "特效"
+    ],
+    "type": [
+      "ARPG",
+      "MOBA",
+      "FPS"
+    ],
+    "domain": "solution",
+    "category": "性能与工具链",
+    "engine": [
+      "UE4",
+      "UE5"
+    ],
+    "maturity": "生产验证",
+    "reliability": "B",
+    "level": "深入",
+    "summary": "用 Niagara 控制粒子数、材质复杂度、光照/碰撞与 GPU/CPU 模拟，按设备档位降级，避免团战 overdraw。",
+    "problem": "ARPG 技能特效叠加时半透明 overdraw/粒子模拟会瞬间打爆 GPU/CPU；低端机尤其严重。",
+    "mechanism": "Niagara 的粒子预算/固定边界/GPU 模拟；材质用低成本半透明/遮罩；灯光/阴影限制；按 Scalability 降粒子数/分辨率/后处理。",
+    "pros": [
+      "表现力强、可数据驱动",
+      "可按平台/距离降级",
+      "与材质/光照体系配合"
+    ],
+    "cons": [
+      "overdraw 难量化，需实机测量",
+      "GPU 模拟与 CPU 回读有同步成本",
+      "美术与性能目标冲突"
+    ],
+    "fit": [
+      "ARPG/MOBA 技能",
+      "FPS 命中特效"
+    ],
+    "unfit": [
+      "极低端设备/无 GPU 预算"
+    ],
+    "params": [
+      {
+        "k": "粒子预算",
+        "v": "按档位",
+        "note": "固定边界"
+      },
+      {
+        "k": "模拟",
+        "v": "GPU/CPU",
+        "note": "回读成本"
+      },
+      {
+        "k": "材质",
+        "v": "半透明/遮罩",
+        "note": "overdraw"
+      }
+    ],
+    "sources": [
+      "S074",
+      "S025",
+      "S010"
+    ],
+    "cases": [
+      {
+        "who": "UE Niagara",
+        "note": "官方特效系统（总览文档未单独核验，机制以引擎文档为准）",
+        "source": "S074"
+      }
+    ],
+    "tags": [
+      "Niagara",
+      "特效",
+      "overdraw",
+      "ARPG"
+    ],
+    "extra": false,
+    "gap": "Niagara 官方总览链接未单独核验；本条机制描述基于引擎通用能力与性能文档。",
+    "reproduce": [
+      "用 Niagara 做技能特效，设置粒子数/材质/光照/碰撞预算。",
+      "按设备档位建立降级版本（粒子数、半透明、光源）。",
+      "在团战/多技能叠加下测 GPU。",
+      "用 `stat gpu`/ProfileGPU 定位 overdraw。",
+      "对比关闭特效后的帧时间。"
+    ],
+    "usage": [
+      "接入方式：Niagara + 材质/光照预算 + Scalability 档位。",
+      "典型参数：粒子预算按档位；GPU/CPU 模拟；半透明/遮罩材质。",
+      "集成点：与 moba-09、gen-12 画质分级配合。",
+      "版本差异：Niagara 在 UE5 为默认，4.x 为 Cascade。"
+    ],
+    "optimization": {
+      "performance": [
+        "粒子数/生命周期",
+        "材质复杂度",
+        "GPU 模拟",
+        "剔除"
+      ],
+      "memory": [
+        "特效资源池化"
+      ],
+      "package": [
+        "纹理/网格图集"
+      ],
+      "iteration": [
+        "特效基准场景"
+      ],
+      "stability": [
+        "同屏特效上限，超限降级"
+      ],
+      "notWorth": "特效很少的项目不必过度预算。"
+    },
+    "verify": [
+      "`stat gpu` 看特效/半透明通道。",
+      "团战叠加下帧时间达标。",
+      "低端档位可运行且画面可接受。"
+    ]
+  },
+  {
+    "id": "arpg-09",
+    "name": "背包/复杂 UI：UMG 优化与数据虚拟化",
+    "aliases": [
+      "UMG",
+      "inventory UI",
+      "Retainer Box",
+      "Invalidation"
+    ],
+    "type": [
+      "ARPG",
+      "MOBA"
+    ],
+    "domain": "solution",
+    "category": "UI/UMG",
+    "engine": [
+      "UE4",
+      "UE5"
+    ],
+    "maturity": "生产验证",
+    "reliability": "B",
+    "level": "进阶",
+    "summary": "用列表虚拟化/分页、Retainer Box/Invalidation、减少每帧绑定与文本更新，避免大背包打开就掉帧。",
+    "problem": "ARPG 背包/词条/技能面板条目多，UMG 每帧重建/绑定会造成严重 CPU/GPU 开销。",
+    "mechanism": "只创建可见条目（虚拟化/分页）；用 Retainer Box 缓存静态部分；Invalidation Panel 控制重绘；避免 Tick 里全量刷新；文本/图标异步加载。",
+    "pros": [
+      "打开/滚动流畅",
+      "CPU/GPU 开销可控",
+      "适用于多平台"
+    ],
+    "cons": [
+      "虚拟化实现复杂，易出复用 bug",
+      "缓存与动态数据一致性难",
+      "UMG/Slate 底层知识要求高"
+    ],
+    "fit": [
+      "ARPG 背包/商店",
+      "MOBA 商店/战绩"
+    ],
+    "unfit": [
+      "简单 HUD",
+      "条目极少的面板"
+    ],
+    "params": [
+      {
+        "k": "虚拟化",
+        "v": "可见条目池",
+        "note": "避免全量创建"
+      },
+      {
+        "k": "缓存",
+        "v": "Retainer/Invalidation",
+        "note": "静态部分"
+      },
+      {
+        "k": "刷新",
+        "v": "事件驱动",
+        "note": "避免 Tick"
+      }
+    ],
+    "sources": [
+      "S017",
+      "S025"
+    ],
+    "cases": [
+      {
+        "who": "UE Slate/UMG",
+        "note": "底层 UI 框架与重绘机制",
+        "source": "S017"
+      }
+    ],
+    "tags": [
+      "UMG",
+      "背包",
+      "虚拟化",
+      "ARPG",
+      "UI"
+    ],
+    "extra": false,
+    "gap": "UMG 专项性能文档未单独核验；本条基于 Slate/UMG 官方机制与通用 UI 优化。",
+    "reproduce": [
+      "建立大背包列表（数百条目），观察打开时帧时间。",
+      "用虚拟化/分页只创建可见条目。",
+      "用 Retainer Box/Invalidation 缓存静态部分。",
+      "把每帧绑定改为事件驱动更新。",
+      "对比优化前后的 CPU/GPU。"
+    ],
+    "usage": [
+      "接入方式：UMG 虚拟化列表 + Retainer/Invalidation + 事件驱动。",
+      "典型参数：可见条目池；缓存按更新频率；刷新事件驱动。",
+      "集成点：与 gen-10 UI、arpg-07 数据表配合。",
+      "版本差异：UMG 控件/优化项随版本变化，按文档。"
+    ],
+    "optimization": {
+      "performance": [
+        "虚拟化/对象池",
+        "减少每帧文本更新",
+        "图集"
+      ],
+      "memory": [
+        "纹理图集/按需加载"
+      ],
+      "package": [
+        "UI 资源分块"
+      ],
+      "iteration": [
+        "背包基准测试"
+      ],
+      "stability": [
+        "大数据量下不卡死"
+      ],
+      "notWorth": "条目很少的 UI 不必虚拟化。"
+    },
+    "verify": [
+      "打开大背包帧时间达标。",
+      "`stat slate` 看 UI 耗时。",
+      "滚动无明显卡顿。"
+    ]
+  },
+  {
+    "id": "arpg-10",
+    "name": "大量敌人动画预算：动画 LOD/更新频率/实例化",
+    "aliases": [
+      "animation LOD",
+      "update rate",
+      "骨骼",
+      "性能"
+    ],
+    "type": [
+      "ARPG",
+      "开放世界",
+      "MOBA"
+    ],
+    "domain": "solution",
+    "category": "动画系统",
+    "engine": [
+      "UE4",
+      "UE5"
+    ],
+    "maturity": "生产验证",
+    "reliability": "B",
+    "level": "深入",
+    "summary": "按距离/可见性降低骨骼更新频率、关闭不可见动画、用动画 LOD/实例化，控制同屏大量敌人的 CPU。",
+    "problem": "ARPG 同屏几十个敌人时，骨骼/动画蓝图每帧更新会成为 CPU 热点，尤其是大量远程/后台单位。",
+    "mechanism": "设置动画更新频率/跳过帧；远处关闭骨骼/换用烘焙动画；Significance Manager 分级；Mass 单位用轻量表现；并行动画更新。",
+    "pros": [
+      "CPU 显著下降",
+      "可按重要性分级",
+      "与 AI 调度配合"
+    ],
+    "cons": [
+      "降频会造成动画卡顿/穿帮",
+      "Significance 规则调参复杂",
+      "远程单位的受击表现需要特殊处理"
+    ],
+    "fit": [
+      "ARPG 杂兵海",
+      "开放世界人群",
+      "MOBA 小兵"
+    ],
+    "unfit": [
+      "少量高精度角色",
+      "格斗级动画"
+    ],
+    "params": [
+      {
+        "k": "更新频率",
+        "v": "按距离 30/15/5Hz",
+        "note": "量级示例，需实测"
+      },
+      {
+        "k": "骨骼",
+        "v": "远处关闭/烘焙",
+        "note": "省 CPU"
+      },
+      {
+        "k": "分级",
+        "v": "Significance",
+        "note": "按可见性"
+      }
+    ],
+    "sources": [
+      "S009",
+      "S025",
+      "S008"
+    ],
+    "cases": [
+      {
+        "who": "UE 动画",
+        "note": "动画更新/骨骼控制是引擎通用能力",
+        "source": "S009"
+      }
+    ],
+    "tags": [
+      "动画LOD",
+      "骨骼",
+      "性能",
+      "ARPG"
+    ],
+    "extra": false,
+    "gap": "具体更新频率需按项目实测；本条给量级示例而非标准值。",
+    "reproduce": [
+      "设置 Significance Manager 或自定义距离分级。",
+      "远处敌人降低骨骼更新频率/关闭动画。",
+      "用动画 LOD/烘焙或实例化。",
+      "在 100+ 敌人同屏测试 CPU。",
+      "对比全更新与分级更新的帧时间。"
+    ],
+    "usage": [
+      "接入方式：Significance/距离分级 + 动画 LOD + 实例化。",
+      "典型参数：更新频率 30/15/5Hz 分级；远处关闭/烘焙；Significance。",
+      "集成点：与 arpg-04 AI 分层、tps-06 Mass 配合。",
+      "版本差异：Significance Manager 插件/实现方式按版本核对。"
+    ],
+    "optimization": {
+      "performance": [
+        "按距离/可见性降频",
+        "关闭不可见动画",
+        "骨骼 LOD"
+      ],
+      "memory": [
+        "动画数据共享"
+      ],
+      "package": [
+        "动画压缩/LOD"
+      ],
+      "iteration": [
+        "动画预算基准场景"
+      ],
+      "stability": [
+        "切换频率时姿势不跳变"
+      ],
+      "notWorth": "同屏敌人少时统一更新更简单。"
+    },
+    "verify": [
+      "`stat anim` 看骨骼更新耗时。",
+      "远处敌人动作不自然但不影响观感。",
+      "大规模战斗帧时间达标。"
+    ]
+  }
+]

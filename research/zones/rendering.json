@@ -1,0 +1,1031 @@
+[
+  {
+    "id": "rd-01",
+    "name": "几何与光栅阶段：三角形、draw call 与 overdraw",
+    "aliases": [
+      "geometry",
+      "rasterization",
+      "draw call",
+      "overdraw",
+      "base pass"
+    ],
+    "type": [
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "管线阶段",
+    "summary": "几何阶段把场景三角形提交并光栅化；成本由三角形数、draw call、遮挡与 overdraw 共同决定。",
+    "problem": "场景变复杂后 GPU 时间上升，但很难判断是几何、材质还是 overdraw。",
+    "mechanism": "可见性裁剪/遮挡剔除 → 提交 draw call → 顶点/光栅化 → 像素着色。Nanite 改变了几何提交方式；半透明/粒子不写深度，overdraw 会成倍放大像素着色成本。",
+    "cost": "draw call 受 CPU 提交与状态切换限制；高面数增加顶点/光栅化；overdraw 增加像素着色与带宽。",
+    "fit": [
+      "所有实时渲染项目",
+      "需要先定位 GPU 瓶颈的场景"
+    ],
+    "unfit": [
+      "纯 UI/2D 项目（另看 UI 绘制）"
+    ],
+    "params": [
+      {
+        "k": "draw call",
+        "v": "千级需关注",
+        "note": "平台差异大，按实测"
+      },
+      {
+        "k": "overdraw",
+        "v": "半透明层数",
+        "note": "粒子/烟尘重点"
+      },
+      {
+        "k": "剔除",
+        "v": "视锥/遮挡",
+        "note": "降低无效提交"
+      }
+    ],
+    "sources": [
+      "S064",
+      "S070",
+      "S025"
+    ],
+    "cases": [],
+    "level": "入门",
+    "reliability": "B",
+    "tags": [
+      "几何",
+      "光栅",
+      "draw call",
+      "overdraw"
+    ]
+  },
+  {
+    "id": "rd-02",
+    "name": "光照与 GI 阶段：直接光、间接光与反射",
+    "aliases": [
+      "lighting",
+      "GI",
+      "indirect lighting",
+      "reflection"
+    ],
+    "type": [
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "管线阶段",
+    "summary": "直接光计算便宜可控，间接光/反射决定真实感但成本高，是渲染预算的主要变量。",
+    "problem": "场景真实感不足或光照变化不自然，同时 GI 成本可能吞掉帧预算。",
+    "mechanism": "直接光按光源/阴影计算；间接光可用烘焙、探针、SSGI 或 Lumen 追踪；反射用 SSR/平面反射/Lumen。",
+    "cost": "动态 GI 需要追踪/降噪/缓存，显存与 GPU 时间都高；烘焙需要构建时间且不响应动态变化。",
+    "fit": [
+      "需要真实感/动态光照的项目"
+    ],
+    "unfit": [
+      "风格化/固定光照场景可烘焙"
+    ],
+    "params": [
+      {
+        "k": "光源数",
+        "v": "动态光越多越贵",
+        "note": "分档"
+      },
+      {
+        "k": "GI 方法",
+        "v": "Lumen/烘焙/探针",
+        "note": "按平台"
+      },
+      {
+        "k": "反射",
+        "v": "SSR/平面/Lumen",
+        "note": "按材质"
+      }
+    ],
+    "sources": [
+      "S002",
+      "S034",
+      "S064"
+    ],
+    "cases": [],
+    "level": "入门",
+    "reliability": "A",
+    "tags": [
+      "光照",
+      "GI",
+      "反射"
+    ]
+  },
+  {
+    "id": "rd-03",
+    "name": "阴影阶段：CSM、VSM 与缓存失效",
+    "aliases": [
+      "shadow",
+      "CSM",
+      "VSM",
+      "Virtual Shadow Map"
+    ],
+    "type": [
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "管线阶段",
+    "summary": "阴影成本取决于投影范围、分辨率与动态物体数量；VSM 用虚拟化页降低无效渲染但带来缓存管理成本。",
+    "problem": "阴影模糊/闪烁/漏光，或阴影渲染占满 GPU。",
+    "mechanism": "CSM 按距离分级级联；VSM 把阴影页虚拟化，只渲染可见页并缓存；动态物体导致页失效需重绘。",
+    "cost": "VSM 对动态几何/大量光源敏感；CSM 在远距离分辨率不足。",
+    "fit": [
+      "开放世界/动态光照",
+      "需要高质量接触阴影"
+    ],
+    "unfit": [
+      "固定光照且可烘焙的场景"
+    ],
+    "params": [
+      {
+        "k": "级联",
+        "v": "按视距",
+        "note": "CSM"
+      },
+      {
+        "k": "VSM 页",
+        "v": "按分辨率",
+        "note": "缓存命中"
+      },
+      {
+        "k": "动态物体",
+        "v": "越少越省",
+        "note": "页失效"
+      }
+    ],
+    "sources": [
+      "S065",
+      "S064",
+      "S095"
+    ],
+    "cases": [],
+    "level": "进阶",
+    "reliability": "A",
+    "tags": [
+      "阴影",
+      "VSM",
+      "CSM"
+    ]
+  },
+  {
+    "id": "rd-04",
+    "name": "后处理阶段：Bloom、DOF、色调映射与成本",
+    "aliases": [
+      "post process",
+      "bloom",
+      "DOF",
+      "tonemap"
+    ],
+    "type": [
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "管线阶段",
+    "summary": "后处理是屏幕空间全屏通道，单个效果不贵，叠加与高分辨率会快速累积带宽。",
+    "problem": "画面风格需要后处理，但全屏通道叠加导致 GPU 超预算。",
+    "mechanism": "Bloom/DOF/曝光/色调映射/颗粒等按顺序在全屏纹理上处理；分辨率和通道数直接决定带宽。",
+    "cost": "每个全屏 pass 都要读写纹理；DOF/运动模糊对分辨率敏感；半透明与后处理顺序影响结果。",
+    "fit": [
+      "所有需要画面风格的项目"
+    ],
+    "unfit": [
+      "极低端平台可关闭大部分后处理"
+    ],
+    "params": [
+      {
+        "k": "全屏 pass",
+        "v": "越少越省",
+        "note": "合并/降分辨率"
+      },
+      {
+        "k": "DOF",
+        "v": "半/全分辨率",
+        "note": "按档位"
+      },
+      {
+        "k": "Bloom",
+        "v": "多级模糊",
+        "note": "分辨率减半"
+      }
+    ],
+    "sources": [
+      "S064",
+      "S074"
+    ],
+    "cases": [],
+    "level": "入门",
+    "reliability": "B",
+    "tags": [
+      "后处理",
+      "Bloom",
+      "DOF",
+      "带宽"
+    ]
+  },
+  {
+    "id": "rd-05",
+    "name": "分辨率与上采样：为什么不该硬抗原生分辨率",
+    "aliases": [
+      "upscaling",
+      "resolution scale",
+      "dynamic resolution"
+    ],
+    "type": [
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "管线阶段",
+    "summary": "降低内部渲染分辨率再用高质量上采样，通常比原生分辨率更划算；代价是细节/稳定性。",
+    "problem": "高分辨率下 GPU 像素成本线性上升，硬抗会导致帧率崩。",
+    "mechanism": "以屏幕百分比/动态分辨率降低渲染目标，再用 TSR/FSR/DLSS 等时序或空间算法放大；时序方法依赖运动矢量与历史缓冲。",
+    "cost": "上采样可能产生鬼影/闪烁/细节丢失；时序方法增加显存与 GPU 开销。",
+    "fit": [
+      "高分辨率/主机/PC",
+      "GPU 像素瓶颈"
+    ],
+    "unfit": [
+      "需要像素级精确的 UI/文字（应单独渲染）"
+    ],
+    "params": [
+      {
+        "k": "屏幕百分比",
+        "v": "按档位",
+        "note": "最大杠杆"
+      },
+      {
+        "k": "上采样",
+        "v": "TSR/FSR/DLSS",
+        "note": "按平台"
+      },
+      {
+        "k": "动态分辨率",
+        "v": "按帧时间",
+        "note": "防掉帧"
+      }
+    ],
+    "sources": [
+      "S066",
+      "S074",
+      "S064"
+    ],
+    "cases": [],
+    "level": "入门",
+    "reliability": "A",
+    "tags": [
+      "上采样",
+      "分辨率",
+      "TSR",
+      "性能"
+    ]
+  },
+  {
+    "id": "rd-06",
+    "name": "Nanite：虚拟几何体与簇层级",
+    "aliases": [
+      "Nanite",
+      "virtualized geometry",
+      "cluster",
+      "LOD"
+    ],
+    "type": [
+      "开放世界",
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "UE 专属",
+    "summary": "Nanite 把网格切成簇层级并按屏幕误差流送/光栅化，省去手工 LOD，但数据与平台支持有边界。",
+    "problem": "高面数资产的手工 LOD 制作成本高，且远近切换易穿帮。",
+    "mechanism": "导入时构建簇层级与简化；运行时按屏幕误差选择簇、流送数据、软件/硬件光栅化；配合 VSM 处理阴影。",
+    "cost": "Nanite 数据占包体/内存；不完全支持所有材质/骨骼/平台；过度绘制仍受材质影响。",
+    "fit": [
+      "高面数静态环境/开放世界",
+      "UE5 主机/PC"
+    ],
+    "unfit": [
+      "移动端/低端设备",
+      "大量骨骼网格/透明材质"
+    ],
+    "params": [
+      {
+        "k": "簇/层级",
+        "v": "导入自动",
+        "note": "数据量"
+      },
+      {
+        "k": "屏幕误差",
+        "v": "控制细节",
+        "note": "流送"
+      },
+      {
+        "k": "平台",
+        "v": "按官方列表",
+        "note": "需回退"
+      }
+    ],
+    "sources": [
+      "S001",
+      "S054",
+      "S055"
+    ],
+    "cases": [
+      {
+        "who": "Epic",
+        "note": "Lumen/Nanite 在 UE5  demo 中的组合",
+        "source": "S054"
+      }
+    ],
+    "level": "进阶",
+    "reliability": "A",
+    "tags": [
+      "Nanite",
+      "几何",
+      "LOD",
+      "虚拟化"
+    ]
+  },
+  {
+    "id": "rd-07",
+    "name": "Lumen：动态 GI 与反射",
+    "aliases": [
+      "Lumen",
+      "GI",
+      "reflection",
+      "surface cache"
+    ],
+    "type": [
+      "开放世界",
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "UE 专属",
+    "summary": "Lumen 用追踪+表面缓存提供动态 GI/反射，适合昼夜/天气/破坏，代价是 GPU/显存与平台要求。",
+    "problem": "动态光照变化下烘焙失效，SSR 只能屏幕内反射。",
+    "mechanism": "场景表面缓存 + 屏幕/硬件追踪 + 降噪/时域累积；反射可用 Lumen 或 SSR/平面反射。",
+    "cost": "追踪与降噪占 GPU；表面缓存占显存；快速变化可能闪烁/延迟。",
+    "fit": [
+      "动态光照的开放世界/室内",
+      "UE5 主机/PC"
+    ],
+    "unfit": [
+      "移动端/低端 GPU",
+      "完全静态可烘焙场景"
+    ],
+    "params": [
+      {
+        "k": "追踪",
+        "v": "软/硬件",
+        "note": "平台"
+      },
+      {
+        "k": "质量",
+        "v": "分档",
+        "note": "GPU"
+      },
+      {
+        "k": "缓存",
+        "v": "表面缓存",
+        "note": "显存"
+      }
+    ],
+    "sources": [
+      "S002",
+      "S034"
+    ],
+    "cases": [],
+    "level": "进阶",
+    "reliability": "A",
+    "tags": [
+      "Lumen",
+      "GI",
+      "反射",
+      "动态光照"
+    ]
+  },
+  {
+    "id": "rd-08",
+    "name": "Virtual Shadow Maps：虚拟化阴影页",
+    "aliases": [
+      "VSM",
+      "virtual shadow map",
+      "shadow cache"
+    ],
+    "type": [
+      "开放世界",
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "UE 专属",
+    "summary": "VSM 用虚拟页按需渲染阴影，和 Nanite 配合可提供高精度接触阴影，但对动态物体/页失效敏感。",
+    "problem": "传统 CSM 在远距离/大场景精度不足，近距离接触阴影成本高。",
+    "mechanism": "阴影空间虚拟化为页，只渲染可见页并缓存；Nanite 几何可直接光栅化到页；动态物体使页失效重绘。",
+    "cost": "页缓存占显存；大量动态物体/光源导致频繁失效；平台支持有边界。",
+    "fit": [
+      "UE5 开放世界/高质量阴影"
+    ],
+    "unfit": [
+      "低端/移动端",
+      "大量动态光源场景"
+    ],
+    "params": [
+      {
+        "k": "页大小",
+        "v": "按分辨率",
+        "note": "缓存"
+      },
+      {
+        "k": "动态物体",
+        "v": "控制数量",
+        "note": "失效"
+      },
+      {
+        "k": "光源",
+        "v": "按重要性",
+        "note": "可关闭"
+      }
+    ],
+    "sources": [
+      "S065",
+      "S001",
+      "S095"
+    ],
+    "cases": [],
+    "level": "深入",
+    "reliability": "A",
+    "tags": [
+      "VSM",
+      "阴影",
+      "Nanite"
+    ]
+  },
+  {
+    "id": "rd-09",
+    "name": "TSR：时序超分辨率",
+    "aliases": [
+      "TSR",
+      "Temporal Super Resolution",
+      "upscaling",
+      "ghosting"
+    ],
+    "type": [
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "UE 专属",
+    "summary": "TSR 用多帧历史与运动矢量重建高分辨率画面，画质优于简单空间上采样，但可能鬼影/闪烁。",
+    "problem": "低分辨率渲染需要高质量放大，同时避免明显锯齿/闪烁。",
+    "mechanism": "以低分辨率渲染场景，结合历史缓冲、运动矢量、深度/法线做时序累积与重建。",
+    "cost": "历史缓冲显存与 GPU 开销；快速运动/透明物体易鬼影；对运动矢量质量敏感。",
+    "fit": [
+      "UE5 主机/PC",
+      "需要高质量上采样"
+    ],
+    "unfit": [
+      "极端低端 GPU",
+      "对鬼影零容忍的快速运动场景（需调参）"
+    ],
+    "params": [
+      {
+        "k": "屏幕百分比",
+        "v": "按档位",
+        "note": "性能"
+      },
+      {
+        "k": "历史",
+        "v": "帧数",
+        "note": "画质/鬼影"
+      },
+      {
+        "k": "运动矢量",
+        "v": "质量",
+        "note": "鬼影来源"
+      }
+    ],
+    "sources": [
+      "S066",
+      "S064"
+    ],
+    "cases": [],
+    "level": "进阶",
+    "reliability": "A",
+    "tags": [
+      "TSR",
+      "上采样",
+      "时序",
+      "鬼影"
+    ]
+  },
+  {
+    "id": "rd-10",
+    "name": "Substrate：多层材质与更物理的 BSDF",
+    "aliases": [
+      "Substrate",
+      "material layers",
+      "BSDF"
+    ],
+    "type": [
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "UE 专属",
+    "summary": "Substrate 用分层材质与更物理的 BSDF 组合表达复杂表面，代价是材质复杂度与性能/工作流变化。",
+    "problem": "传统材质模型难以表达多层/复杂透射/金属混合。",
+    "mechanism": "把材质表达为层/BSDF 组合，支持更丰富的物理外观；编译与运行时成本随层数上升。",
+    "cost": "层数越多越贵；项目迁移/美术工作流需要调整；平台支持随版本变化。",
+    "fit": [
+      "高质量材质/影视级外观",
+      "UE5 主机/PC"
+    ],
+    "unfit": [
+      "移动端/低端",
+      "简单风格化材质"
+    ],
+    "params": [
+      {
+        "k": "层数",
+        "v": "越少越省",
+        "note": "性能"
+      },
+      {
+        "k": "BSDF",
+        "v": "按需组合",
+        "note": "复杂度"
+      },
+      {
+        "k": "平台",
+        "v": "按版本核对",
+        "note": "支持"
+      }
+    ],
+    "sources": [
+      "S067"
+    ],
+    "cases": [],
+    "level": "深入",
+    "reliability": "A",
+    "tags": [
+      "Substrate",
+      "材质",
+      "BSDF"
+    ]
+  },
+  {
+    "id": "rd-11",
+    "name": "RDG：渲染依赖图与通道调度",
+    "aliases": [
+      "RDG",
+      "Render Dependency Graph",
+      "pass",
+      "barrier"
+    ],
+    "type": [
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "UE 专属",
+    "summary": "RDG 用依赖图组织渲染通道与资源，自动处理屏障/生命周期并支持异步计算，是自定义渲染功能的入口。",
+    "problem": "手写渲染通道容易出现资源生命周期/屏障错误，且难以并行调度。",
+    "mechanism": "用 `FRDGBuilder` 声明 pass 与纹理/缓冲依赖，引擎负责屏障、临时资源与调度；可插入自定义 pass。",
+    "cost": "学习曲线；自定义 pass 仍需理解 GPU 资源；调试需 RenderDoc/ProfileGPU。",
+    "fit": [
+      "引擎/渲染程序员",
+      "自定义后处理/渲染功能"
+    ],
+    "unfit": [
+      "纯玩法开发",
+      "不需要改渲染管线的项目"
+    ],
+    "params": [
+      {
+        "k": "入口",
+        "v": "FRDGBuilder",
+        "note": "声明依赖"
+      },
+      {
+        "k": "资源",
+        "v": "RDG 纹理/缓冲",
+        "note": "生命周期"
+      },
+      {
+        "k": "调试",
+        "v": "RenderDoc",
+        "note": "通道"
+      }
+    ],
+    "sources": [
+      "S068",
+      "S070"
+    ],
+    "cases": [],
+    "level": "深入",
+    "reliability": "A",
+    "tags": [
+      "RDG",
+      "渲染管线",
+      "自定义pass"
+    ]
+  },
+  {
+    "id": "rd-12",
+    "name": "自定义 Shader/材质性能：变体、指令与 occupancy",
+    "aliases": [
+      "material performance",
+      "shader",
+      "instruction count",
+      "occupancy"
+    ],
+    "type": [
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "UE 专属",
+    "summary": "材质性能由指令数、纹理采样、变体数量与像素覆盖决定；自定义 Shader 要用 ProfileGPU/RenderDoc 验证。",
+    "problem": "美术材质看似简单，实际因采样/指令/半透明导致 GPU 超预算。",
+    "mechanism": "材质编译为多平台 Shader；指令/采样/分支影响 ALU/带宽；变体数量影响 PSO/包体。",
+    "cost": "复杂材质增加像素着色成本；变体爆炸导致编译/包体/卡顿；半透明叠加放大成本。",
+    "fit": [
+      "所有材质密集项目"
+    ],
+    "unfit": [
+      "极简风格化可接受低配材质"
+    ],
+    "params": [
+      {
+        "k": "指令",
+        "v": "越少越好",
+        "note": "ALU"
+      },
+      {
+        "k": "采样",
+        "v": "合并/降分辨率",
+        "note": "带宽"
+      },
+      {
+        "k": "变体",
+        "v": "裁剪",
+        "note": "PSO/包体"
+      }
+    ],
+    "sources": [
+      "S070",
+      "S067",
+      "S025"
+    ],
+    "cases": [],
+    "level": "进阶",
+    "reliability": "A",
+    "tags": [
+      "材质",
+      "Shader",
+      "变体",
+      "性能"
+    ]
+  },
+  {
+    "id": "rd-13",
+    "name": "World Partition 与渲染的配合：单元、HLOD 与阴影",
+    "aliases": [
+      "World Partition",
+      "HLOD",
+      "streaming",
+      "shadow"
+    ],
+    "type": [
+      "开放世界"
+    ],
+    "domain": "rendering",
+    "category": "UE 专属",
+    "summary": "流送单元决定可见内容，HLOD 决定远景代理，VSM/阴影缓存随单元加载失效；三者需联动调参。",
+    "problem": "大世界流送与渲染各自调参，导致切换穿帮、阴影闪烁或 hitch。",
+    "mechanism": "WP 按单元加载/卸载 Actor；HLOD 在远处替换为代理；Nanite/VSM 按可见页/簇流送；单元边界与阴影缓存/光照构建相关。",
+    "cost": "单元过小导致频繁加载；HLOD 切换穿帮；阴影页失效导致重绘。",
+    "fit": [
+      "开放世界",
+      "大世界流送项目"
+    ],
+    "unfit": [
+      "小型线性关卡"
+    ],
+    "params": [
+      {
+        "k": "单元",
+        "v": "按视距/密度",
+        "note": "加载"
+      },
+      {
+        "k": "HLOD",
+        "v": "2–3 层",
+        "note": "远景"
+      },
+      {
+        "k": "阴影",
+        "v": "VSM/CSM",
+        "note": "缓存"
+      }
+    ],
+    "sources": [
+      "S003",
+      "S033",
+      "S065"
+    ],
+    "cases": [],
+    "level": "进阶",
+    "reliability": "A",
+    "tags": [
+      "World Partition",
+      "HLOD",
+      "渲染",
+      "流送"
+    ]
+  },
+  {
+    "id": "rd-14",
+    "name": "方案对比：Lumen vs 烘焙光照",
+    "aliases": [
+      "Lumen vs lightmap",
+      "baked lighting",
+      "dynamic GI"
+    ],
+    "type": [
+      "开放世界",
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "方案对比",
+    "summary": "需要动态光照变化选 Lumen；静态/低端平台选烘焙。混合方案（核心动态+远景烘焙）常见。",
+    "problem": "同一场景在动态性与成本之间难以取舍。",
+    "mechanism": "Lumen 运行时追踪，烘焙预计算光照贴图/探针；混合按区域/重要性切换。",
+    "cost": "Lumen GPU/显存高但迭代快；烘焙便宜稳定但构建慢、不响应变化。",
+    "fit": [
+      "Lumen：昼夜/天气/破坏",
+      "烘焙：固定时段/低端"
+    ],
+    "unfit": [
+      "低端平台强行 Lumen",
+      "需要实时变化的场景用纯烘焙"
+    ],
+    "params": [
+      {
+        "k": "动态性",
+        "v": "高/低",
+        "note": "选型"
+      },
+      {
+        "k": "构建",
+        "v": "烘焙耗时",
+        "note": "迭代"
+      },
+      {
+        "k": "平台",
+        "v": "Lumen 支持",
+        "note": "边界"
+      }
+    ],
+    "sources": [
+      "S002",
+      "S034",
+      "S064"
+    ],
+    "cases": [],
+    "level": "入门",
+    "reliability": "A",
+    "tags": [
+      "Lumen",
+      "烘焙",
+      "GI",
+      "对比"
+    ]
+  },
+  {
+    "id": "rd-15",
+    "name": "方案对比：Nanite vs 传统 LOD 管线",
+    "aliases": [
+      "Nanite vs LOD",
+      "LOD",
+      "virtual geometry"
+    ],
+    "type": [
+      "开放世界",
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "方案对比",
+    "summary": "Nanite 省手工 LOD 且远近过渡平滑；传统 LOD 平台广、可控、包体小，但制作成本高。",
+    "problem": "高面数资产的细节与性能难以兼顾。",
+    "mechanism": "Nanite 自动簇层级/流送；传统 LOD 手工多级网格+切换距离。",
+    "cost": "Nanite 数据大、平台受限；传统 LOD 手工成本高、切换可能穿帮。",
+    "fit": [
+      "Nanite：高面数静态环境/UE5 主机 PC",
+      "LOD：移动端/骨骼/透明"
+    ],
+    "unfit": [
+      "移动端强推 Nanite",
+      "小项目为省事全用 Nanite 但资产简单"
+    ],
+    "params": [
+      {
+        "k": "制作",
+        "v": "自动/手工",
+        "note": "成本"
+      },
+      {
+        "k": "平台",
+        "v": "支持列表",
+        "note": "边界"
+      },
+      {
+        "k": "包体",
+        "v": "数据量",
+        "note": "预算"
+      }
+    ],
+    "sources": [
+      "S001",
+      "S054",
+      "S012"
+    ],
+    "cases": [],
+    "level": "进阶",
+    "reliability": "A",
+    "tags": [
+      "Nanite",
+      "LOD",
+      "对比"
+    ]
+  },
+  {
+    "id": "rd-16",
+    "name": "方案对比：TSR vs FSR/DLSS/空间上采样",
+    "aliases": [
+      "TSR vs DLSS",
+      "FSR",
+      "upscaling comparison"
+    ],
+    "type": [
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "方案对比",
+    "summary": "TSR 引擎内置、跨平台；DLSS/FSR 依赖厂商/硬件；空间上采样最便宜但画质/稳定性弱。",
+    "problem": "不同平台需要不同的上采样策略。",
+    "mechanism": "TSR 时序重建；DLSS 需要 NVIDIA 硬件与模型；FSR 跨平台空间/时序；简单空间放大最轻。",
+    "cost": "TSR 鬼影/显存；DLSS 硬件绑定；FSR 画质依赖实现；空间上采样锯齿。",
+    "fit": [
+      "TSR：UE5 默认/主机 PC",
+      "DLSS：NVIDIA PC",
+      "FSR：跨平台"
+    ],
+    "unfit": [
+      "低端 GPU 强开重时序",
+      "需要绝对稳定像素的场景"
+    ],
+    "params": [
+      {
+        "k": "平台",
+        "v": "厂商/引擎",
+        "note": "选型"
+      },
+      {
+        "k": "画质",
+        "v": "时序/空间",
+        "note": "鬼影"
+      },
+      {
+        "k": "成本",
+        "v": "GPU/显存",
+        "note": "预算"
+      }
+    ],
+    "sources": [
+      "S066",
+      "S064"
+    ],
+    "cases": [],
+    "level": "进阶",
+    "reliability": "A",
+    "tags": [
+      "TSR",
+      "DLSS",
+      "FSR",
+      "上采样",
+      "对比"
+    ]
+  },
+  {
+    "id": "rd-17",
+    "name": "方案对比：前向 vs 延迟 vs 簇延迟",
+    "aliases": [
+      "forward",
+      "deferred",
+      "clustered",
+      "G-Buffer"
+    ],
+    "type": [
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "方案对比",
+    "summary": "延迟适合多光源/复杂材质但有 G-Buffer 带宽成本；前向适合 VR/移动/MSAA；簇延迟按屏幕分块提效。",
+    "problem": "不同平台/光源规模需要不同的光照路径。",
+    "mechanism": "前向逐物体计算光照；延迟写 G-Buffer 后统一光照；簇延迟把屏幕/视锥分簇后按簇剔除光源。",
+    "cost": "延迟 G-Buffer 带宽高、半透明需另处理；前向多光源成本高；簇延迟实现复杂。",
+    "fit": [
+      "延迟：PC/主机多光源",
+      "前向：VR/移动/MSAA",
+      "簇延迟：多光源+大场景"
+    ],
+    "unfit": [
+      "移动端强上完整延迟",
+      "极简场景过度设计"
+    ],
+    "params": [
+      {
+        "k": "光源数",
+        "v": "多/少",
+        "note": "选型"
+      },
+      {
+        "k": "带宽",
+        "v": "G-Buffer",
+        "note": "延迟"
+      },
+      {
+        "k": "平台",
+        "v": "移动/主机",
+        "note": "支持"
+      }
+    ],
+    "sources": [
+      "S069",
+      "S064",
+      "S070"
+    ],
+    "cases": [],
+    "level": "深入",
+    "reliability": "A",
+    "tags": [
+      "前向",
+      "延迟",
+      "簇延迟",
+      "对比"
+    ]
+  },
+  {
+    "id": "rd-18",
+    "name": "渲染调试工具链：RenderDoc、ProfileGPU、stat GPU/RHI",
+    "aliases": [
+      "RenderDoc",
+      "ProfileGPU",
+      "stat gpu",
+      "stat rhi",
+      "Insights GPU"
+    ],
+    "type": [
+      "通用"
+    ],
+    "domain": "rendering",
+    "category": "调试工具链",
+    "summary": "先用 stat GPU/RHI 判断瓶颈，再用 ProfileGPU 拆通道，最后用 RenderDoc 看单 pass 与资源状态。",
+    "problem": "GPU 性能问题缺少可执行的定位顺序，容易盲目改画质。",
+    "mechanism": "stat 命令给粗粒度耗时；ProfileGPU 输出通道级时间；RenderDoc 抓帧看 draw call/纹理/管线状态；Insights GPU 通道看时序。",
+    "cost": "抓帧有开销、可能改变时序；不同平台工具支持不同；需要符号/调试构建。",
+    "fit": [
+      "所有渲染性能排查"
+    ],
+    "unfit": [
+      "仅逻辑/网络问题（用其他工具）"
+    ],
+    "params": [
+      {
+        "k": "粗定位",
+        "v": "stat gpu/rhi",
+        "note": "先看总量"
+      },
+      {
+        "k": "通道",
+        "v": "ProfileGPU",
+        "note": "拆解"
+      },
+      {
+        "k": "单pass",
+        "v": "RenderDoc",
+        "note": "细节"
+      }
+    ],
+    "sources": [
+      "S025",
+      "S070",
+      "S075",
+      "S010"
+    ],
+    "cases": [],
+    "level": "进阶",
+    "reliability": "A",
+    "tags": [
+      "RenderDoc",
+      "ProfileGPU",
+      "stat",
+      "调试"
+    ]
+  }
+]

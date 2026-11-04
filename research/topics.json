@@ -1,0 +1,1609 @@
+[
+  {
+    "id": "topic-net",
+    "name": "网络同步专题",
+    "objective": "建立从「延迟预算」到「权威/预测/回滚/插值」的完整决策链，能为一个具体品类选择同步模型并落地关键机制。",
+    "prerequisites": [
+      "C++ 基础与 UE Actor/复制基础",
+      "能读懂 tick 与帧时间",
+      "了解 RPC 与属性复制"
+    ],
+    "coreQuestions": [
+      "这个品类的延迟预算是多少？哪一类错误最不可接受？",
+      "权威放服务器还是客户端？哪些结果必须服务器裁定？",
+      "用状态同步、帧同步还是混合？回滚窗口覆盖多大 RTT？",
+      "带宽与服务器成本如何随 tick/人数增长？"
+    ],
+    "lineage": [
+      "早期 P2P/锁步（局域网、RTS）→ 服务器权威 + 客户端预测（FPS）→ 快照插值/外推 → 延迟补偿回溯 → 高 tick/专用服务器 → Iris/Replication Graph 降低复制成本。",
+      "当前主流：竞技射击=服务器权威+预测+回溯；MOBA=确定性帧同步或服务器状态同步（视厂商公开程度）；合作 ARPG=服务器权威+轻预测。"
+    ],
+    "terms": [
+      "tick",
+      "RTT",
+      "快照",
+      "插值",
+      "外推",
+      "回滚",
+      "延迟补偿",
+      "peeker's advantage",
+      "服务器权威",
+      "确定性",
+      "Iris",
+      "Replication Graph"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 UE Networking Overview",
+          "用 PIE 多玩家观察复制",
+          "用 net PktLag 感受延迟"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "实现服务器权威+客户端预测移动",
+          "实现快照插值",
+          "读 Overwatch/Halo 演讲"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做延迟补偿命中",
+          "接入 Iris 或 Replication Graph",
+          "做带宽/成本预算与压测"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "net-01",
+      "net-02",
+      "net-03",
+      "net-04",
+      "net-05",
+      "net-06",
+      "net-07",
+      "net-08",
+      "net-09",
+      "net-10",
+      "net-11",
+      "net-12",
+      "fps-01",
+      "fps-02",
+      "fps-03",
+      "fps-04",
+      "fps-06",
+      "fps-10",
+      "fps-11",
+      "moba-01",
+      "moba-02",
+      "arpg-05",
+      "gen-01",
+      "gen-03",
+      "gen-06"
+    ],
+    "relatedVideos": [
+      "BV1pT4y1p7UB",
+      "BV1w1t86cEsN",
+      "BV1yohV68Ete",
+      "BV1g98R6SEMs",
+      "BV1GbkBBKEDo",
+      "BV18V5xz6ELC",
+      "BV1zknd6CEhx",
+      "BV1KZ4y1F7mD"
+    ],
+    "selfTest": [
+      "给定 80ms RTT 与 64Hz tick，估算回溯窗口应覆盖多少毫秒，并说明上限如何影响公平性。",
+      "状态同步与帧同步各自对确定性、带宽、作弊面与断线重连的要求是什么？",
+      "属性复制与自定义批量同步各适合什么规模？Push Model 能解决哪一类开销？",
+      "Replication Graph 与默认相关性裁剪的差异在哪？Iris 迁移的边界是什么？",
+      "如何用 Net Emulate/Insights 证明一次网络优化有效，而不是只在局域网成立？"
+    ],
+    "pitfalls": [
+      "只看平均延迟，不看高分位与抖动。",
+      "把所有表现数据都复制，导致带宽爆炸。",
+      "预测与服务器结果冲突时硬拉回，产生可见抖动。",
+      "相关性裁剪规则错误，导致关键 Actor 在客户端消失。",
+      "回滚窗口无限大，反而被高延迟玩家利用。"
+    ],
+    "dependencies": [
+      "topic-perf"
+    ],
+    "relatedResources": []
+  },
+  {
+    "id": "topic-streaming",
+    "name": "大世界流式加载专题",
+    "objective": "理解「世界分区 + HLOD + 虚拟纹理 + IoStore」如何共同决定加载时间、内存峰值与 hitch，并能搭建可验证的流送方案。",
+    "prerequisites": [
+      "了解 Level Streaming 基础",
+      "了解资产加载/引用",
+      "会看 stat streaming 与 Insights LoadTime"
+    ],
+    "coreQuestions": [
+      "单元尺寸与加载范围如何影响内存与 hitch？",
+      "HLOD 在什么距离接管，如何避免切换穿帮？",
+      "纹理/网格如何按需流送而不抖动？",
+      "包体如何按区域分块以支持首包与补丁？"
+    ],
+    "lineage": [
+      "手工 Level Streaming → 流送体积/距离 → World Partition 运行时网格 + OFPA → HLOD/Impostor → 虚拟纹理/虚拟几何 → Zen/IoStore 按需加载。",
+      "当前主流：开放世界用 World Partition + HLOD + VT；小关卡仍可用 Level Streaming。"
+    ],
+    "terms": [
+      "World Partition",
+      "OFPA",
+      "Data Layer",
+      "HLOD",
+      "Impostor",
+      "Virtual Texture",
+      "IoStore",
+      "Zen Loader",
+      "hitch",
+      "流送源"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 Level Streaming 与 World Partition 文档",
+          "在模板地图观察单元加载"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "配置 HLOD 与 Data Layer",
+          "用 stat streaming 定位 hitch"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做高速巡航自动化测试",
+          "设计按区域分块与首包策略"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "load-04",
+      "load-05",
+      "load-06",
+      "load-07",
+      "load-09",
+      "ow-01",
+      "ow-02",
+      "ow-05",
+      "ow-06",
+      "ow-07",
+      "arpg-06",
+      "gen-15"
+    ],
+    "relatedVideos": [
+      "BV1TuWUevEmU",
+      "BV17WvNexEus",
+      "BV1f94y1R7HQ",
+      "BV1rN4y1L787",
+      "BV1e14y1t7uH",
+      "BV1jDrGBwE5N"
+    ],
+    "selfTest": [
+      "解释为什么流送单元过小会增加管理开销，过大又会造成内存峰值。",
+      "HLOD 切换距离与流送距离应满足什么关系？",
+      "虚拟纹理降低显存峰值的同时为什么可能增加 hitch？",
+      "给出一个「首包只含首章」的分块方案，并说明跨块引用风险。"
+    ],
+    "pitfalls": [
+      "只调加载距离，不看单元内容密度。",
+      "HLOD 材质/光照不匹配导致切换闪烁。",
+      "流送与物理/导航未同步，出现掉落或寻路失败。",
+      "把所有内容打进一个 Pak，首包过大。"
+    ],
+    "dependencies": [
+      "topic-loading",
+      "topic-render-basics"
+    ],
+    "relatedResources": [
+      "epic-valley-of-the-ancient",
+      "epic-project-titan",
+      "kenney-modular-cave-kit"
+    ]
+  },
+  {
+    "id": "topic-render-basics",
+    "name": "渲染管线基础专题",
+    "objective": "建立从几何到上采样的管线心智模型，理解每个阶段的成本来源，能读懂 stat gpu/ProfileGPU 的通道划分。",
+    "prerequisites": [
+      "线性代数/图形学基础",
+      "了解光栅化与着色器概念"
+    ],
+    "coreQuestions": [
+      "一帧的 GPU 时间花在哪些阶段？",
+      "几何、材质、光照、阴影、后处理各自的成本驱动是什么？",
+      "分辨率与上采样如何影响画质与性能？",
+      "前向、延迟、簇延迟的取舍是什么？"
+    ],
+    "lineage": [
+      "固定管线 → 可编程管线 → 延迟着色 → 簇延迟/前向+ → 虚拟几何（Nanite）→ 动态 GI（Lumen）→ 时序上采样（TSR）。",
+      "当前主流：UE5 默认 Nanite+Lumen+VSM+TSR；VR/移动端仍可能用前向/简化管线。"
+    ],
+    "terms": [
+      "draw call",
+      "overdraw",
+      "G-Buffer",
+      "base pass",
+      "lighting",
+      "shadow map",
+      "post process",
+      "upscaling",
+      "TSR",
+      "deferred",
+      "forward",
+      "clustered"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 Real-Time Rendering 管线章节",
+          "看 UE Graphics Programming Overview"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "用 ProfileGPU 拆通道",
+          "读 Forward Shading 文档",
+          "理解 TSR/上采样"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做一个通道级性能基准",
+          "针对 overdraw/阴影做优化"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "ow-03",
+      "ow-04",
+      "ow-12"
+    ],
+    "relatedVideos": [
+      "BV1gdA2zGEnb",
+      "BV1pdwEzyELv",
+      "BV1jEbBzdEta"
+    ],
+    "selfTest": [
+      "列出延迟渲染 G-Buffer 的主要附件及其带宽代价。",
+      "解释 overdraw 为什么在粒子/半透明场景中成为主瓶颈。",
+      "说明 TSR 与简单空间上采样的差异与代价。",
+      "前向渲染在什么场景下反而更合适？"
+    ],
+    "pitfalls": [
+      "只看 GPU 总时间，不拆通道。",
+      "把画质问题都归因于 TAA/TSR。",
+      "用高分辨率硬抗，而不是先降分辨率+上采样。",
+      "忽略半透明/粒子 overdraw。"
+    ],
+    "dependencies": [],
+    "relatedResources": []
+  },
+  {
+    "id": "topic-gi",
+    "name": "全局光照与 Lumen 专题",
+    "objective": "理解动态 GI/反射的原理、成本与平台边界，能在「Lumen vs 烘焙」之间做出可验证的选择。",
+    "prerequisites": [
+      "渲染管线基础",
+      "了解光照/阴影基本概念"
+    ],
+    "coreQuestions": [
+      "场景是否需要动态光照变化（昼夜/天气/破坏）？",
+      "Lumen 的追踪/表面缓存成本在目标平台是否可承受？",
+      "哪些区域可以用烘焙/探针替代？",
+      "如何验证 GI 没有漏光/闪烁/延迟？"
+    ],
+    "lineage": [
+      "Lightmap 烘焙 → 光照探针/间接光照缓存 → 屏幕空间 GI → 硬件/软件光线追踪 → Lumen 动态 GI+反射。",
+      "当前主流：UE5 项目默认 Lumen；静态场景/低端平台仍大量使用烘焙。"
+    ],
+    "terms": [
+      "GI",
+      "Lumen",
+      "Surface Cache",
+      "hardware ray tracing",
+      "software tracing",
+      "SSGI",
+      "lightmap",
+      "light probe",
+      "leak"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 Lumen 总览与技术细节",
+          "在模板场景切换 Lumen/烘焙对比"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "调 Lumen 质量/距离",
+          "用 ProfileGPU 看 GI 通道"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做昼夜变化场景的性能/画质回归",
+          "设计低端档回退"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "ow-04",
+      "ow-12",
+      "ow-03"
+    ],
+    "relatedVideos": [
+      "BV1gdA2zGEnb"
+    ],
+    "selfTest": [
+      "Lumen 的软件追踪与硬件追踪各自代价是什么？",
+      "为什么动态 GI 在快速光照变化时可能出现延迟/闪烁？",
+      "给出一个「核心区 Lumen + 远景烘焙」的混合方案。",
+      "如何用 ProfileGPU 判断 GI 是否是瓶颈？"
+    ],
+    "pitfalls": [
+      "全场景强动态光照导致 GI 成本失控。",
+      "忽略发光材质面积对 GI 的影响。",
+      "低端平台未准备烘焙回退。",
+      "把漏光简单归因于 Lumen  bug。"
+    ],
+    "dependencies": [
+      "topic-render-basics"
+    ],
+    "relatedResources": [
+      "epic-soul-cave",
+      "epic-soul-city"
+    ]
+  },
+  {
+    "id": "topic-animation",
+    "name": "动画系统专题",
+    "objective": "理解状态机、Blend Space、Motion Matching、Montage 的适用边界，能为移动与战斗分别选型并控制动画预算。",
+    "prerequisites": [
+      "了解骨骼/蒙太奇/动画蓝图",
+      "会看 stat anim"
+    ],
+    "coreQuestions": [
+      "移动与战斗是否应采用同一套动画系统？",
+      "Motion Matching 的数据/内存成本是否可接受？",
+      "大量角色如何降频/降 LOD？",
+      "联机回滚时动画状态如何保持一致？"
+    ],
+    "lineage": [
+      "单帧动画 → 状态机/Blend Space → 分层混合/IK → Motion Matching/Pose Search → 学习型动作匹配（研究中）。",
+      "当前主流：移动用 Motion Matching，战斗用状态机/蒙太奇；大量 NPC 用动画 LOD/降频。"
+    ],
+    "terms": [
+      "State Machine",
+      "Blend Space",
+      "Montage",
+      "Motion Matching",
+      "Pose Search",
+      "Anim Notify",
+      "Anim LOD",
+      "Significance"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 Blend Space 与动画蓝图基础",
+          "做一个 1D/2D 混合"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "读 Motion Matching 文档",
+          "用官方示例工程"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做移动+战斗混合方案",
+          "做动画预算与降频"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "arpg-01",
+      "arpg-03",
+      "arpg-10",
+      "tps-08",
+      "fps-13"
+    ],
+    "relatedVideos": [
+      "BV1sptJ6TEPn",
+      "BV1z8SWB9EFX",
+      "BV1qy421B7JD"
+    ],
+    "selfTest": [
+      "Motion Matching 与状态机的核心差异是什么？",
+      "为什么战斗动作仍倾向用 Montage/状态机？",
+      "给出一个按距离降频的动画预算方案。",
+      "联机回滚时动画如何避免频繁跳变？"
+    ],
+    "pitfalls": [
+      "用 Motion Matching 做精确战斗帧控制。",
+      "动画数据库过大导致内存/包体失控。",
+      "所有角色同频更新。",
+      "忽略动画通知与服务器判定窗口同步。"
+    ],
+    "dependencies": [],
+    "relatedResources": [
+      "quaternius-universal-animation-library",
+      "epic-game-animation-sample-project"
+    ]
+  },
+  {
+    "id": "topic-ai-nav",
+    "name": "群体 AI 与导航专题",
+    "objective": "理解 Actor+BT、StateTree、Mass/ECS、Recast/流场/分层寻路的适用边界，能设计大规模 NPC 的分层调度。",
+    "prerequisites": [
+      "了解行为树/导航基础",
+      "会看 stat navigation/stat game"
+    ],
+    "coreQuestions": [
+      "多少单位、多远距离、多复杂行为？",
+      "哪些单位必须是完整 Actor？",
+      "寻路是少量复杂路径还是大量同目标？",
+      "如何按距离/分区降频与休眠？"
+    ],
+    "lineage": [
+      "逐个体 A* + 行为树 → 分层寻路/流场 → 数据导向 Mass/ECS → StateTree 分层状态 → 分区激活/降频。",
+      "当前主流：精英用 BT/StateTree，杂兵用 Mass/流场，远处休眠。"
+    ],
+    "terms": [
+      "Behavior Tree",
+      "Blackboard",
+      "StateTree",
+      "Mass Entity",
+      "Fragment",
+      "Processor",
+      "NavMesh",
+      "Recast",
+      "flow field",
+      "RVO",
+      "EQS"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 AI/Navigation 文档",
+          "做一个巡逻/追击 BT"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "读 MassEntity/StateTree",
+          "做流场寻路"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做 1000 单位分层调度",
+          "做导航/物理/流送联动"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "arpg-04",
+      "tps-06",
+      "ow-08",
+      "ow-09",
+      "moba-06"
+    ],
+    "relatedVideos": [],
+    "selfTest": [
+      "为什么逐个体 A* 在大量同目标单位下会爆炸？",
+      "Mass 与 Actor 的边界应如何划分？",
+      "分层寻路的粗/细两层各自解决什么问题？",
+      "导航与流送/破坏如何保持一致？"
+    ],
+    "pitfalls": [
+      "所有 NPC 都用完整行为树。",
+      "流场不随障碍变化重建。",
+      "导航网格与地形/破坏不同步。",
+      "忽略远处单位的休眠与回收。"
+    ],
+    "dependencies": [],
+    "relatedResources": []
+  },
+  {
+    "id": "topic-gas",
+    "name": "GAS 与技能系统专题",
+    "objective": "理解 Ability/Effect/Attribute/Tag/预测键的关系，能判断何时用 GAS、何时自研，并避免联机预测陷阱。",
+    "prerequisites": [
+      "C++/蓝图基础",
+      "了解复制与预测",
+      "了解 GameplayTag"
+    ],
+    "coreQuestions": [
+      "技能/词条/冷却组合是否多到需要数据驱动？",
+      "是否需要联机预测与回滚？",
+      "数值模型是否适合 Effect 体系？",
+      "团队能否承担 GAS 学习曲线？"
+    ],
+    "lineage": [
+      "硬编码技能 → 数据驱动技能框架 → GAS（Ability/Effect/Attribute/Tag）→ 预测键/回滚 → 与 UI/动画/网络整合。",
+      "当前主流：联机 ARPG/MOBA 大量使用 GAS 或类似框架；轻量单机可自研。"
+    ],
+    "terms": [
+      "AbilitySystemComponent",
+      "GameplayAbility",
+      "GameplayEffect",
+      "AttributeSet",
+      "GameplayTag",
+      "PredictionKey",
+      "cooldown",
+      "cost"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 GAS 文档",
+          "做一个消耗+伤害+冷却技能"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "用 Tag 做状态条件",
+          "联机预测"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做技能组合/词条系统",
+          "做 UI 与动画整合"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "gas-01",
+      "gas-02",
+      "gas-03",
+      "gas-04",
+      "gas-05",
+      "gas-06",
+      "gas-07",
+      "gas-08",
+      "gas-09",
+      "gas-10",
+      "gas-11",
+      "arpg-02",
+      "moba-03",
+      "arpg-03",
+      "arpg-05"
+    ],
+    "relatedVideos": [
+      "BV1oofDBpECQ",
+      "BV16wdBYHEpy",
+      "BV1kgN5z6EPw",
+      "BV1zm421n7YX",
+      "BV1opge6DEDn",
+      "BV1po17BTEgb"
+    ],
+    "selfTest": [
+      "Ability 与 Effect 的职责边界是什么？为什么伤害结算通常放在 ExecutionCalculation 而不是 Ability 里？",
+      "PredictionKey 解决什么问题，错误使用会怎样？请举一个预测失效的例子。",
+      "AttributeSet 如何避免数值被客户端篡改？初始化顺序为什么会影响结果？",
+      "GameplayTag 命名与层级如何设计，才能避免「Tag 爆炸」与查询成本失控？",
+      "什么情况下自研框架比 GAS 更合适？给出至少两个判断条件。"
+    ],
+    "pitfalls": [
+      "把所有逻辑塞进一个 Ability，导致无法复用与预测。",
+      "忽略预测键或乱用 PredictionKey，导致状态错乱与回滚抖动。",
+      "Effect 每帧创建/移除造成开销，而不是用持续型 Effect 与 Stacking。",
+      "Tag 命名无层级、无规范，后期无法查询与维护。",
+      "团队未培训就大规模使用 GAS，迁移成本被低估。"
+    ],
+    "dependencies": [
+      "topic-net"
+    ],
+    "relatedResources": [
+      "kenney-light-masks",
+      "kenney-game-icons",
+      "oga-arcane-magic-effect",
+      "gh-reznok-gmcabilitysystem"
+    ]
+  },
+  {
+    "id": "topic-perf",
+    "name": "性能分析与预算专题",
+    "objective": "建立「先定位瓶颈、再优化、最后回归」的流程，能读懂 stat/Insights/平台工具并制定帧预算。",
+    "prerequisites": [
+      "了解帧/线程/GPU 基本概念",
+      "会看 stat unit"
+    ],
+    "coreQuestions": [
+      "当前瓶颈是 GameThread、RenderThread 还是 GPU？",
+      "预算是按 16.6ms 还是 33.3ms 拆分？",
+      "哪些指标能证明优化有效且未退化？",
+      "线上设备分档如何验证？"
+    ],
+    "lineage": [
+      "stat 命令 → ProfileGPU/CSV Profiler → Unreal Insights 全通道 → Gauntlet 自动化回归 → 线上遥测与设备分级。",
+      "当前主流：Insights + stat 组合定位，Gauntlet/CI 防回归，线上采样验证长尾。"
+    ],
+    "terms": [
+      "FrameTime",
+      "GameThread",
+      "RenderThread",
+      "GPU",
+      "stat unit",
+      "ProfileGPU",
+      "Insights",
+      "CSV Profiler",
+      "Gauntlet",
+      "budget"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 stat 命令文档",
+          "用 stat unit/game/gpu 定位"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "读 Insights 文档",
+          "抓一次 CPU/GPU trace"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "建立性能基准与阈值",
+          "接 CI 回归与线上采样"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "gen-05",
+      "gen-06",
+      "gen-11",
+      "gen-12",
+      "ow-13",
+      "moba-09"
+    ],
+    "relatedVideos": [
+      "BV1Yg4y1M7bT",
+      "BV1bw4HeKEtu",
+      "BV18C4y1A7Np",
+      "BV1kb411o7DU"
+    ],
+    "selfTest": [
+      "stat unit 中 Frame/Game/Draw/GPU 各代表什么？",
+      "如何判断瓶颈在 GameThread 而非 GPU？",
+      "给出一个 60fps 的帧预算拆分示例。",
+      "为什么单次抓帧不能代表线上长尾？"
+    ],
+    "pitfalls": [
+      "不看分位数只看平均帧率。",
+      "在编辑器里测性能而非打包真机。",
+      "优化了非瓶颈模块。",
+      "没有基线导致无法判断回退。"
+    ],
+    "dependencies": [
+      "topic-render-basics"
+    ],
+    "relatedResources": []
+  },
+  {
+    "id": "topic-gc",
+    "name": "GC 与内存专题",
+    "objective": "理解 UObject 引用图、标记-清除、增量/集群，能定位 GC 卡顿并用引用语义与对象池治理内存。",
+    "prerequisites": [
+      "C++ 指针/引用基础",
+      "了解 UObject/Actor 生命周期"
+    ],
+    "coreQuestions": [
+      "对象数量与引用深度如何影响 GC 时间？",
+      "增量 GC/集群如何配置，代价是什么？",
+      "哪些对象应池化，哪些应交给 GC？",
+      "如何观测 GC 峰值与内存标签？"
+    ],
+    "lineage": [
+      "全量标记-清除 → 增量 GC → GC 集群 → 对象池/避免每帧分配 → Memory Insights/LLM 标签治理。",
+      "当前主流：控制 UObject 数量 + 增量 GC + 集群 + 池化高频对象。"
+    ],
+    "terms": [
+      "UObject",
+      "mark-sweep",
+      "root set",
+      "UPROPERTY",
+      "TWeakObjectPtr",
+      "GC cluster",
+      "incremental GC",
+      "LLM",
+      "Memory Insights",
+      "object pool"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 Objects/Object Handling 文档",
+          "用 stat gc 观察"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "理解引用图/根集",
+          "用 memreport 看内存"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "定位 GC 卡顿并调增量/集群",
+          "做对象池与分配治理"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "gen-13",
+      "gen-15",
+      "arpg-09"
+    ],
+    "relatedVideos": [
+      "BV17go5YQE8p",
+      "BV1PX9cBLEJN"
+    ],
+    "selfTest": [
+      "UPROPERTY 强引用与 TWeakObjectPtr 在 GC 中的差异？",
+      "增量 GC 为什么可能降低单次峰值但增加总开销？",
+      "GC 集群适合什么对象，什么时候会适得其反？",
+      "如何证明 GC 卡顿来自对象数量而非其他系统？"
+    ],
+    "pitfalls": [
+      "用裸指针持有可能被 GC 的对象。",
+      "每帧 Spawn/Destroy 大量 Actor。",
+      "把所有对象都塞进一个集群。",
+      "只看内存总量不看分配峰值。"
+    ],
+    "dependencies": [],
+    "relatedResources": []
+  },
+  {
+    "id": "topic-asset",
+    "name": "资源管线与包体专题",
+    "objective": "理解 Asset Manager/Chunk/IoStore/虚拟纹理如何共同控制包体、首包与加载峰值，能设计可回归的资源规则。",
+    "prerequisites": [
+      "了解资产引用/ cook 基础",
+      "会看包体报告"
+    ],
+    "coreQuestions": [
+      "首包需要哪些内容？其余如何分块？",
+      "哪些资源导致包体膨胀？",
+      "加载峰值如何与流送/内存预算对齐？",
+      "如何用校验规则防止脏资产？"
+    ],
+    "lineage": [
+      "全量 Cook → Pak 分块 → Asset Manager 主资产 → IoStore/Zen → 虚拟纹理/按需下载 → 自动化资产审计。",
+      "当前主流：主资产+Chunk+IoStore，CI 做大小/引用/命名校验。"
+    ],
+    "terms": [
+      "Primary Asset",
+      "Chunk",
+      "Pak",
+      "IoStore",
+      "Zen",
+      "Cook",
+      "Asset Audit",
+      "Virtual Texture",
+      "Data Validation"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 Asset Management 文档",
+          "看一次打包报告"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "配置 Chunk/主资产",
+          "用 Data Validation"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "设计首包+按需下载",
+          "把审计接 CI"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "load-02",
+      "load-03",
+      "load-07",
+      "load-09",
+      "load-10",
+      "gen-15",
+      "ow-05",
+      "gen-07",
+      "gen-12"
+    ],
+    "relatedVideos": [
+      "BV1354y1j7ej",
+      "BV1yJ4m1p7vZ"
+    ],
+    "selfTest": [
+      "Primary Asset 与普通资产引用的差异？",
+      "跨 Chunk 引用为什么会导致额外下载？",
+      "IoStore 相比传统 Pak 的收益与限制？",
+      "如何定位包体里最大的 10 个资产？"
+    ],
+    "pitfalls": [
+      "只压纹理不看重复资产。",
+      "Chunk 划分与玩法耦合过深。",
+      "不做资产审计，包体逐版膨胀。",
+      "忽略平台补丁规则差异。"
+    ],
+    "dependencies": [
+      "topic-loading",
+      "topic-streaming"
+    ],
+    "relatedResources": [
+      "epic-shooter-game",
+      "kenney-modular-cave-kit"
+    ]
+  },
+  {
+    "id": "topic-anticheat",
+    "name": "反作弊与安全专题",
+    "objective": "建立「服务器权威为底座、客户端完整性提高门槛、行为分析做长尾」的分层安全观，并能设计可复核的判定链路。",
+    "prerequisites": [
+      "网络同步基础",
+      "了解服务器权威与复制"
+    ],
+    "coreQuestions": [
+      "哪些结果绝不能由客户端决定？",
+      "作弊者最想获取/篡改什么信息？",
+      "如何在不误封的前提下提高检出率？",
+      "录像/日志如何支撑复核与申诉？"
+    ],
+    "lineage": [
+      "客户端判定 → 服务器权威 → 反作弊 SDK/完整性校验 → 行为统计/机器学习 → 录像审计+人工复核。",
+      "当前主流：权威判定+SDK+遥测+审计四层，而非单一方案。"
+    ],
+    "terms": [
+      "server authority",
+      "wallhack",
+      "aimbot",
+      "integrity check",
+      "telemetry",
+      "risk score",
+      "audit",
+      "false positive"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读反作弊/权威判定基础",
+          "列出高价值结果"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "接入 SDK/遥测",
+          "设计风险分档"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做录像审计与误封演练",
+          "做信息最小化"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "fps-09",
+      "gen-18",
+      "tps-07",
+      "moba-07",
+      "tps-03"
+    ],
+    "relatedVideos": [],
+    "selfTest": [
+      "为什么「客户端命中+服务器不校验」必然可被利用？",
+      "信息最小化如何降低透视类作弊收益？",
+      "如何设计一个不依赖单一阈值的风险分档？",
+      "误封演练应包含哪些样本？"
+    ],
+    "pitfalls": [
+      "只上 SDK 不改权威逻辑。",
+      "用单一阈值自动封禁。",
+      "把隐藏实体坐标下发给客户端。",
+      "审计日志不完整导致无法申诉复核。"
+    ],
+    "dependencies": [
+      "topic-net"
+    ],
+    "relatedResources": []
+  },
+  {
+    "id": "topic-ui",
+    "name": "UI/UMG 性能专题",
+    "objective": "理解 Slate/UMG 的绘制与更新成本，能用缓存、虚拟化与事件驱动把 UI 从每帧路径移走。",
+    "prerequisites": [
+      "了解 UMG 控件/蓝图",
+      "会看 stat slate"
+    ],
+    "coreQuestions": [
+      "UI 的 CPU 与 GPU 成本分别来自哪里？",
+      "哪些部分可以缓存，哪些必须每帧更新？",
+      "大量列表如何虚拟化？",
+      "半透明/材质叠加如何控制 overdraw？"
+    ],
+    "lineage": [
+      "即时模式 GUI → 保留模式 Slate/UMG → Retainer/Invalidation 缓存 → 列表虚拟化/对象池 → 事件驱动更新。",
+      "当前主流：缓存静态部分+虚拟化列表+减少每帧绑定。"
+    ],
+    "terms": [
+      "Slate",
+      "UMG",
+      "Retainer Box",
+      "Invalidation Panel",
+      "virtualization",
+      "overdraw",
+      "widget pool",
+      "event-driven"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 Slate 文档",
+          "用 stat slate 观察"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "做 Retainer/Invalidation",
+          "做列表虚拟化"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做背包/HUD 基准",
+          "做 UI 分档"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "arpg-09",
+      "gen-10",
+      "moba-09"
+    ],
+    "relatedVideos": [],
+    "selfTest": [
+      "Retainer Box 与 Invalidation Panel 的差异？",
+      "为什么每帧 SetText 会拖慢 UI？",
+      "列表虚拟化如何减少控件数量？",
+      "如何判断 UI 瓶颈在 CPU 还是 GPU？"
+    ],
+    "pitfalls": [
+      "所有 UI 都每帧 Tick。",
+      "缓存失效逻辑错误导致残影。",
+      "大量半透明层叠加。",
+      "列表条目不复用。"
+    ],
+    "dependencies": [
+      "topic-perf"
+    ],
+    "relatedResources": [
+      "kenney-ui-pack",
+      "kenney-crosshair-pack"
+    ]
+  },
+  {
+    "id": "topic-shader-pso",
+    "name": "着色器编译与 PSO 专题",
+    "objective": "理解 PSO 卡顿的成因、预缓存流程与材质变体治理，能在真机上验证首次出现卡顿是否消除。",
+    "prerequisites": [
+      "了解材质/着色器基础",
+      "会打包真机测试"
+    ],
+    "coreQuestions": [
+      "卡顿来自 Shader 编译还是 PSO 创建？",
+      "哪些材质组合在实际路径中被使用？",
+      "预缓存能否覆盖所有画质档位？",
+      "变体裁剪与画质/功能如何权衡？"
+    ],
+    "lineage": [
+      "运行时编译 → Shader 缓存 → PSO 预缓存收集/打包 → 材质变体裁剪 → 加载期预热。",
+      "当前主流：预缓存+变体治理+真机首次出现测试。"
+    ],
+    "terms": [
+      "PSO",
+      "Pipeline State Object",
+      "shader permutation",
+      "material variant",
+      "precache",
+      "warmup",
+      "hitch"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 PSO Precaching 文档",
+          "在真机复现首次卡顿"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "做一次收集/打包",
+          "看缓存命中"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做变体裁剪",
+          "把首次出现测试接 CI"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "gen-11",
+      "ow-13",
+      "ow-03",
+      "ow-04"
+    ],
+    "relatedVideos": [],
+    "selfTest": [
+      "PSO 与 Shader 编译的区别？",
+      "为什么编辑器里很难复现 PSO 卡顿？",
+      "预缓存收集不完整会发生什么？",
+      "变体裁剪可能带来哪些画质/功能损失？"
+    ],
+    "pitfalls": [
+      "只在编辑器测，不上真机。",
+      "收集路径只覆盖主菜单。",
+      "为省包体砍掉必要变体导致运行时编译。",
+      "忽略不同画质档位的组合。"
+    ],
+    "dependencies": [
+      "topic-render-basics",
+      "topic-perf"
+    ],
+    "relatedResources": []
+  },
+  {
+    "id": "topic-physics",
+    "name": "物理、破坏与载具专题",
+    "objective": "理解 Chaos 物理/破坏/载具的成本与网络同步边界，能在真实感与预算之间做取舍。",
+    "prerequisites": [
+      "了解刚体/碰撞基础",
+      "会看 stat physics"
+    ],
+    "coreQuestions": [
+      "物理是玩法核心还是表现？",
+      "破坏需要实时碎片还是预破碎？",
+      "载具用完整物理还是运动学近似？",
+      "多人下物理如何服务器权威/同步？"
+    ],
+    "lineage": [
+      "PhysX 刚体 → Chaos 物理 → Chaos Destruction/Field → 载具/网络物理 → 大规模破坏的聚类/休眠。",
+      "当前主流：局部互动用 Chaos，大规模场景用预破碎/假破坏；载具按玩法选完整物理或近似。"
+    ],
+    "terms": [
+      "Chaos",
+      "Geometry Collection",
+      "cluster",
+      "field",
+      "substep",
+      "vehicle",
+      "authority",
+      "sleep"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 Physics/Chaos Destruction 文档",
+          "做刚体/破碎小场景"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "做载具/破坏同步",
+          "用 stat physics 定位"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做碎片预算与 LOD",
+          "做多人破坏一致性"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "phy-01",
+      "phy-02",
+      "phy-03",
+      "phy-04",
+      "phy-05",
+      "phy-06",
+      "phy-07",
+      "phy-08",
+      "phy-09",
+      "phy-10",
+      "ow-10",
+      "tps-10",
+      "tps-02"
+    ],
+    "relatedVideos": [
+      "BV1sz7uzbErs",
+      "BV1nb4y1J7ru",
+      "BV1fvwzeuE3r",
+      "BV1oGaazjExp",
+      "BV18V5xz6ELC"
+    ],
+    "selfTest": [
+      "实时破碎与预破碎/缓存回放的成本差异？各自适合什么场景？",
+      "物理子步进如何影响稳定性与性能？什么情况下必须开启 CCD？",
+      "多人破坏为什么需要服务器权威？碎片数量如何设上限？",
+      "载具用运动学近似会损失什么，何时必须用完整物理？",
+      "如何用 stat physics 与物理 LOD/Sleep 证明优化有效？"
+    ],
+    "pitfalls": [
+      "碎片无上限导致物理爆炸与内存峰值。",
+      "物理与网络同步帧率不一致，出现抖动/穿透。",
+      "破坏后导航未重建，AI 卡死。",
+      "载具高速穿透未做 CCD/兜底。",
+      "所有刚体全开碰撞，不做物理 LOD 与 Sleep。"
+    ],
+    "dependencies": [
+      "topic-net",
+      "topic-perf"
+    ],
+    "relatedResources": [
+      "epic-chaos-destruction-demo",
+      "epic-vehicle-game",
+      "epic-city-sample-vehicles",
+      "oga-2d-explosion-animations-frame-by-frame"
+    ]
+  },
+  {
+    "id": "topic-engineering",
+    "name": "工程化、自动化与运维专题",
+    "objective": "建立把「可测试、可观测、可回归」落到 CI 与线上的工程习惯，避免性能与稳定性问题在上线后才发现。",
+    "prerequisites": [
+      "了解打包/CI 基础",
+      "会写简单脚本"
+    ],
+    "coreQuestions": [
+      "哪些场景必须自动化回归？",
+      "线上要采集哪些指标才能定位问题？",
+      "如何用机器人/压测验证容量？",
+      "工具链如何服务内容团队？"
+    ],
+    "lineage": [
+      "手工测试 → 自动化测试框架 → Gauntlet 跨平台 → CI 性能门槛 → 线上遥测/设备分级。",
+      "当前主流：关键场景自动化+线上采样+设备矩阵。"
+    ],
+    "terms": [
+      "Gauntlet",
+      "Automation",
+      "Functional Test",
+      "CI",
+      "telemetry",
+      "load test",
+      "device matrix",
+      "Data Validation"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 Automation/Gauntlet 文档",
+          "写一个功能测试"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "接 CI 阈值",
+          "做一次压测"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做线上看板与告警",
+          "做设备分档验证"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "gen-05",
+      "gen-06",
+      "gen-04",
+      "gen-07",
+      "gen-02"
+    ],
+    "relatedVideos": [
+      "BV1bw4HeKEtu"
+    ],
+    "selfTest": [
+      "什么样的场景适合自动化性能回归？",
+      "如何避免 CI 性能阈值偶发失败？",
+      "线上定位一次掉帧需要哪些关联键？",
+      "机器人压测能验证什么、不能验证什么？"
+    ],
+    "pitfalls": [
+      "只做功能自动化不做性能。",
+      "阈值不留噪声余量。",
+      "线上只收崩溃不收性能。",
+      "压测机器人行为与真人差异过大。"
+    ],
+    "dependencies": [
+      "topic-perf"
+    ],
+    "relatedResources": [
+      "epic-shooter-game"
+    ]
+  },
+  {
+    "id": "topic-loading",
+    "name": "资源加载与流式管理专题",
+    "objective": "建立「同步/异步 → 软引用 → 主资产 → 关卡流送 → 分包/补丁 → 内存卸载」的完整链路，能在卡顿、内存峰值与包体之间做可验证取舍。",
+    "prerequisites": [
+      "了解 UObject 与资产引用基础",
+      "会看 stat streaming/stat memory 与加载日志",
+      "能区分编辑器加载与打包后加载"
+    ],
+    "coreQuestions": [
+      "什么时候必须异步，什么时候同步加载更简单且可接受？",
+      "软引用/PrimaryAssetId 如何避免硬引用把整条依赖链拖进内存？",
+      "关卡流送单元、加载范围与内存峰值如何对齐？",
+      "首包/补丁/Server 分包如何划分，跨块引用如何控制？",
+      "卸载时机由谁决定，如何证明没有跨关卡泄漏？"
+    ],
+    "lineage": [
+      "LoadObject/LoadClass 同步加载 → StreamableManager 异步请求 → 软引用与 Primary Data Asset 管理 → Level Streaming（Volume/Blueprint）→ World Partition/Data Layer/Level Instance → Pak/IoStore/Chunk 分包 → 预加载/预缓存与加载预算观测。",
+      "当前主流：开放世界用 World Partition + 软引用/主资产；小关卡仍用 Level Streaming；发布用 IoStore + Chunk，配合 Insights LoadTime 做回归。"
+    ],
+    "terms": [
+      "SoftObjectPtr",
+      "SoftClassPtr",
+      "PrimaryAssetId",
+      "Asset Manager",
+      "StreamableManager",
+      "Level Streaming",
+      "World Partition",
+      "Data Layer",
+      "Level Instance",
+      "Pak",
+      "IoStore",
+      "Chunk",
+      "Preload",
+      "Precache",
+      "Asset Audit",
+      "Size Map",
+      "Memory Peak"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 Asset Management 与 Level Streaming 文档",
+          "对比 LoadObject 与 Async Load 的卡顿差异",
+          "用 stat streaming 观察一次加载"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "用软引用/主资产改造一条硬引用链",
+          "配置 World Partition 单元与 Data Layer",
+          "做加载画面与进度反馈"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "设计首包/补丁/Server 分包",
+          "做加载预算与 IO 带宽压测",
+          "用 Asset Audit/Size Map 排查泄漏与包体膨胀"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "load-01",
+      "load-02",
+      "load-03",
+      "load-04",
+      "load-05",
+      "load-06",
+      "load-07",
+      "load-08",
+      "load-09",
+      "load-10"
+    ],
+    "relatedVideos": [
+      "BV1e14y1t7uH",
+      "BV1jDrGBwE5N",
+      "BV1rN4y1L787",
+      "BV1354y1j7ej",
+      "BV1yJ4m1p7vZ"
+    ],
+    "selfTest": [
+      "同步加载在什么情况下仍然合理？异步加载的回调时机如何影响游戏逻辑？",
+      "软引用与硬引用在内存/包体/加载时机上的差异是什么？软引用会不会被 GC？",
+      "Level Streaming、World Partition、Data Layer、Level Instance 各自的加载单位与卸载策略是什么？",
+      "Chunk 分包与单包相比，首包、补丁与跨块引用各有什么代价？",
+      "如何用 Insights LoadTime/stat streaming 证明一次加载优化没有引入新 hitch？"
+    ],
+    "pitfalls": [
+      "把「异步」当成万能药，忽略加载完成前的状态与失败回退。",
+      "硬引用贯穿整个资产链，导致加载一个角色拖进大量无关资源。",
+      "流送单元过小导致管理开销，过大导致内存峰值。",
+      "Chunk 划分与玩法耦合过深，补丁/按需安装难以维护。",
+      "只关注加载速度，不关注卸载时机与跨关卡泄漏。"
+    ],
+    "dependencies": [],
+    "relatedResources": [
+      "epic-shooter-game",
+      "kenney-modular-cave-kit",
+      "epic-valley-of-the-ancient"
+    ]
+  },
+  {
+    "id": "topic-mobile",
+    "name": "移动端渲染专题",
+    "objective": "理解 TBDR、带宽与填充率约束，能按机型分级选择 Forward/Deferred、烘焙/动态光照、纹理与分辨率策略，并用工具验证。",
+    "prerequisites": [
+      "渲染管线基础",
+      "了解移动 GPU 的 TBDR 架构",
+      "会看 stat RHI/stat GPU 与平台 GPU 工具"
+    ],
+    "coreQuestions": [
+      "目标机型的最低 Feature Level 是什么？ES3.1/Vulkan/Metal 如何取舍？",
+      "当前瓶颈是带宽、填充率、draw call 还是 shader 指令数？",
+      "Lumen/Nanite/VSM/TSR 在移动端是否可用，替代方案是什么？",
+      "纹理、分辨率、后处理与粒子如何按机型分档？"
+    ],
+    "lineage": [
+      "移动 Forward 单 pass → Mobile Deferred/G-Buffer → Feature Level 分级（ES3.1/Vulkan/Metal）→ 烘焙 GI/静态阴影 + 动态光源上限 → ASTC/ETC2 + 纹理流送 → 动态分辨率与设备分级。",
+      "当前主流：Forward + 烘焙为主，少量动态光照；高端机型评估 Deferred 与简化 Lumen 替代；用设备 Profiles 分档并做发热/功耗回归。"
+    ],
+    "terms": [
+      "Mobile Forward",
+      "Mobile Deferred",
+      "Feature Level",
+      "TBDR",
+      "Overdraw",
+      "Early-Z",
+      "Bandwidth",
+      "Fill Rate",
+      "ASTC",
+      "ETC2",
+      "Texture Streaming",
+      "Dynamic Resolution",
+      "Device Profile",
+      "Lumen",
+      "Nanite",
+      "VSM",
+      "TSR"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读移动端渲染/Feature Level 文档",
+          "在低端机上用 stat RHI/stat GPU 定位",
+          "对比 Forward 与 Deferred 的带宽"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "治理 overdraw 与半透明粒子",
+          "配置 ASTC/ETC2 与纹理流送",
+          "用设备分级控制画质"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做机型分级与发热/功耗预算",
+          "用 Arm Mobile Studio/AGI/RenderDoc 抓帧",
+          "建立移动端性能回归"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "mob-01",
+      "mob-02",
+      "mob-03",
+      "mob-04",
+      "mob-05",
+      "mob-06",
+      "mob-07",
+      "mob-08",
+      "mob-09",
+      "mob-10",
+      "mob-11"
+    ],
+    "relatedVideos": [
+      "BV1GC4y1H71i",
+      "BV16H4y1e7vg"
+    ],
+    "selfTest": [
+      "TBDR 为什么让 overdraw 与带宽成为首要瓶颈？Early-Z 对半透明为何无效？",
+      "Mobile Forward 与 Mobile Deferred 的成本差异与适用条件是什么？",
+      "Lumen/Nanite/VSM/TSR 在移动端哪些可用、哪些需要替代？替代代价是什么？",
+      "ASTC 与 ETC2 的取舍是什么？纹理流送如何避免 hitch？",
+      "如何用设备分级与动态分辨率把帧率稳定在预算内，同时控制发热？"
+    ],
+    "pitfalls": [
+      "直接套用桌面管线与画质，忽略带宽/填充率。",
+      "半透明粒子与 UI 多层叠加，overdraw 失控。",
+      "不做机型分级，用高端机表现代表全部设备。",
+      "只看平均帧率，不看发热降频与长尾卡顿。",
+      "为省包体砍掉必要 shader 变体，导致运行时编译。"
+    ],
+    "dependencies": [
+      "topic-render-basics",
+      "topic-perf"
+    ],
+    "relatedResources": [
+      "kenney-mobile-controls",
+      "kenney-cursor-pack",
+      "epic-cropout-sample-project"
+    ]
+  },
+  {
+    "id": "topic-movement",
+    "name": "复杂移动表现专题",
+    "objective": "建立「CMC/状态机 → 特殊能力 → 动画/相机表现 → 网络预测」的完整链路，能为抓钩、攀爬、墙跑等能力设计可复现、可联机的实现。",
+    "prerequisites": [
+      "CMC 与动画蓝图基础",
+      "了解 Root Motion、Montage 与 IK",
+      "了解网络预测/回滚基础"
+    ],
+    "coreQuestions": [
+      "能力应该用自定义 MovementMode、组件还是 Tick 位移？",
+      "物理驱动与动画驱动的边界在哪？何时用 Root Motion？",
+      "锚点/边缘探测的合法性规则如何设计，失败如何回退？",
+      "联机下特殊移动如何预测、回滚与平滑，避免橡皮筋？"
+    ],
+    "lineage": [
+      "Tick 直接改位置 → CMC 自定义 MovementMode/PhysCustom → 物理约束/弹簧绳索 → Root Motion + Motion Warping + IK → 网络预测/回滚与平滑。",
+      "当前主流：常规移动用 CMC + In-Place；抓钩/攀爬等能力用自定义模式/组件 + Root Motion/IK；联机以服务器权威 + 预测回滚为主。"
+    ],
+    "terms": [
+      "CharacterMovementComponent",
+      "MovementMode",
+      "PhysCustom",
+      "Root Motion",
+      "In-Place",
+      "Motion Warping",
+      "Two Bone IK",
+      "Foot IK",
+      "Ledge Detection",
+      "Grapple",
+      "Wall Run",
+      "Slide",
+      "Zipline",
+      "Coyote Time",
+      "Prediction",
+      "Rubber Banding"
+    ],
+    "learningPath": [
+      {
+        "stage": "入门",
+        "items": [
+          "读 CMC/MovementMode 与 Root Motion 文档",
+          "做一个自定义 MovementMode 的最小示例",
+          "调跳跃/加减速曲线"
+        ]
+      },
+      {
+        "stage": "进阶",
+        "items": [
+          "做抓钩或攀爬的最小闭环",
+          "接 Motion Warping/IK 对位",
+          "处理失败与中断"
+        ]
+      },
+      {
+        "stage": "实战",
+        "items": [
+          "做特殊移动的联机预测与回滚",
+          "做相机/FOV/音效粒子反馈",
+          "建立手感参数与回归测试"
+        ]
+      }
+    ],
+    "relatedSolutions": [
+      "mov-01",
+      "mov-02",
+      "mov-03",
+      "mov-04",
+      "mov-05",
+      "mov-06",
+      "mov-07",
+      "mov-08",
+      "mov-09",
+      "mov-10",
+      "mov-11",
+      "mov-12"
+    ],
+    "relatedVideos": [
+      "BV1fP4y1m7Pq",
+      "BV1fm411y77c",
+      "BV1sS8q6bEDr",
+      "BV1mv4y1y7UE",
+      "BV1RF411A7gk",
+      "BV1ci421S7J6"
+    ],
+    "selfTest": [
+      "什么情况下应该扩展 CMC 的自定义 MovementMode，而不是在 Tick 里改位置？",
+      "Root Motion 与 In-Place 各自对网络预测/对位精度的影响是什么？",
+      "抓钩锚点的合法性应校验哪些条件？绳索用弹簧还是距离约束？",
+      "攀爬的边缘探测与状态机如何避免穿模与卡死？",
+      "联机特殊移动出现橡皮筋时，应优先检查哪三类原因？"
+    ],
+    "pitfalls": [
+      "在 Tick 里直接 SetActorLocation，绕过碰撞与预测。",
+      "状态切换未清理速度/重力，导致残留运动。",
+      "锚点不做合法性校验，钩到不可用表面或穿墙。",
+      "Root Motion 位移未做服务器校验，产生作弊面。",
+      "只调手感不做联机验证，上线后出现位置漂移与回滚抖动。"
+    ],
+    "dependencies": [
+      "topic-animation",
+      "topic-net",
+      "topic-physics"
+    ],
+    "relatedResources": [
+      "quaternius-universal-animation-library",
+      "gh-gerlogu-proceduralfpsanimationsplugin"
+    ]
+  }
+]

@@ -1,0 +1,1906 @@
+{
+  "meta": {
+    "sourceProject": "UEGameRes",
+    "sourceRoot": "c:\\Users\\ASUS\\Project\\UEGameRes",
+    "assetsFile": "assets.json",
+    "anchorPattern": "index.html#item-<id>",
+    "absoluteOpen": "file:///C:/Users/ASUS/Project/UEGameRes/index.html",
+    "relativeFromUETech": "..\\..\\..\\..\\..\\Users\\ASUS\\Project\\UEGameRes\\index.html",
+    "openGuide": [
+      "推荐：直接在资源管理器双击打开 UEGameRes 目录下的 index.html，再从本库资源卡片复制条目 id 搜索；或使用绝对 file:/// 链接跳转。",
+      "浏览器对 file:// 的跨目录访问/脚本加载有安全限制：若卡片跳转后资源库空白，请按上一条从 UEGameRes 目录直接打开。",
+      "不要用 http 服务器打开 UETech 后再点 file:// 链接，部分浏览器会拦截混合协议。"
+    ],
+    "licensePolicy": "只推荐授权明确且免费的条目；Fab Standard/Epic Content License 标注「UE 限定/商用前读 EULA」；CC-BY/CC-BY-SA 标注「需署名/相同方式共享」；授权为「未获取」的条目只进入待核实清单，不进入推荐位。",
+    "localSources": [
+      "S090",
+      "S091",
+      "S092"
+    ]
+  },
+  "typeNeeds": [
+    {
+      "type": "FPS",
+      "needs": [
+        {
+          "need": "角色/武器与第一人称手感原型",
+          "category": "blueprint",
+          "itemIds": [
+            "epic-shooter-game"
+          ]
+        },
+        {
+          "need": "准星/HUD/输入提示",
+          "category": "ui",
+          "itemIds": [
+            "kenney-crosshair-pack",
+            "kenney-input-prompts",
+            "kenney-ui-pack"
+          ]
+        },
+        {
+          "need": "武器道具（左轮/短刀）",
+          "category": "prop",
+          "itemIds": [
+            "sf-d0c9d2c989",
+            "sf-f5236789a5"
+          ]
+        },
+        {
+          "need": "室内科幻/战壕场景",
+          "category": "env",
+          "itemIds": [
+            "epic-scifi-hallway",
+            "quix-military-trench-sample"
+          ]
+        },
+        {
+          "need": "命中/爆炸/UI 音效",
+          "category": "audio",
+          "itemIds": [
+            "kenney-impact-sounds",
+            "oga-9-explosion-sounds",
+            "kenney-ui-audio"
+          ]
+        },
+        {
+          "need": "混凝土/金属材质",
+          "category": "material",
+          "itemIds": [
+            "acg-concrete048",
+            "acg-metal063"
+          ]
+        },
+        {
+          "need": "天空盒/HDRI",
+          "category": "other",
+          "itemIds": [
+            "kenney-skyboxes",
+            "ph-kloppenheim-02"
+          ]
+        }
+      ],
+      "gap": "缺少现代战术射击的成套武器/手臂/第一人称动画；缺少可商用的枪械音效包（现有 Gun Sound Pack 授权未获取）。"
+    },
+    {
+      "type": "TPS",
+      "needs": [
+        {
+          "need": "可操控角色与动画",
+          "category": "character",
+          "itemIds": [
+            "fab-paragon-sparrow",
+            "quaternius-universal-animation-library"
+          ]
+        },
+        {
+          "need": "动画示例/工程参考",
+          "category": "blueprint",
+          "itemIds": [
+            "epic-game-animation-sample-project",
+            "epic-slay-animation-sample"
+          ]
+        },
+        {
+          "need": "城市/洞穴/室内场景",
+          "category": "env",
+          "itemIds": [
+            "kenney-city-kit-industrial",
+            "epic-soul-city",
+            "kenney-modular-cave-kit"
+          ]
+        },
+        {
+          "need": "魔法/能量特效",
+          "category": "vfx",
+          "itemIds": [
+            "oga-arcane-magic-effect"
+          ]
+        },
+        {
+          "need": "RPG/通用 UI",
+          "category": "ui",
+          "itemIds": [
+            "kenney-ui-pack-rpg-expansion",
+            "kenney-ui-pack"
+          ]
+        },
+        {
+          "need": "环境音",
+          "category": "audio",
+          "itemIds": [
+            "fab-essential-ambience-sfx"
+          ]
+        },
+        {
+          "need": "载具原型",
+          "category": "prop",
+          "itemIds": [
+            "kenney-car-kit",
+            "epic-vehicle-game"
+          ]
+        }
+      ],
+      "gap": "缺少高质量第三人称角色套装与成套战斗动画；现有角色多为风格化/低模。"
+    },
+    {
+      "type": "MOBA",
+      "needs": [
+        {
+          "need": "俯视角地图/地牢模块",
+          "category": "env",
+          "itemIds": [
+            "kenney-mini-dungeon",
+            "kenney-tiny-city"
+          ]
+        },
+        {
+          "need": "技能图标/UI",
+          "category": "ui",
+          "itemIds": [
+            "kenney-game-icons",
+            "kenney-ui-pack-rpg-expansion"
+          ]
+        },
+        {
+          "need": "技能特效",
+          "category": "vfx",
+          "itemIds": [
+            "oga-arcane-magic-effect",
+            "oga-earth-element-magic-spell"
+          ]
+        },
+        {
+          "need": "命中/战斗音效",
+          "category": "audio",
+          "itemIds": [
+            "kenney-impact-sounds",
+            "oga-50-rpg-sound-effects"
+          ]
+        },
+        {
+          "need": "英雄/小兵模型",
+          "category": "character",
+          "itemIds": [
+            "kenney-mini-characters"
+          ]
+        }
+      ],
+      "gap": "MOBA 覆盖最弱：缺少俯视角英雄/小兵/防御塔/技能特效成套资产；现有均为通用低模，难以直接支撑商业 MOBA 美术。"
+    },
+    {
+      "type": "搜打撤",
+      "needs": [
+        {
+          "need": "射击/战利品原型",
+          "category": "blueprint",
+          "itemIds": [
+            "epic-shooter-game"
+          ]
+        },
+        {
+          "need": "战壕/洞穴/室内场景",
+          "category": "env",
+          "itemIds": [
+            "quix-military-trench-sample",
+            "kenney-modular-cave-kit",
+            "epic-soul-cave"
+          ]
+        },
+        {
+          "need": "武器/容器道具",
+          "category": "prop",
+          "itemIds": [
+            "sf-d0c9d2c989",
+            "sf-c580f18e25"
+          ]
+        },
+        {
+          "need": "命中/环境音",
+          "category": "audio",
+          "itemIds": [
+            "kenney-impact-sounds",
+            "fab-essential-ambience-sfx"
+          ]
+        },
+        {
+          "need": "HUD/图标",
+          "category": "ui",
+          "itemIds": [
+            "kenney-crosshair-pack",
+            "kenney-game-icons",
+            "kenney-ui-pack"
+          ]
+        },
+        {
+          "need": "岩石/植被",
+          "category": "prop",
+          "itemIds": [
+            "ph-rock-moss-set-02",
+            "ph-tree-small-02"
+          ]
+        }
+      ],
+      "gap": "缺少搜打撤核心内容：战利品容器/保险箱/撤离点标识/战术装备/背包网格 UI；场景偏军事但缺少可交互物件。"
+    },
+    {
+      "type": "开放世界",
+      "needs": [
+        {
+          "need": "大世界示例工程（WP/Nanite/Lumen）",
+          "category": "blueprint",
+          "itemIds": [
+            "epic-project-titan",
+            "epic-valley-of-the-ancient",
+            "epic-city-sample"
+          ]
+        },
+        {
+          "need": "地形/山脉",
+          "category": "env",
+          "itemIds": [
+            "epic-landscape-mountains"
+          ]
+        },
+        {
+          "need": "植被/树木/岩石",
+          "category": "prop",
+          "itemIds": [
+            "quix-megaplants-giant-bamboo",
+            "ph-jacaranda-tree",
+            "ph-tree-small-02",
+            "ph-grass-medium-01",
+            "ph-rock-moss-set-02"
+          ]
+        },
+        {
+          "need": "地表材质",
+          "category": "material",
+          "itemIds": [
+            "acg-grass005",
+            "acg-rock064",
+            "acg-asphalt033",
+            "acg-ground111"
+          ]
+        },
+        {
+          "need": "天空/HDRI",
+          "category": "other",
+          "itemIds": [
+            "ph-kloppenheim-02",
+            "ph-satara-night",
+            "kenney-skyboxes"
+          ]
+        },
+        {
+          "need": "模块化洞穴/城市 Kit",
+          "category": "env",
+          "itemIds": [
+            "kenney-modular-cave-kit",
+            "kenney-city-kit-industrial",
+            "kenney-city-kit-roads"
+          ]
+        }
+      ],
+      "gap": "缺少可商用的高精度地形/植被大规模扫描库；Epic 示例多为 UE 限定，不能单独再分发；缺少天气/体积云资产。"
+    },
+    {
+      "type": "ARPG",
+      "needs": [
+        {
+          "need": "角色/敌人",
+          "category": "character",
+          "itemIds": [
+            "fab-skeleton-necromancer",
+            "fab-paragon-sparrow"
+          ]
+        },
+        {
+          "need": "人形动画库",
+          "category": "character",
+          "itemIds": [
+            "quaternius-universal-animation-library"
+          ]
+        },
+        {
+          "need": "技能特效",
+          "category": "vfx",
+          "itemIds": [
+            "oga-arcane-magic-effect",
+            "oga-earth-element-magic-spell",
+            "oga-25-special-effects-rendered-with-blender"
+          ]
+        },
+        {
+          "need": "RPG UI/图标",
+          "category": "ui",
+          "itemIds": [
+            "kenney-ui-pack-rpg-expansion",
+            "kenney-game-icons"
+          ]
+        },
+        {
+          "need": "地牢/洞穴场景",
+          "category": "env",
+          "itemIds": [
+            "kenney-mini-dungeon",
+            "epic-soul-cave",
+            "kenney-modular-cave-kit"
+          ]
+        },
+        {
+          "need": "武器/宝箱道具",
+          "category": "prop",
+          "itemIds": [
+            "sf-f39dc9dbb",
+            "sf-c580f18e25"
+          ]
+        },
+        {
+          "need": "RPG/战斗音乐与音效",
+          "category": "audio",
+          "itemIds": [
+            "oga-50-rpg-sound-effects",
+            "oga-battle-music"
+          ]
+        }
+      ],
+      "gap": "缺少成套 ARPG 技能动画/受击/处决动画；缺少可商用的 BOSS 模型与技能特效包。"
+    }
+  ],
+  "items": [
+    {
+      "id": "epic-shooter-game",
+      "name": "Shooter Game（UE4 射击游戏示例）",
+      "category": "blueprint",
+      "subcategory": "示例项目",
+      "license": "Epic Content License（UE-Only）",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/blueprint/epic-shooter-game.jpg",
+      "obtain": "https://www.fab.com/listings/316f0c15-cb37-4580-8670-b0b7c423165a",
+      "supports": [
+        "fps-01",
+        "fps-02",
+        "fps-09",
+        "gen-01",
+        "gen-05"
+      ],
+      "forTypes": [
+        "FPS",
+        "搜打撤"
+      ],
+      "note": "完整 C++ FPS 示例（武器/AI/网络框架），适合验证服务器权威/复制链路；仅 UE4.2–4.14，需编译。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "epic-game-animation-sample-project",
+      "name": "Game Animation Sample Project（游戏动画示例项目）",
+      "category": "blueprint",
+      "subcategory": "示例项目",
+      "license": "Epic 官方文档 + Epic Content License（UE-Only）",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/blueprint/epic-game-animation-sample-project.jpg",
+      "obtain": "https://dev.epicgames.com/documentation/en-us/unreal-engine/game-animation-sample-project-in-unreal-engine",
+      "supports": [
+        "arpg-01",
+        "tps-08",
+        "arpg-10"
+      ],
+      "forTypes": [
+        "ARPG",
+        "TPS"
+      ],
+      "note": "官方 Motion Matching 示例，UE5.4–5.8；适合作为动画专题基线工程。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "epic-slay-animation-sample",
+      "name": "Slay Animation Sample（Slay 动画示例）",
+      "category": "blueprint",
+      "subcategory": "示例项目",
+      "license": "Epic Content License（UE-Only）",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/blueprint/epic-slay-animation-sample.jpg",
+      "obtain": "https://www.fab.com/listings?q=Slay%20Animation%20Sample",
+      "supports": [
+        "arpg-01",
+        "tps-08"
+      ],
+      "forTypes": [
+        "ARPG",
+        "TPS"
+      ],
+      "note": "Epic 动画示例，适合对照 Motion Matching/动画预算；Obtain 为 Fab 搜索入口，具体 listing 需登录核对。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "epic-project-titan",
+      "name": "Project Titan（开放世界艺术 Jam）",
+      "category": "blueprint",
+      "subcategory": "示例项目",
+      "license": "Epic Content License（UE-Only）",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/blueprint/epic-project-titan.jpg",
+      "obtain": "https://www.fab.com/listings/c05aac82-4c1a-4e42-96b3-be668dc40fca",
+      "supports": [
+        "ow-01",
+        "ow-02",
+        "ow-08",
+        "gen-12",
+        "fps-12"
+      ],
+      "forTypes": [
+        "开放世界"
+      ],
+      "note": "8×8 km WP 工程，覆盖 Nanite/Lumen/Mover；UE5.5–5.8，建议 32 GB+ 内存与 SSD。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "epic-valley-of-the-ancient",
+      "name": "Valley of the Ancient（UE5 远古山谷示例）",
+      "category": "blueprint",
+      "subcategory": "示例项目",
+      "license": "Epic Content License（UE-Only）",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/blueprint/epic-valley-of-the-ancient.jpg",
+      "obtain": "https://www.fab.com/listings/0c19880e-21bd-42ba-8287-1caccc3951b1",
+      "supports": [
+        "ow-03",
+        "ow-04",
+        "ow-01"
+      ],
+      "forTypes": [
+        "开放世界"
+      ],
+      "note": "Nanite/Lumen/World Partition 演示；官方标注 205 GB 空间，32–64 GB 内存。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "epic-city-sample",
+      "name": "City Sample（城市示例）",
+      "category": "blueprint",
+      "subcategory": "示例项目",
+      "license": "UE 限定内容",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/blueprint/epic-city-sample.jpg",
+      "obtain": "https://www.fab.com/listings/4898e707-7855-404b-af0e-a505ee690e68",
+      "supports": [
+        "ow-01",
+        "ow-08",
+        "ow-04",
+        "tps-06"
+      ],
+      "forTypes": [
+        "开放世界",
+        "TPS"
+      ],
+      "note": "展示 WP/Nanite/Lumen/Mass/MetaHuman；体积非常大，仅适合高配机器参考。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-modular-cave-kit",
+      "name": "Modular Cave Kit",
+      "category": "env",
+      "subcategory": "地形与洞穴",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/env/kenney-modular-cave-kit.jpg",
+      "obtain": "https://kenney.nl/assets/modular-cave-kit",
+      "supports": [
+        "ow-01",
+        "arpg-06",
+        "ow-10"
+      ],
+      "forTypes": [
+        "开放世界",
+        "ARPG",
+        "搜打撤"
+      ],
+      "note": "CC0 模块化洞穴 Kit；低模风格，导入后需重定向材质/检查比例。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-city-kit-industrial",
+      "name": "City Kit (Industrial)",
+      "category": "env",
+      "subcategory": "城市与工业",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/env/kenney-city-kit-industrial.jpg",
+      "obtain": "https://kenney.nl/assets/city-kit-industrial",
+      "supports": [
+        "ow-01",
+        "tps-01",
+        "moba-07"
+      ],
+      "forTypes": [
+        "开放世界",
+        "TPS",
+        "MOBA"
+      ],
+      "note": "CC0 工业城市模块；适合原型关卡与遮挡测试。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-city-kit-roads",
+      "name": "City Kit (Roads)",
+      "category": "env",
+      "subcategory": "城市与工业",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/env/kenney-city-kit-roads.jpg",
+      "obtain": "https://kenney.nl/assets/city-kit-roads",
+      "supports": [
+        "ow-01",
+        "tps-10",
+        "gen-15"
+      ],
+      "forTypes": [
+        "开放世界",
+        "TPS"
+      ],
+      "note": "CC0 道路模块，适合载具/城市原型。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "epic-scifi-hallway",
+      "name": "Scifi Hallway（科幻走廊环境）",
+      "category": "env",
+      "subcategory": "风格化与科幻",
+      "license": "Epic Content License（UE-Only）",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/env/epic-scifi-hallway.jpg",
+      "obtain": "https://www.fab.com/listings?q=Scifi%20Hallway",
+      "supports": [
+        "fps-01",
+        "tps-01",
+        "rd-07"
+      ],
+      "forTypes": [
+        "FPS",
+        "TPS"
+      ],
+      "note": "Epic 科幻走廊环境，适合室内 FPS/TPS 原型；Obtain 为 Fab 搜索入口，需登录核对 listing。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "quix-military-trench-sample",
+      "name": "Military Trench Megascans Sample（战壕示例）",
+      "category": "env",
+      "subcategory": "地形与洞穴",
+      "license": "Fab Standard License",
+      "licenseClass": "可商用（需读 EULA）",
+      "priceType": "free",
+      "image": "assets/img/env/quix-military-trench-sample.jpg",
+      "obtain": "https://www.fab.com/listings/f18c343f-b771-47b0-a02a-129771fd9804",
+      "supports": [
+        "fps-01",
+        "tps-07",
+        "ow-10"
+      ],
+      "forTypes": [
+        "FPS",
+        "搜打撤"
+      ],
+      "note": "Quixel 战壕示例（模块化原木/沙袋/铁丝网），UE5.6–5.8；商用前读 EULA。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "epic-soul-cave",
+      "name": "Soul: Cave（Soul 洞穴环境资产包）",
+      "category": "env",
+      "subcategory": "地形与洞穴",
+      "license": "Epic Content License（UE-Only）",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/env/epic-soul-cave.jpg",
+      "obtain": "https://www.fab.com/listings/75f42402-40bb-4a1b-b557-18e2c9604273",
+      "supports": [
+        "arpg-06",
+        "ow-10",
+        "rd-06"
+      ],
+      "forTypes": [
+        "ARPG",
+        "开放世界"
+      ],
+      "note": "移动端优化洞穴/水体资产，UE4.20–5.8；适合低配画质参考。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "epic-soul-city",
+      "name": "Soul: City（Soul 城市环境资产包）",
+      "category": "env",
+      "subcategory": "城市与工业",
+      "license": "Epic Content License（UE-Only）",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/env/epic-soul-city.jpg",
+      "obtain": "https://www.fab.com/listings?q=Soul%3A%20City",
+      "supports": [
+        "tps-01",
+        "ow-01",
+        "moba-07"
+      ],
+      "forTypes": [
+        "TPS",
+        "开放世界"
+      ],
+      "note": "与 Soul: Cave 同系列的城市资产；Obtain 为 Fab 搜索入口，需登录核对。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "epic-landscape-mountains",
+      "name": "Landscape Mountains（山地地形景观）",
+      "category": "env",
+      "subcategory": "森林与自然",
+      "license": "Epic Content License（UE-Only）",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/env/epic-landscape-mountains.jpg",
+      "obtain": "https://www.fab.com/listings?q=Landscape%20Mountains",
+      "supports": [
+        "ow-01",
+        "ow-06",
+        "ow-02"
+      ],
+      "forTypes": [
+        "开放世界"
+      ],
+      "note": "Epic 山地地形示例，适合验证 Landscape/植被/HLOD；需登录核对 listing。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-tiny-city",
+      "name": "Tiny City",
+      "category": "env",
+      "subcategory": "城市与工业",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/env/kenney-tiny-city.jpg",
+      "obtain": "https://kenney.nl/assets/tiny-city",
+      "supports": [
+        "moba-07",
+        "moba-06"
+      ],
+      "forTypes": [
+        "MOBA"
+      ],
+      "note": "CC0 俯视角城市小场景，适合 MOBA/策略原型地图。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-mini-dungeon",
+      "name": "Mini Dungeon",
+      "category": "env",
+      "subcategory": "室内与地下",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/env/kenney-mini-dungeon.jpg",
+      "obtain": "https://kenney.nl/assets/mini-dungeon",
+      "supports": [
+        "arpg-06",
+        "moba-06",
+        "ow-09"
+      ],
+      "forTypes": [
+        "ARPG",
+        "MOBA"
+      ],
+      "note": "CC0 地牢模块，适合副本/寻路原型。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "fab-paragon-sparrow",
+      "name": "Paragon: Sparrow",
+      "category": "character",
+      "subcategory": "角色模型",
+      "license": "Fab Standard License（UE 限定）",
+      "licenseClass": "可商用（需读 EULA）",
+      "priceType": "free",
+      "image": "assets/img/character/fab-paragon-sparrow.jpg",
+      "obtain": "https://www.fab.com/listings/7d76ddf0-d9ce-4d00-939e-d72793534d01",
+      "supports": [
+        "tps-08",
+        "arpg-01",
+        "fps-13"
+      ],
+      "forTypes": [
+        "TPS",
+        "ARPG"
+      ],
+      "note": "Epic 官方 Paragon 角色（模型/动画/AnimBP/FX）；不得用 PARAGON 商标宣传。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "fab-skeleton-necromancer",
+      "name": "Skeleton Necromancer",
+      "category": "character",
+      "subcategory": "角色模型",
+      "license": "Fab Standard License（免费获取）",
+      "licenseClass": "可商用（需读 EULA）",
+      "priceType": "free",
+      "image": "assets/img/character/fab-skeleton-necromancer.jpg",
+      "obtain": "https://www.fab.com/listings/8e5c5f8f-993a-4c76-b53c-b48bac9766ee",
+      "supports": [
+        "arpg-04",
+        "arpg-02",
+        "ow-10"
+      ],
+      "forTypes": [
+        "ARPG"
+      ],
+      "note": "低模骷髅死灵法师，UE5 骨架含法杖/灵魂球材质；Fab 登录加库。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-mini-characters",
+      "name": "Mini Characters",
+      "category": "character",
+      "subcategory": "角色模型",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/character/kenney-mini-characters.jpg",
+      "obtain": "https://kenney.nl/assets/mini-characters",
+      "supports": [
+        "moba-01",
+        "moba-06"
+      ],
+      "forTypes": [
+        "MOBA"
+      ],
+      "note": "CC0 低模小人，适合 MOBA 英雄/小兵占位；不具备商业级细节。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "quaternius-universal-animation-library",
+      "name": "Universal Animation Library",
+      "category": "character",
+      "subcategory": "角色动画",
+      "license": "CC0 1.0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/character/quaternius-universal-animation-library.jpg",
+      "obtain": "https://quaternius.com/packs/universalanimationlibrary.html",
+      "supports": [
+        "tps-08",
+        "arpg-01",
+        "arpg-10"
+      ],
+      "forTypes": [
+        "TPS",
+        "ARPG"
+      ],
+      "note": "120+ 通用人形动画，CC0；需重定向/调整根运动，无 UE 工程模板。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "sf-d0c9d2c989",
+      "name": "Colt-type revolver",
+      "category": "prop",
+      "subcategory": "武器",
+      "license": "CC0 Public Domain",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/prop/sf-d0c9d2c989.jpg",
+      "obtain": "https://sketchfab.com/3d-models/colt-type-revolver-cc0",
+      "supports": [
+        "fps-08",
+        "fps-13",
+        "fps-02"
+      ],
+      "forTypes": [
+        "FPS",
+        "搜打撤"
+      ],
+      "note": "CC0 左轮手枪模型；Obtain 为 Sketchfab 对应 CC0 条目入口，具体 URL 以资源库记录为准。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "sf-f5236789a5",
+      "name": "\"Kama\" Dagger",
+      "category": "prop",
+      "subcategory": "武器",
+      "license": "CC0 Public Domain",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/prop/sf-f5236789a5.jpg",
+      "obtain": "https://sketchfab.com/3d-models/kama-dagger-cc0",
+      "supports": [
+        "arpg-03",
+        "fps-13"
+      ],
+      "forTypes": [
+        "FPS",
+        "ARPG"
+      ],
+      "note": "CC0 短刀模型；适合近战命中窗口原型。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "sf-f39dc9dbb",
+      "name": "The Sword Of Victory",
+      "category": "prop",
+      "subcategory": "武器",
+      "license": "CC0 Public Domain",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/prop/sf-f39dc9dbb.jpg",
+      "obtain": "https://sketchfab.com/3d-models/the-sword-of-victory-cc0",
+      "supports": [
+        "arpg-03",
+        "arpg-02"
+      ],
+      "forTypes": [
+        "ARPG"
+      ],
+      "note": "CC0 剑模型，适合 ARPG 技能/近战原型。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "sf-c580f18e25",
+      "name": "Chest",
+      "category": "prop",
+      "subcategory": "家具",
+      "license": "CC0 Public Domain",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/prop/sf-c580f18e25.jpg",
+      "obtain": "https://sketchfab.com/3d-models/chest-cc0",
+      "supports": [
+        "tps-03",
+        "arpg-07",
+        "tps-04"
+      ],
+      "forTypes": [
+        "搜打撤",
+        "ARPG"
+      ],
+      "note": "CC0 宝箱，适合战利品/容器交互原型。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-car-kit",
+      "name": "Car Kit",
+      "category": "prop",
+      "subcategory": "载具",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/prop/kenney-car-kit.jpg",
+      "obtain": "https://kenney.nl/assets/car-kit",
+      "supports": [
+        "tps-10",
+        "ow-09"
+      ],
+      "forTypes": [
+        "TPS",
+        "开放世界"
+      ],
+      "note": "CC0 低模车辆，适合载具同步/寻路原型。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "epic-vehicle-game",
+      "name": "Vehicle Game（UE4 载具游戏模板）",
+      "category": "blueprint",
+      "subcategory": "游戏模板",
+      "license": "Epic Content License（UE-Only）",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/blueprint/epic-vehicle-game.jpg",
+      "obtain": "https://www.fab.com/listings/a232054e-8204-488e-b278-ece2c40d831f",
+      "supports": [
+        "tps-10"
+      ],
+      "forTypes": [
+        "TPS"
+      ],
+      "note": "UE4 载具模板（UE4.5–4.23），车辆物理/音频蓝图化，可作对照。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "epic-chaos-destruction-demo",
+      "name": "Chaos Destruction Demo（Chaos 破碎演示）",
+      "category": "blueprint",
+      "subcategory": "示例项目",
+      "license": "Epic Content License（UE-Only）",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/blueprint/epic-chaos-destruction-demo.jpg",
+      "obtain": "https://www.fab.com/listings/3fd0a610-852d-4246-a554-ce3c68489a98",
+      "supports": [
+        "ow-10",
+        "tps-10"
+      ],
+      "forTypes": [
+        "开放世界",
+        "TPS"
+      ],
+      "note": "Chaos 破坏/场/簇示例；门槛特殊：需从 GitHub 编译 UE4.23–4.26 源码版并启用 Chaos，启动器版不可直接用。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "oga-arcane-magic-effect",
+      "name": "Arcane Magic Effect",
+      "category": "vfx",
+      "subcategory": "魔法与能量",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/vfx/oga-arcane-magic-effect.jpg",
+      "obtain": "https://opengameart.org/content/arcane-magic-effect",
+      "supports": [
+        "arpg-08",
+        "moba-09",
+        "tps-08"
+      ],
+      "forTypes": [
+        "ARPG",
+        "MOBA",
+        "TPS"
+      ],
+      "note": "CC0 2D 序列帧（作者 Cethiel），UE 中用 Paper2D/Flipbook；非 Niagara。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "oga-earth-element-magic-spell",
+      "name": "Earth Element Magic Spell",
+      "category": "vfx",
+      "subcategory": "魔法与能量",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/vfx/oga-earth-element-magic-spell.jpg",
+      "obtain": "https://opengameart.org/content/earth-element-magic-spell",
+      "supports": [
+        "arpg-08",
+        "moba-09"
+      ],
+      "forTypes": [
+        "ARPG",
+        "MOBA"
+      ],
+      "note": "CC0 2D 法术序列帧，适合技能特效占位。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "oga-25-special-effects-rendered-with-blender",
+      "name": "25 special effects rendered with blender",
+      "category": "vfx",
+      "subcategory": "爆炸与烟雾",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/vfx/oga-25-special-effects-rendered-with-blender.jpg",
+      "obtain": "https://opengameart.org/content/25-special-effects-rendered-with-blender",
+      "supports": [
+        "arpg-08",
+        "ow-10"
+      ],
+      "forTypes": [
+        "ARPG",
+        "开放世界"
+      ],
+      "note": "CC0 爆炸/烟雾序列帧（作者 rubberduck），适合 Flipbook 占位。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "oga-big-explosion",
+      "name": "Big Explosion",
+      "category": "vfx",
+      "subcategory": "爆炸与烟雾",
+      "license": "CC-BY 3.0",
+      "licenseClass": "可商用但需署名",
+      "priceType": "free",
+      "image": "assets/img/vfx/oga-big-explosion.jpg",
+      "obtain": "https://opengameart.org/content/big-explosion",
+      "supports": [
+        "ow-10",
+        "fps-13"
+      ],
+      "forTypes": [
+        "FPS",
+        "开放世界"
+      ],
+      "note": "CC-BY 3.0（作者 Lamoot），必须按页面要求署名；商用前核对版本。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-crosshair-pack",
+      "name": "Crosshair Pack",
+      "category": "ui",
+      "subcategory": "HUD 与控件",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/ui/kenney-crosshair-pack.jpg",
+      "obtain": "https://kenney.nl/assets/crosshair-pack",
+      "supports": [
+        "fps-08",
+        "fps-13"
+      ],
+      "forTypes": [
+        "FPS",
+        "搜打撤"
+      ],
+      "note": "CC0 准星图标，PNG/SVG，导入 UMG 做准星/散布指示。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-input-prompts",
+      "name": "Input Prompts",
+      "category": "ui",
+      "subcategory": "图标",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/ui/kenney-input-prompts.jpg",
+      "obtain": "https://kenney.nl/assets/input-prompts",
+      "supports": [
+        "gen-09"
+      ],
+      "forTypes": [
+        "通用",
+        "FPS",
+        "TPS"
+      ],
+      "note": "CC0 键鼠/手柄输入提示图标，适合 Enhanced Input 的分设备提示。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-ui-pack",
+      "name": "UI Pack",
+      "category": "ui",
+      "subcategory": "UI 套件",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/ui/kenney-ui-pack.jpg",
+      "obtain": "https://kenney.nl/assets/ui-pack",
+      "supports": [
+        "gen-10",
+        "arpg-09"
+      ],
+      "forTypes": [
+        "通用",
+        "FPS",
+        "TPS"
+      ],
+      "note": "CC0 通用 UI 套件，适合原型 HUD/菜单。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-ui-pack-rpg-expansion",
+      "name": "UI Pack (RPG Expansion)",
+      "category": "ui",
+      "subcategory": "UI 套件",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/ui/kenney-ui-pack-rpg-expansion.jpg",
+      "obtain": "https://kenney.nl/assets/ui-pack-rpg-expansion",
+      "supports": [
+        "arpg-09",
+        "arpg-07",
+        "moba-09"
+      ],
+      "forTypes": [
+        "ARPG",
+        "MOBA"
+      ],
+      "note": "CC0 RPG UI 扩展，适合背包/技能/血条原型。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-game-icons",
+      "name": "Game Icons",
+      "category": "ui",
+      "subcategory": "图标",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/ui/kenney-game-icons.jpg",
+      "obtain": "https://kenney.nl/assets/game-icons",
+      "supports": [
+        "moba-03",
+        "arpg-02"
+      ],
+      "forTypes": [
+        "MOBA",
+        "ARPG"
+      ],
+      "note": "CC0 游戏图标，适合技能/物品图标占位。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-impact-sounds",
+      "name": "Impact Sounds",
+      "category": "audio",
+      "subcategory": "音效",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/audio/kenney-impact-sounds.jpg",
+      "obtain": "https://kenney.nl/assets/impact-sounds",
+      "supports": [
+        "fps-13",
+        "arpg-03",
+        "moba-03"
+      ],
+      "forTypes": [
+        "FPS",
+        "ARPG",
+        "MOBA"
+      ],
+      "note": "CC0 命中/撞击音效，OGG/WAV 可直接导入 SoundWave。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "oga-50-rpg-sound-effects",
+      "name": "50 RPG sound effects",
+      "category": "audio",
+      "subcategory": "音效",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/audio/oga-50-rpg-sound-effects.jpg",
+      "obtain": "https://opengameart.org/content/50-rpg-sound-effects",
+      "supports": [
+        "arpg-02",
+        "arpg-03",
+        "moba-03"
+      ],
+      "forTypes": [
+        "ARPG",
+        "MOBA"
+      ],
+      "note": "CC0 RPG 音效（作者 Kenney），适合技能/受击/拾取原型。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "oga-9-explosion-sounds",
+      "name": "9 explosion sounds",
+      "category": "audio",
+      "subcategory": "音效",
+      "license": "CC-BY-SA 3.0",
+      "licenseClass": "可商用但需署名/相同方式共享",
+      "priceType": "free",
+      "image": "assets/img/audio/oga-9-explosion-sounds.jpg",
+      "obtain": "https://opengameart.org/content/9-explosion-sounds",
+      "supports": [
+        "ow-10",
+        "fps-13"
+      ],
+      "forTypes": [
+        "FPS",
+        "开放世界"
+      ],
+      "note": "CC-BY-SA 3.0，需署名且衍生作品相同方式共享；商用前核对。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-ui-audio",
+      "name": "UI Audio",
+      "category": "audio",
+      "subcategory": "UI 音效",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/audio/kenney-ui-audio.jpg",
+      "obtain": "https://kenney.nl/assets/ui-audio",
+      "supports": [
+        "gen-10",
+        "arpg-09"
+      ],
+      "forTypes": [
+        "通用",
+        "ARPG"
+      ],
+      "note": "CC0 按钮/开关音效，适合 UMG 交互。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-music-jingles",
+      "name": "Music Jingles",
+      "category": "audio",
+      "subcategory": "音乐",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/audio/kenney-music-jingles.jpg",
+      "obtain": "https://kenney.nl/assets/music-jingles",
+      "supports": [
+        "gen-16"
+      ],
+      "forTypes": [
+        "通用"
+      ],
+      "note": "CC0 短音乐/Jingle，适合菜单/结算占位。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "fab-essential-ambience-sfx",
+      "name": "Essential Ambience SFX",
+      "category": "audio",
+      "subcategory": "音效",
+      "license": "Fab Standard License",
+      "licenseClass": "可商用（需读 EULA）",
+      "priceType": "free",
+      "image": "assets/img/audio/fab-essential-ambience-sfx.jpg",
+      "obtain": "https://www.fab.com/listings?q=Essential%20Ambience%20SFX",
+      "supports": [
+        "tps-05",
+        "ow-12"
+      ],
+      "forTypes": [
+        "FPS",
+        "TPS",
+        "开放世界"
+      ],
+      "note": "Fab 免费环境音，商用前读 EULA；Obtain 为搜索入口，需登录核对。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "oga-battle-music",
+      "name": "Battle Music",
+      "category": "audio",
+      "subcategory": "音乐",
+      "license": "CC-BY 3.0",
+      "licenseClass": "可商用但需署名",
+      "priceType": "free",
+      "image": "assets/img/audio/oga-battle-music.jpg",
+      "obtain": "https://opengameart.org/content/battle-music",
+      "supports": [
+        "arpg-08",
+        "moba-09"
+      ],
+      "forTypes": [
+        "ARPG",
+        "MOBA"
+      ],
+      "note": "CC-BY 3.0，必须署名；适合战斗音乐占位。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "acg-grass005",
+      "name": "Grass 005",
+      "category": "material",
+      "subcategory": "地表与路面",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/material/acg-grass005.jpg",
+      "obtain": "https://ambientcg.com/a/Grass005",
+      "supports": [
+        "ow-06",
+        "ow-07"
+      ],
+      "forTypes": [
+        "开放世界"
+      ],
+      "note": "CC0 PBR 草地；8K 包很大，游戏建议 1K/2K。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "acg-rock064",
+      "name": "Rock 064",
+      "category": "material",
+      "subcategory": "石材与砖瓦",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/material/acg-rock064.jpg",
+      "obtain": "https://ambientcg.com/a/Rock064",
+      "supports": [
+        "ow-06",
+        "rd-06"
+      ],
+      "forTypes": [
+        "开放世界"
+      ],
+      "note": "CC0 岩石 PBR，适合地形/悬崖材质。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "acg-asphalt033",
+      "name": "Asphalt 033",
+      "category": "material",
+      "subcategory": "地表与路面",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/material/acg-asphalt033.jpg",
+      "obtain": "https://ambientcg.com/a/Asphalt033",
+      "supports": [
+        "ow-01",
+        "tps-10"
+      ],
+      "forTypes": [
+        "开放世界",
+        "TPS"
+      ],
+      "note": "CC0 沥青 PBR，适合道路/城市场景。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "acg-concrete048",
+      "name": "Concrete 048",
+      "category": "material",
+      "subcategory": "石材与砖瓦",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/material/acg-concrete048.jpg",
+      "obtain": "https://ambientcg.com/a/Concrete048",
+      "supports": [
+        "fps-01",
+        "tps-01"
+      ],
+      "forTypes": [
+        "FPS",
+        "TPS"
+      ],
+      "note": "CC0 混凝土 PBR，适合室内/工业场景。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "acg-ground111",
+      "name": "Ground 111",
+      "category": "material",
+      "subcategory": "地表与路面",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/material/acg-ground111.jpg",
+      "obtain": "https://ambientcg.com/a/Ground111",
+      "supports": [
+        "ow-06",
+        "ow-02"
+      ],
+      "forTypes": [
+        "开放世界"
+      ],
+      "note": "CC0 地表 PBR（Color/Normal/Roughness/AO/Displacement）；8K 原包很大，游戏内建议 1K/2K。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "acg-metal063",
+      "name": "Metal 063",
+      "category": "material",
+      "subcategory": "金属",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/material/acg-metal063.jpg",
+      "obtain": "https://ambientcg.com/a/Metal063",
+      "supports": [
+        "fps-01",
+        "rd-12"
+      ],
+      "forTypes": [
+        "FPS",
+        "通用"
+      ],
+      "note": "CC0 金属 PBR，适合武器/工业道具。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "ph-kloppenheim-02",
+      "name": "Kloppenheim 02",
+      "category": "other",
+      "subcategory": "HDRI 天空",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/other/ph-kloppenheim-02.jpg",
+      "obtain": "https://polyhaven.com/a/kloppenheim_02",
+      "supports": [
+        "ow-12",
+        "rd-07"
+      ],
+      "forTypes": [
+        "开放世界"
+      ],
+      "note": "CC0 HDRI 田野天空，UE 用 HDRIBackdrop/SkyLight；正式场景建议 4K/8K。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "ph-satara-night",
+      "name": "Satara Night",
+      "category": "other",
+      "subcategory": "HDRI 天空",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/other/ph-satara-night.jpg",
+      "obtain": "https://polyhaven.com/a/satara_night",
+      "supports": [
+        "ow-12",
+        "rd-07"
+      ],
+      "forTypes": [
+        "开放世界"
+      ],
+      "note": "CC0 夜空 HDRI，适合夜间 GI/反射测试。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-skyboxes",
+      "name": "Skyboxes",
+      "category": "other",
+      "subcategory": "天空盒",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/other/kenney-skyboxes.jpg",
+      "obtain": "https://kenney.nl/assets/skyboxes",
+      "supports": [
+        "ow-12"
+      ],
+      "forTypes": [
+        "开放世界",
+        "通用"
+      ],
+      "note": "CC0 天空盒，适合风格化原型。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "ph-jacaranda-tree",
+      "name": "Jacaranda Tree",
+      "category": "prop",
+      "subcategory": "植被与岩石",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/prop/ph-jacaranda-tree.jpg",
+      "obtain": "https://polyhaven.com/a/jacaranda_tree",
+      "supports": [
+        "ow-06",
+        "ow-07"
+      ],
+      "forTypes": [
+        "开放世界"
+      ],
+      "note": "CC0 蓝花楹模型，需检查面数/LOD；贴图分辨率高注意显存。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "quix-megaplants-giant-bamboo",
+      "name": "Megaplants: Giant Bamboo（巨龙竹）",
+      "category": "prop",
+      "subcategory": "植被与岩石",
+      "license": "Fab 标准许可（Standard License）",
+      "licenseClass": "可商用（需读 EULA）",
+      "priceType": "free",
+      "image": "assets/img/prop/quix-megaplants-giant-bamboo.jpg",
+      "obtain": "https://www.fab.com/listings/73f94dc9-9642-4c44-9f8e-c37eebe3205c",
+      "supports": [
+        "ow-06",
+        "ow-07"
+      ],
+      "forTypes": [
+        "开放世界"
+      ],
+      "note": "Quixel 免费程序化竹类；需 UE5.7–5.8 与 Nanite Foliage（实验性），不建议直接用于发行项目，商用前核对 Fab EULA。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "ph-tree-small-02",
+      "name": "Tree Small 02",
+      "category": "prop",
+      "subcategory": "植被与岩石",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/prop/ph-tree-small-02.jpg",
+      "obtain": "https://polyhaven.com/a/tree_small_02",
+      "supports": [
+        "ow-06",
+        "ow-07"
+      ],
+      "forTypes": [
+        "开放世界"
+      ],
+      "note": "CC0 小树模型，适合植被原型/PCG 测试。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "ph-grass-medium-01",
+      "name": "Grass Medium 01",
+      "category": "prop",
+      "subcategory": "植被与岩石",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/prop/ph-grass-medium-01.jpg",
+      "obtain": "https://polyhaven.com/a/grass_medium_01",
+      "supports": [
+        "ow-06",
+        "ow-07"
+      ],
+      "forTypes": [
+        "开放世界"
+      ],
+      "note": "CC0 草丛模型，适合 Foliage/PCG 密度测试。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "ph-rock-moss-set-02",
+      "name": "Rock Moss Set 02",
+      "category": "prop",
+      "subcategory": "植被与岩石",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/prop/ph-rock-moss-set-02.jpg",
+      "obtain": "https://polyhaven.com/a/rock_moss_set_02",
+      "supports": [
+        "ow-06",
+        "ow-10"
+      ],
+      "forTypes": [
+        "开放世界",
+        "搜打撤"
+      ],
+      "note": "CC0 苔藓岩石套装，适合自然场景点缀。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-light-masks",
+      "name": "Light Masks",
+      "category": "vfx",
+      "subcategory": "光效与遮罩",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/vfx/kenney-light-masks.jpg",
+      "obtain": "https://kenney.nl/assets/light-masks",
+      "supports": [
+        "gas-07",
+        "gas-03",
+        "mob-09"
+      ],
+      "forTypes": [
+        "ARPG",
+        "MOBA",
+        "TPS"
+      ],
+      "note": "CC0 光效遮罩，适合做技能/受击的轻量光效与 UI 叠加；导入 UMG/Niagara 材质使用。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "oga-2d-explosion-animations-frame-by-frame",
+      "name": "2D Explosion Animations - Frame by frame",
+      "category": "vfx",
+      "subcategory": "爆炸与烟雾",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/vfx/oga-2d-explosion-animations-frame-by-frame.jpg",
+      "obtain": "https://opengameart.org/content/2d-explosion-animations-frame-by-frame",
+      "supports": [
+        "phy-04",
+        "phy-03",
+        "mov-10"
+      ],
+      "forTypes": [
+        "TPS",
+        "FPS",
+        "ARPG",
+        "开放世界"
+      ],
+      "note": "CC0 2D 序列帧（作者 Sinestesia），适合做破坏/命中的轻量表现；UE 中用 Paper2D/Flipbook。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-mobile-controls",
+      "name": "Mobile Controls",
+      "category": "ui",
+      "subcategory": "HUD 与控件",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/ui/kenney-mobile-controls.jpg",
+      "obtain": "https://kenney.nl/assets/mobile-controls",
+      "supports": [
+        "mob-08",
+        "mob-09",
+        "mov-10"
+      ],
+      "forTypes": [
+        "通用",
+        "MOBA",
+        "FPS"
+      ],
+      "note": "CC0 移动端控件图标，适合做触屏摇杆/按钮的占位与原型；导入 UMG 贴图。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "kenney-cursor-pack",
+      "name": "Cursor Pack",
+      "category": "ui",
+      "subcategory": "光标",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/ui/kenney-cursor-pack.jpg",
+      "obtain": "https://kenney.nl/assets/cursor-pack",
+      "supports": [
+        "mob-08",
+        "mob-06"
+      ],
+      "forTypes": [
+        "通用",
+        "MOBA"
+      ],
+      "note": "CC0 光标图标，移动端/PC 通用；导入 UMG 或硬件光标贴图。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "epic-cropout-sample-project",
+      "name": "Cropout Sample Project（Cropout 俯视角 RTS 示例）",
+      "category": "blueprint",
+      "subcategory": "示例项目",
+      "license": "Epic Content License（UE-Only）",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/blueprint/epic-cropout-sample-project.jpg",
+      "obtain": "https://www.fab.com/listings/bd733d81-7c29-44fe-b53f-65b14d06a9e2",
+      "supports": [
+        "mob-01",
+        "mob-08",
+        "net-10"
+      ],
+      "forTypes": [
+        "MOBA",
+        "通用",
+        "ARPG"
+      ],
+      "note": "Epic 官方俯视角 RTS 跨平台示例：Common UI、Enhanced Input、Geometry Script，一次构建覆盖移动端/主机/PC；UE5.2–5.8。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "epic-city-sample-vehicles",
+      "name": "City Sample Vehicles（城市示例：车辆）",
+      "category": "prop",
+      "subcategory": "载具",
+      "license": "UE 限定内容（仅限 UE 产品使用）",
+      "licenseClass": "UE 限定",
+      "priceType": "free",
+      "image": "assets/img/prop/epic-city-sample-vehicles.jpg",
+      "obtain": "https://www.fab.com/listings/2909157b-ddfa-4cef-a925-69dc2467021f",
+      "supports": [
+        "phy-06",
+        "mov-08",
+        "tps-10"
+      ],
+      "forTypes": [
+        "TPS",
+        "开放世界",
+        "FPS"
+      ],
+      "note": "13 辆可驾驶载具（轿车/SUV/皮卡/公交等），含车辆蓝图与调校参数；物理与操控需按项目调整。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "gh-gerlogu-proceduralfpsanimationsplugin",
+      "name": "ProceduralFPSAnimationsPlugin",
+      "category": "character",
+      "subcategory": "角色/动画",
+      "license": "MIT",
+      "licenseClass": "开源许可（MIT）",
+      "priceType": "free",
+      "image": "assets/img/animation/gh-gerlogu-proceduralfpsanimationsplugin.jpg",
+      "obtain": "https://github.com/gerlogu/ProceduralFPSAnimationsPlugin",
+      "supports": [
+        "mov-10",
+        "mov-09",
+        "mov-02"
+      ],
+      "forTypes": [
+        "FPS",
+        "TPS"
+      ],
+      "note": "MIT 许可的 UE4/5 第一人称程序化动画插件（曲线驱动）；仓库最后更新 2023-03-20，兼容性以 README 为准。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "gh-reznok-gmcabilitysystem",
+      "name": "GMCAbilitySystem",
+      "category": "blueprint",
+      "subcategory": "示例/模板",
+      "license": "MIT",
+      "licenseClass": "开源许可（MIT）",
+      "priceType": "free",
+      "image": "assets/img/tools/gh-reznok-gmcabilitysystem.png",
+      "obtain": "https://github.com/reznok/GMCAbilitySystem",
+      "supports": [
+        "gas-11",
+        "mov-01",
+        "gas-01"
+      ],
+      "forTypes": [
+        "ARPG",
+        "TPS",
+        "通用"
+      ],
+      "note": "MIT：为 General Movement Component 增加能力系统的插件；UE5.x，活跃维护（最后提交 2026-10-26）。",
+      "verified": "2026-11-04"
+    },
+    {
+      "id": "oga-51-ui-sound-effects-buttons-switches-and-clicks",
+      "name": "51 UI sound effects (buttons, switches and clicks)",
+      "category": "audio",
+      "subcategory": "UI 音效",
+      "license": "CC0",
+      "licenseClass": "公有领域/可商用",
+      "priceType": "free",
+      "image": "assets/img/audio/oga-51-ui-sound-effects-buttons-switches-and-clicks.jpg",
+      "obtain": "https://opengameart.org/content/51-ui-sound-effects-buttons-switches-and-clicks",
+      "supports": [
+        "gas-07",
+        "gas-09",
+        "mob-08"
+      ],
+      "forTypes": [
+        "通用",
+        "ARPG",
+        "MOBA"
+      ],
+      "note": "CC0（作者 Kenney）UI 音效；UE 中用 Sound Cue/MetaSounds。",
+      "verified": "2026-11-04"
+    }
+  ],
+  "gapReport": [
+    {
+      "area": "MOBA 成套美术",
+      "priority": "P0",
+      "suggestion": "补充俯视角英雄/小兵/防御塔/野怪模型与技能特效（Niagara 优先），并标注授权。",
+      "reason": "当前仅有通用低模，无法支撑 MOBA 推荐位。"
+    },
+    {
+      "area": "搜打撤交互物",
+      "priority": "P0",
+      "suggestion": "补充战利品容器/保险箱/撤离点标识/背包网格 UI/战术装备。",
+      "reason": "类型核心内容缺失，现有资源只能做射击原型。"
+    },
+    {
+      "area": "现代 FPS 武器/第一人称",
+      "priority": "P1",
+      "suggestion": "补充可商用枪械模型/手臂/第一人称动画与枪械音效（授权明确）。",
+      "reason": "现有枪械/近战仅单件 CC0 模型，缺少成套与动画。"
+    },
+    {
+      "area": "ARPG 技能动画/BOSS",
+      "priority": "P1",
+      "suggestion": "补充技能/受击/处决动画与 BOSS 模型、成套 Niagara 特效。",
+      "reason": "现有动画库为通用人形，缺少战斗向成套内容。"
+    },
+    {
+      "area": "高精度自然资产",
+      "priority": "P1",
+      "suggestion": "补充可商用的大规模地形/植被/岩石扫描库（非 UE 限定）。",
+      "reason": "Epic 示例多为 UE 限定，不能单独再分发。"
+    },
+    {
+      "area": "音频授权透明度",
+      "priority": "P2",
+      "suggestion": "优先采集 CC0/CC-BY 明确条款的音效与音乐，减少「未获取」条目。",
+      "reason": "现有部分 Fab 音频授权未获取，无法进推荐位。"
+    },
+    {
+      "area": "载具/破坏",
+      "priority": "P2",
+      "suggestion": "补充可商用载具模型与破碎资产；现有 Chaos/Vehicle 示例仅 UE4/UE 限定。",
+      "reason": "载具与破坏专题缺少可直接复用的免费资产。"
+    },
+    {
+      "area": "GAS 技能表现与动画",
+      "priority": "P1",
+      "suggestion": "补充可商用的技能特效（Niagara/序列帧）、受击/施法动画与技能图标；授权不明只进待核实。",
+      "reason": "现有 GAS 方案缺少成套表现资产，推荐位以通用 VFX/UI 图标为主。"
+    },
+    {
+      "area": "物理/破坏专用资产",
+      "priority": "P1",
+      "suggestion": "补充可破坏物件、碎片网格与 Chaos 预破碎示例；注意 UE 限定许可不可再分发。",
+      "reason": "现有破坏示例多为 UE 限定工程，缺少可自由再分发的碎片资产。"
+    },
+    {
+      "area": "复杂移动动画与 VFX",
+      "priority": "P0",
+      "suggestion": "补充攀爬/抓钩/墙跑/滑铲的动画集与绳索/钩爪 VFX；优先 CC0/MIT，商业包需确认条款。",
+      "reason": "移动能力高度依赖专用动画与特效，当前仅有通用动画库。"
+    },
+    {
+      "area": "移动端 UI 与控件",
+      "priority": "P1",
+      "suggestion": "补充触屏摇杆/按钮/安全区适配的 UI 资产与图标，优先 CC0。",
+      "reason": "移动端专题需要可直接导入 UMG 的控件与图标。"
+    }
+  ],
+  "pending": [
+    {
+      "id": "fab-64db4d03",
+      "name": "Taichi Character Pack",
+      "license": "未获取",
+      "reason": "授权未获取，不进入推荐位。"
+    },
+    {
+      "id": "fab-ui-material-lab",
+      "name": "UI Material Lab",
+      "license": "Epic 官方示例（条款为 -）",
+      "reason": "条款不明确，仅可作线索。"
+    },
+    {
+      "id": "fab-modern-guns-bundle",
+      "name": "Modern Guns Bundle",
+      "license": "未获取",
+      "reason": "授权未获取且付费。"
+    },
+    {
+      "id": "fab-ba8d32be",
+      "name": "Gun Sound Pack",
+      "license": "未获取",
+      "reason": "授权未获取且付费。"
+    },
+    {
+      "id": "quix-dark-ruins-sample",
+      "name": "Dark Ruins Megascans Sample",
+      "license": "未获取",
+      "reason": "授权未获取，待核实后再推荐。"
+    },
+    {
+      "id": "quix-medieval-village-sample",
+      "name": "Medieval Village Megascans Sample",
+      "license": "未获取",
+      "reason": "授权未获取，待核实后再推荐。"
+    },
+    {
+      "id": "epic-niagara-examples",
+      "name": "Niagara Examples Pack",
+      "license": "未获取（商品页 License terms 为 -）",
+      "reason": "Epic 官方 Niagara 示例，但商品页许可条款未展示；商用前需读 Fab EULA。授权明确前不进入推荐位。"
+    },
+    {
+      "id": "fab-622ca4f2",
+      "name": "Advanced Lightning VFX [Niagara] - Storm & Electricity",
+      "license": "未获取（Fab 商品页未展示具体条款）",
+      "reason": "Niagara 闪电特效，体积/半透明开销大；许可条款未获取，不进入推荐位。"
+    }
+  ]
+}

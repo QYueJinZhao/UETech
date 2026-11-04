@@ -1,0 +1,1043 @@
+{
+  "updated": "2026-11-04",
+  "note": "时间轴只写可核实的时间点与能力状态。年份来自 Epic 官方发布公告/版本文档/GDC 的条目直接引用；无法确认具体月份或小版本的写“约”，并在节点 note 中说明依据。5.6 之后的新版本不写死具体功能，避免记错。",
+  "eras": [
+    {"id": "ue3-4", "label": "UE3 / UE4 时代", "range": "约 2006–2021", "desc": "烘焙光照、静态 LOD、PhysX、Level Streaming、Sound Cue 与蓝图/Sequencer 逐步成熟。"},
+    {"id": "ue5-ea", "label": "UE5 早期（EA）", "range": "2021–2022", "desc": "Nanite、Lumen、World Partition、Data Layers、MetaSounds、Control Rig、Motion Warping 首次公开。"},
+    {"id": "ue5-1-3", "label": "UE5.1–5.3", "range": "2022–2023", "desc": "Substrate、PCG 等新工作流进入实验阶段；Iris 等系统继续演进。"},
+    {"id": "ue5-4-6", "label": "UE5.4–5.6", "range": "2024–2025", "desc": "Motion Matching、Mover 进入实验/可用阶段；5.6 明确大规模开放世界与引擎内创作目标。"}
+  ],
+  "nodes": [
+    {
+      "id": "tl-lightmap",
+      "year": "约 2006–2014",
+      "version": "UE3 / UE4",
+      "era": "ue3-4",
+      "domain": "光照",
+      "tech": "烘焙光照贴图（Lightmaps）",
+      "oneLiner": "用离线烘焙把间接光与阴影写进贴图，换取运行时零 GI 成本。",
+      "problem": "静态场景需要可信的间接光、柔和阴影与反射，但运行时算全局光照在当年硬件上不可行。",
+      "previousPains": [
+        "实时 GI 成本高，动态光源一多就压垮帧率。",
+        "只有直接光会让暗部死黑，场景缺少反弹光。",
+        "反射探针需要手工摆放，位置一变就容易穿帮。"
+      ],
+      "newConstraints": [
+        "必须制作第二套光照 UV，UV 展开质量直接决定漏光与接缝。",
+        "改光照/改布局要重新烘焙，构建时间随场景规模上升。",
+        "大世界的光照贴图占内存，移动端还要单独压缩规格。"
+      ],
+      "successors": [
+        "LPV/DFGI 等动态 GI 尝试把间接光实时化，但质量/稳定性的取舍明显。",
+        "UE5 的 Lumen 在桌面/主机上逐步取代烘焙路径；移动端仍长期保留烘焙与静态阴影。"
+      ],
+      "sources": ["S002"],
+      "links": {"solutions": ["ow-04"], "topics": ["topic-gi"]},
+      "note": "时间范围为 UE3/UE4 的通行做法，不是单一版本引入点；能力描述以 Lumen 文档对烘焙工作流的对照为准。"
+    },
+    {
+      "id": "tl-staticlod",
+      "year": "约 2006–2021",
+      "version": "UE3 / UE4",
+      "era": "ue3-4",
+      "domain": "几何",
+      "tech": "静态 LOD（LODGroup / 手工 LOD）",
+      "oneLiner": "为同一资产预生成多档网格，按屏幕尺寸切换，控制三角形与绘制成本。",
+      "problem": "高模资产在远距离仍然绘制全量三角形，GPU 与内存都无法承受。",
+      "previousPains": [
+        "每个资产要手工做多档 LOD，产能被重复劳动吃掉。",
+        "LOD 切换点调不好就跳变，阴影与材质也容易不一致。",
+        "源资产面数越高，导入、存储与构建成本越大。"
+      ],
+      "newConstraints": [
+        "美术必须按 LOD 规范制作，减面不能破坏剪影与法线。",
+        "LOD 数量、屏幕尺寸与阴影 LOD 需要逐资产调参。",
+        "不同平台的 LOD 预算不同，资产要分档维护。"
+      ],
+      "successors": [
+        "Nanite 用虚拟几何与簇层级取代手工 LOD；但移动端/低端平台仍可能需要传统 LOD。"
+      ],
+      "sources": ["S001"],
+      "links": {"solutions": ["ow-03"], "topics": ["topic-render-basics"]},
+      "note": "静态 LOD 是 UE3/UE4 长期主流工作流；此处用 Nanite 官方文档对传统 LOD 的对照说明其限制。"
+    },
+    {
+      "id": "tl-physx",
+      "year": "约 2007–2021",
+      "version": "UE3 / UE4",
+      "era": "ue3-4",
+      "domain": "物理",
+      "tech": "PhysX 物理与破坏",
+      "oneLiner": "以 PhysX 提供刚体、关节、布娃娃与可破坏资产，支撑 UE3/UE4 的物理表现。",
+      "problem": "游戏需要可信的碰撞、载具、布娃娃与可破坏场景，但自研物理成本高。",
+      "previousPains": [
+        "大规模碎片与复杂约束的扩展性有限，服务器物理更吃力。",
+        "物理资产与平台/版本绑定，升级时迁移成本高。",
+        "破坏效果与网络复制结合后，带宽与一致性难控。"
+      ],
+      "newConstraints": [
+        "碰撞体与物理材质要按资产规范制作，否则穿透与抖动频发。",
+        "服务器权威物理的 Tick 成本高，需要限制模拟对象数量。",
+        "破坏碎片的复制要专门预算，不能默认全量同步。"
+      ],
+      "successors": [
+        "UE5 起 Chaos 成为默认物理与破坏方案，PhysX 相关路径逐步退出。",
+        "载具、破坏与网络物理转向 Chaos Vehicles / Chaos Destruction / Networked Physics。"
+      ],
+      "sources": ["S024", "S041"],
+      "links": {"solutions": ["ow-10", "phy-06"], "topics": ["topic-physics"]},
+      "note": "PhysX 退场发生在 UE5 周期；具体迁移节点以 Chaos/Vehicles 官方文档与目标版本说明为准。"
+    },
+    {
+      "id": "tl-soundcue",
+      "year": "约 2006–2021",
+      "version": "UE3 / UE4",
+      "era": "ue3-4",
+      "domain": "音频",
+      "tech": "Sound Cue 音频图",
+      "oneLiner": "用节点式 Sound Cue 组织波形、衰减、调制与随机容器。",
+      "problem": "音频需要随机化、分层与空间化，但不能把每种组合都做成独立资产。",
+      "previousPains": [
+        "复杂程序化音频难以表达，参数驱动能力有限。",
+        "DSP 处理链不灵活，跨平台差异要靠中间件补。",
+        "音频设计师与 gameplay 参数的绑定成本高。"
+      ],
+      "newConstraints": [
+        "节点图规模变大后可读性与复用性下降。",
+        "跨平台 DSP 能力不一致，需要按平台验证。",
+        "复杂音频逻辑仍需中间件或自研系统兜底。"
+      ],
+      "successors": [
+        "MetaSounds 把音频图变成可编程 DSP 图，参数驱动与程序化能力显著增强。"
+      ],
+      "sources": ["S021"],
+      "links": {"solutions": ["gen-16"], "topics": ["topic-engineering"]},
+      "note": "Sound Cue 与 MetaSounds 长期并存；时间范围指其作为主流量产工作流的时期。"
+    },
+    {
+      "id": "tl-levelstreaming",
+      "year": "约 2006–2021",
+      "version": "UE3 / UE4",
+      "era": "ue3-4",
+      "domain": "世界构建",
+      "tech": "Level Streaming（子关卡流送）",
+      "oneLiner": "把世界拆成持久关卡与子关卡，按体积/蓝图/距离加载卸载。",
+      "problem": "单张地图无法容纳大世界，必须按区域拆分成可独立加载的块。",
+      "previousPains": [
+        "关卡划分靠手工，边界与加载时机容易出错。",
+        "多人同时编辑同一关卡冲突频繁，合并成本高。",
+        "流送边界处容易 hitch，远处还需要手工 HLOD 兜底。"
+      ],
+      "newConstraints": [
+        "必须制定关卡划分与引用规范，跨关卡硬引用会破坏流送。",
+        "加载/卸载时机、体积大小与内存峰值要逐块调。",
+        "美术与关卡设计师需要理解流送边界，不能随意跨块摆放。"
+      ],
+      "successors": [
+        "World Partition 用网格自动划分 + OFPA + HLOD 取代手工子关卡。",
+        "Data Layers 在 World Partition 之上提供运行时分层开关。"
+      ],
+      "sources": ["S011", "S097"],
+      "links": {"solutions": ["load-04", "ow-01"], "topics": ["topic-streaming"]},
+      "note": "传统 Level Streaming 在 UE5 仍可用；此处描述其作为 UE3/UE4 主流程的时期。"
+    },
+    {
+      "id": "tl-blueprint",
+      "year": "2014（UE4）",
+      "version": "UE4",
+      "era": "ue3-4",
+      "domain": "工具链",
+      "tech": "Blueprint 可视化脚本",
+      "oneLiner": "让策划/美术在编辑器里直接搭建 gameplay 逻辑，C++ 提供基类与性能关键路径。",
+      "problem": "玩法迭代需要程序反复改代码，策划无法独立验证想法，原型周期长。",
+      "previousPains": [
+        "UnrealScript 迭代与编译链路受限，人才与生态逐步收缩。",
+        "纯 C++ 改玩法需要编译与重启，快速验证成本高。",
+        "设计/程序分工边界模糊，沟通成本高。"
+      ],
+      "newConstraints": [
+        "蓝图规模变大后性能与可维护性下降，需要 C++ 基类与规范。",
+        "蓝图合并冲突比文本代码更难处理。",
+        "团队需要建立命名、分层与性能预算规范。"
+      ],
+      "successors": [
+        "蓝图仍是 UE 的主力脚本层；复杂系统转向 C++/GAS，UEFN 侧则使用 Verse。"
+      ],
+      "sources": ["S137"],
+      "links": {"topics": ["topic-engineering"]},
+      "note": "UnrealScript 在 UE4 周期被移除，改由 Blueprint/C++；具体迁移说明以官方为准，此处只描述结果。"
+    },
+    {
+      "id": "tl-sequencer",
+      "year": "约 2014–2017（UE4）",
+      "version": "UE4",
+      "era": "ue3-4",
+      "domain": "工具链",
+      "tech": "Sequencer 非线性编辑",
+      "oneLiner": "用多轨道时间线编辑相机、角色、灯光与音频，实时预览并输出过场。",
+      "problem": "过场与演出需要精确时间线、相机切换与角色动画，旧工具难以承载复杂镜头。",
+      "previousPains": [
+        "Matinee 的轨道与相机能力有限，复杂演出要写脚本。",
+        "与动画/绑定工具割裂，改角色要在多个工具间往返。",
+        "实时预览与最终输出不一致，迭代成本高。"
+      ],
+      "newConstraints": [
+        "团队要学习非线性编辑与镜头语言，岗位分工发生变化。",
+        "大序列资产、关卡引用与性能开销需要专门管理。",
+        "虚拟制片工作流对时间同步与硬件有额外要求。"
+      ],
+      "successors": [
+        "Sequencer 持续演进，并与 Control Rig、虚拟制片、Movie Render Queue 集成。"
+      ],
+      "sources": ["S140"],
+      "links": {"topics": ["topic-animation"]},
+      "note": "Sequencer 取代 Matinee 的具体版本节点未在本次核验中锁定，年份写“约”并标注区间。"
+    },
+    {
+      "id": "tl-taa",
+      "year": "约 2015（UE4）",
+      "version": "UE4",
+      "era": "ue3-4",
+      "domain": "抗锯齿",
+      "tech": "TAA（时间抗锯齿）",
+      "oneLiner": "用历史帧累积与运动矢量做抗锯齿，以较低采样成本换取稳定边缘。",
+      "problem": "延迟渲染管线下 MSAA 难以覆盖透明与后处理，FXAA 又太糊。",
+      "previousPains": [
+        "MSAA 对延迟管线/透明材质效果有限，成本却不低。",
+        "FXAA 会糊掉高频细节，文字与细线更明显。",
+        "高光与细小几何容易闪烁，静态画面也不稳定。"
+      ],
+      "newConstraints": [
+        "需要可靠的运动矢量，角色/植被/粒子要单独处理。",
+        "快速运动或遮挡变化会产生鬼影，需要裁剪与调参。",
+        "历史帧缓冲带来额外显存与带宽开销。"
+      ],
+      "successors": [
+        "UE5 的 TSR 在 TAA 基础上改进超分与稳定性，成为默认上采样路径。"
+      ],
+      "sources": ["S066"],
+      "links": {"topics": ["topic-render-basics"]},
+      "note": "TAA 的引入小版本未逐条核验；此处用 TSR 官方文档对 TAA 的对照说明其定位，年份写“约”。"
+    },
+    {
+      "id": "tl-csm",
+      "year": "约 2006–2021",
+      "version": "UE3 / UE4",
+      "era": "ue3-4",
+      "domain": "阴影",
+      "tech": "级联阴影贴图（CSM）",
+      "oneLiner": "把方向光阴影按距离分成多级，用有限分辨率覆盖近中远。",
+      "problem": "开放场景需要大范围方向光阴影，单张阴影贴图无法兼顾近处精度与远处覆盖。",
+      "previousPains": [
+        "远处阴影精度差，接缝与闪烁明显。",
+        "大量动态光源逐个开阴影，开销迅速上升。",
+        "接触阴影缺失，物体与地面容易“浮空”。"
+      ],
+      "newConstraints": [
+        "级联数量、分辨率与阴影距离要按平台预算调。",
+        "阴影偏移/偏差参数不当会产生漏光或锯齿。",
+        "移动端对动态阴影数量与分辨率限制更严。"
+      ],
+      "successors": [
+        "UE5 的 Virtual Shadow Maps 用虚拟化页表提升近处精度与大世界覆盖，但成本结构不同。"
+      ],
+      "sources": ["S065"],
+      "links": {"topics": ["topic-render-basics"]},
+      "note": "CSM 长期是 UE3/UE4 默认方向光阴影方案；具体版本引入点未逐条核验。"
+    },
+    {
+      "id": "tl-lumen",
+      "year": "2021（EA）/ 2022（5.0 正式）",
+      "version": "UE5 EA → UE5.0",
+      "era": "ue5-ea",
+      "domain": "光照",
+      "tech": "Lumen 动态全局光照与反射",
+      "oneLiner": "用软件/硬件追踪与表面缓存做全动态 GI 和反射，取消烘焙等待。",
+      "problem": "昼夜、开关门、手电等动态变化要求间接光实时响应，烘焙流程无法满足。",
+      "previousPains": [
+        "光照贴图需要 UV2 与长时间烘焙，改一处要重烘。",
+        "反射探针手工摆放，动态物体与粗糙反射不匹配。",
+        "LPV/DFGI 等近似方案在稳定性、漏光与成本上取舍明显。"
+      ],
+      "newConstraints": [
+        "桌面/主机 GPU 预算显著上升，低端机与移动端通常不适用。",
+        "需要高质量 Nanite/距离场与表面缓存，资产规范不能随意破坏。",
+        "大量动态光源、雨夜/大面积 emissive 场景会放大成本。"
+      ],
+      "successors": [
+        "Lumen 持续迭代（硬件追踪、Lumen Lite 等方向）；移动端仍以烘焙/静态方案为主。"
+      ],
+      "sources": ["S002", "S034", "S133", "S134"],
+      "links": {"solutions": ["ow-04"], "topics": ["topic-gi", "topic-mobile"]},
+      "note": "2021 为 UE5 Early Access 公开时间，2022-04-05 为 UE5 正式发布（见 S133）。"
+    },
+    {
+      "id": "tl-nanite",
+      "year": "2021（EA）/ 2022（5.0 正式）",
+      "version": "UE5 EA → UE5.0",
+      "era": "ue5-ea",
+      "domain": "几何",
+      "tech": "Nanite 虚拟几何体",
+      "oneLiner": "用簇层级与可见性裁剪直接渲染影视级高模，取消手工 LOD 与法线烘焙。",
+      "problem": "超高模资产在传统管线里要么减面丢细节，要么被 LOD/绘制成本拖垮。",
+      "previousPains": [
+        "手工 LOD 产能消耗大，切换点与阴影一致性难调。",
+        "法线贴图烘焙掩盖细节，近看仍能看出平面感。",
+        "高模导入/存储/构建成本高，重复资产无法规模化。"
+      ],
+      "newConstraints": [
+        "需要支持 Compute/现代图形 API 的桌面/主机平台，移动端受限。",
+        "材质与透明、植被、骨骼网格有额外限制，不能无条件套用。",
+        "资产仍要控制过度细分与重复实例，否则内存/流送压力上升。"
+      ],
+      "successors": [
+        "Nanite 逐步扩展到植被、骨骼网格与位移等场景；传统 LOD 仍在移动端/低端平台保留。"
+      ],
+      "sources": ["S001", "S054", "S055", "S133", "S134"],
+      "links": {"solutions": ["ow-03"], "topics": ["topic-render-basics", "topic-mobile"]},
+      "note": "2021 EA 首次公开，2022 随 UE5.0 正式交付；后续能力扩展以各版本 release notes 为准。"
+    },
+    {
+      "id": "tl-worldpartition",
+      "year": "2021（EA）/ 2022（5.0 正式）",
+      "version": "UE5 EA → UE5.0",
+      "era": "ue5-ea",
+      "domain": "世界构建",
+      "tech": "World Partition + OFPA",
+      "oneLiner": "自动把大世界切成网格单元按需流送，并用 One File Per Actor 降低多人协作冲突。",
+      "problem": "手工子关卡划分与多人同图编辑在大世界项目里不可维护。",
+      "previousPains": [
+        "关卡边界靠手工，加载时机与内存峰值难控。",
+        "多人编辑同一关卡冲突频繁，合并成本高。",
+        "远处 HLOD 要手工搭，接缝与切换穿帮常见。"
+      ],
+      "newConstraints": [
+        "必须接受网格单元与流送源配置，关卡设计流程改变。",
+        "跨单元引用、Data Layer 与 HLOD 设置需要规范。",
+        "HLOD 生成/构建时间与存储上升，需要管线支持。"
+      ],
+      "successors": [
+        "World Partition 成为 UE5 大世界默认；Data Layers 与 Level Instance 在其上组合使用。"
+      ],
+      "sources": ["S003", "S134"],
+      "links": {"solutions": ["ow-01", "load-05"], "topics": ["topic-streaming"]},
+      "note": "World Partition/OFPA 在 UE5 EA 公告中首次公开，5.0 正式可用。"
+    },
+    {
+      "id": "tl-datalayers",
+      "year": "2021（EA）/ 2022（5.0 正式）",
+      "version": "UE5 EA → UE5.0",
+      "era": "ue5-ea",
+      "domain": "世界构建",
+      "tech": "Data Layers",
+      "oneLiner": "在同一世界空间里按运行时状态开关不同数据层，做昼夜/任务/玩法变体。",
+      "problem": "同一区域需要多套状态（昼夜、任务阶段、玩法变体），复制多张地图无法维护。",
+      "previousPains": [
+        "多套关卡变体导致内容重复与合并冲突。",
+        "运行时切换靠蓝图硬开关，状态容易残留。",
+        "分层内容与流送单元的组合关系不清晰。"
+      ],
+      "newConstraints": [
+        "Data Layer 的加载/卸载状态要与任务、存档和流送单元绑定。",
+        "编辑器分层与运行时分层需要团队统一命名与规范。",
+        "分层滥用会让流送与内存预算失真。"
+      ],
+      "successors": [
+        "Data Layers 与 World Partition 组合成为大世界状态管理的基础能力。"
+      ],
+      "sources": ["S099", "S134"],
+      "links": {"solutions": ["load-05"], "topics": ["topic-streaming"]},
+      "note": "UE5 EA 公告已列出 Data Layers，5.0 正式可用。"
+    },
+    {
+      "id": "tl-metasounds",
+      "year": "2021（EA）/ 2022（5.0 正式）",
+      "version": "UE5 EA → UE5.0",
+      "era": "ue5-ea",
+      "domain": "音频",
+      "tech": "MetaSounds",
+      "oneLiner": "把音频做成可编程 DSP 图，让 gameplay 参数直接驱动声音生成与处理。",
+      "problem": "程序化音乐、动态环境音与参数驱动音效用 Sound Cue 难以表达。",
+      "previousPains": [
+        "复杂音频逻辑要靠中间件或手写代码。",
+        "参数与音频图的绑定弱，迭代慢。",
+        "跨平台 DSP 能力差异需要额外适配。"
+      ],
+      "newConstraints": [
+        "音频设计师需要理解 DSP/图编程，学习门槛上升。",
+        "复杂图有 CPU/内存成本，需要按平台预算裁剪。",
+        "与中间件（Wwise/FMOD）的分工要提前定，避免两套系统重叠。"
+      ],
+      "successors": [
+        "MetaSounds 持续扩展；商业中间件仍在大型音频团队中并行使用。"
+      ],
+      "sources": ["S022", "S134"],
+      "links": {"solutions": ["gen-16"], "topics": ["topic-engineering"]},
+      "note": "UE5 EA 公告首次公开 MetaSounds，5.0 正式可用。"
+    },
+    {
+      "id": "tl-controlrig",
+      "year": "2021（EA）/ 2022（5.0 正式）",
+      "version": "UE5 EA → UE5.0",
+      "era": "ue5-ea",
+      "domain": "动画",
+      "tech": "Control Rig",
+      "oneLiner": "在引擎内搭建绑定与程序化动画，减少 DCC 往返。",
+      "problem": "角色绑定/修正动画依赖外部 DCC，迭代链路长，程序化调整困难。",
+      "previousPains": [
+        "改绑定/改姿势要回 DCC，导入导出耗时。",
+        "运行时程序化修正（足部贴合、看向、道具对位）难落地。",
+        "动画与 gameplay 参数割裂。"
+      ],
+      "newConstraints": [
+        "绑定师需要学习引擎内 Rig 与执行模型。",
+        "Control Rig 在运行时/动画蓝图中的成本要评估。",
+        "复杂 Rig 的资产管理与版本兼容要规范。"
+      ],
+      "successors": [
+        "Control Rig 与 Sequencer、IK、Motion Warping 组合，继续向引擎内工作流整合。"
+      ],
+      "sources": ["S138", "S134"],
+      "links": {"topics": ["topic-animation"]},
+      "note": "UE5 EA 公告已列出 Control Rig，5.0 正式可用。"
+    },
+    {
+      "id": "tl-motionwarping",
+      "year": "2021（EA）/ 2022（5.0 正式）",
+      "version": "UE5 EA → UE5.0",
+      "era": "ue5-ea",
+      "domain": "动画",
+      "tech": "Motion Warping",
+      "oneLiner": "按目标点/朝向动态扭曲根运动，让同一段动画适配不同距离与高度的目标。",
+      "problem": "攀爬、翻越、处决、上下车需要角色精确对齐不同目标，逐目标做动画不现实。",
+      "previousPains": [
+        "每種目标高度/距离都要单独做动画，资产爆炸。",
+        "靠蓝图瞬移/插值对齐，动作会滑步或穿模。",
+        "根运动与碰撞/网络同步结合后更难调。"
+      ],
+      "newConstraints": [
+        "需要设置 Warp 目标与窗口，配置错误会导致扭曲过度。",
+        "网络下要保证目标点一致，否则客户端表现分叉。",
+        "不是万能对齐，极端距离仍需专门动画或位移补偿。"
+      ],
+      "successors": [
+        "Motion Warping 与 Motion Matching、Control Rig 组合使用；复杂移动仍要专门状态机。"
+      ],
+      "sources": ["S120", "S134"],
+      "links": {"solutions": ["tps-08"], "topics": ["topic-movement", "topic-animation"]},
+      "note": "UE5 EA 公告首次公开 Motion Warping，5.0 正式可用。"
+    },
+    {
+      "id": "tl-vsm",
+      "year": "2022（UE5.0）",
+      "version": "UE5.0",
+      "era": "ue5-ea",
+      "domain": "阴影",
+      "tech": "Virtual Shadow Maps（VSM）",
+      "oneLiner": "用虚拟化阴影页表按需分配分辨率，提升近处精度与大世界覆盖。",
+      "problem": "CSM 的固定级联无法同时满足近处高精度与远处大覆盖，动态光多时开销也高。",
+      "previousPains": [
+        "级联分辨率固定，近处细节与远处覆盖互相牵制。",
+        "大量动态光源逐个开阴影，成本线性上升。",
+        "阴影偏移/级联接缝需要大量手工调参。"
+      ],
+      "newConstraints": [
+        "需要现代 GPU 与较高显存/带宽，移动端通常不适用。",
+        "Nanite 与 VSM 配合有专门路径，资产与光源设置要遵循规范。",
+        "大量小光源/重叠阴影仍会触顶，需要光源预算。"
+      ],
+      "successors": [
+        "VSM 随 UE5 版本持续优化；移动端仍以静态阴影/低成本动态阴影为主。"
+      ],
+      "sources": ["S065", "S133"],
+      "links": {"topics": ["topic-render-basics", "topic-mobile"]},
+      "note": "VSM 随 UE5.0 正式交付；移动端可用性以移动渲染文档与目标机型验证为准。"
+    },
+    {
+      "id": "tl-tsr",
+      "year": "2022（UE5.0）",
+      "version": "UE5.0",
+      "era": "ue5-ea",
+      "domain": "抗锯齿",
+      "tech": "Temporal Super Resolution（TSR）",
+      "oneLiner": "在 TAA 基础上做时间超分与更稳的细节重建，成为 UE5 默认上采样。",
+      "problem": "高分辨率与高画质下，原生渲染成本过高，TAA 的糊与鬼影又不能接受。",
+      "previousPains": [
+        "TAA 在快速运动/细几何上鬼影明显。",
+        "原生分辨率渲染成本高，动态分辨率又会糊。",
+        "上采样与抗锯齿分离，管线复杂。"
+      ],
+      "newConstraints": [
+        "需要运动矢量与深度等输入，透明/粒子要特殊处理。",
+        "TSR 对 GPU 有最低要求，低端平台需回退 TAA/其他方案。",
+        "超分参数与画面风格要按项目调，不能默认照搬。"
+      ],
+      "successors": [
+        "TSR 成为 UE5 默认可选路径；后续版本继续优化成本与稳定性。"
+      ],
+      "sources": ["S066", "S133"],
+      "links": {"topics": ["topic-render-basics", "topic-mobile"]},
+      "note": "TSR 随 UE5.0 交付，作为 TAA 的后续方案。"
+    },
+    {
+      "id": "tl-chaos",
+      "year": "2022（UE5.0）",
+      "version": "UE5.0",
+      "era": "ue5-ea",
+      "domain": "物理",
+      "tech": "Chaos 物理与破坏",
+      "oneLiner": "以 Chaos 取代 PhysX，统一刚体、破坏、载具与网络物理的运行时。",
+      "problem": "PhysX 在扩展性、破坏规模与引擎内统一性上受限，无法支撑更大规模物理表现。",
+      "previousPains": [
+        "大规模破坏/碎片与复杂约束扩展性有限。",
+        "物理与渲染/网络系统的整合成本高。",
+        "版本升级与平台迁移受第三方绑定影响。"
+      ],
+      "newConstraints": [
+        "破坏资产/几何集合与字段要按 Chaos 规范制作。",
+        "服务器物理与碎片复制成本要单独预算。",
+        "载具/布娃娃参数与旧 PhysX 资产不完全等价，需要重调。"
+      ],
+      "successors": [
+        "Chaos 持续扩展 Destruction/Vehicles/Networked Physics；旧 PhysX 路径逐步退出。"
+      ],
+      "sources": ["S024", "S041", "S133"],
+      "links": {"solutions": ["ow-10", "phy-06"], "topics": ["topic-physics"]},
+      "note": "UE5.0 起 Chaos 为默认物理方案；具体迁移细节以官方文档为准。"
+    },
+    {
+      "id": "tl-replicationgraph",
+      "year": "约 2018–2019（UE4 后期）",
+      "version": "UE4.x",
+      "era": "ue3-4",
+      "domain": "网络",
+      "tech": "Replication Graph",
+      "oneLiner": "按空间/游戏规则分组裁剪复制，面向大战场与高玩家数。",
+      "problem": "默认相关性在大规模 Actor 与高玩家数下 CPU/带宽开销过高。",
+      "previousPains": [
+        "每帧全量相关性计算随 Actor 数增长。",
+        "大战场远处 Actor 仍可能被复制，带宽浪费。",
+        "默认复制策略难以表达空间分区与游戏规则。"
+      ],
+      "newConstraints": [
+        "需要为项目定制节点/策略，接入与维护成本高。",
+        "分区边界与跨区对象要专门处理，否则会缺失/瞬移。",
+        "调试需要 Network Profiler/Insights 配合。"
+      ],
+      "successors": [
+        "Iris 提供另一条复制路径；Replication Graph 仍在部分大战场项目中使用。"
+      ],
+      "sources": ["S006"],
+      "links": {"solutions": ["net-05", "fps-11"], "topics": ["topic-net"]},
+      "note": "Replication Graph 的引入版本未在本次核验中锁定到具体小版本，年份写“约”并标注区间。"
+    },
+    {
+      "id": "tl-iris",
+      "year": "2022（UE5.0）",
+      "version": "UE5.0",
+      "era": "ue5-ea",
+      "domain": "网络",
+      "tech": "Iris 复制系统",
+      "oneLiner": "以过滤、优先级与批处理重构复制路径，目标是用更少带宽与更低 CPU 做大规模同步。",
+      "problem": "传统复制路径在高 Actor 数/高玩家数下 CPU 与带宽压力大，优化手段分散。",
+      "previousPains": [
+        "相关性、优先级与序列化逻辑耦合，调优困难。",
+        "大量属性复制缺少统一过滤/批处理。",
+        "带宽与 CPU 的取舍只能靠零散 CVar 与自定义。"
+      ],
+      "newConstraints": [
+        "迁移要改复制描述/过滤与网络相关代码，接入成本高。",
+        "与 Replication Graph/自定义复制不能随意混用。",
+        "官方状态随版本变化，生产启用前要做专项验证。"
+      ],
+      "successors": [
+        "Iris 持续演进；部分项目仍使用传统复制或 Replication Graph。"
+      ],
+      "sources": ["S005", "S106"],
+      "links": {"solutions": ["net-06", "fps-10"], "topics": ["topic-net"]},
+      "note": "Iris 在 UE5 周期引入；本库不把“已转正”写死，矩阵统一按“实验/需验证”提示。"
+    },
+    {
+      "id": "tl-substrate",
+      "year": "约 2022–2023（UE5.1 起）",
+      "version": "UE5.1+",
+      "era": "ue5-1-3",
+      "domain": "材质",
+      "tech": "Substrate 材质系统",
+      "oneLiner": "用可组合的材质层/BSDF 表达复杂表面，替代固定引脚模型的部分限制。",
+      "problem": "固定材质输入在多层清漆、复杂透射与分层表面上面临表达力与变体膨胀问题。",
+      "previousPains": [
+        "固定引脚难以表达多层材质，常要靠自定义节点/拼图。",
+        "复杂材质变体多，编译与运行时成本上升。",
+        "材质图与渲染特性绑定，试验新模型成本高。"
+      ],
+      "newConstraints": [
+        "Substrate 需要专门启用与迁移，旧材质不能无条件兼容。",
+        "平台/移动端支持与成本结构不同，需要验证。",
+        "团队要建立新的材质规范与性能预算。"
+      ],
+      "successors": [
+        "Substrate 仍处演进阶段；生产项目需按目标版本与平台评估。"
+      ],
+      "sources": ["S067"],
+      "links": {"topics": ["topic-render-basics", "topic-shader-pso"]},
+      "note": "Substrate 在 UE5.1 引入实验版本；后续是否转正、哪些平台可用，必须以目标版本 release notes 为准。"
+    },
+    {
+      "id": "tl-pcg",
+      "year": "约 2023（UE5.2 起）",
+      "version": "UE5.2+",
+      "era": "ue5-1-3",
+      "domain": "工具链",
+      "tech": "PCG（程序化内容生成框架）",
+      "oneLiner": "用点集与图节点在引擎内生成植被、建筑与地形细节，把内容产能工具化。",
+      "problem": "大世界内容量靠手工摆放不可扩展，Houdini 等外部管线往返成本高。",
+      "previousPains": [
+        "手工摆植被/道具产能低，重复劳动多。",
+        "外部程序化工具导入导出链路长，迭代慢。",
+        "生成结果难版本化/难复现，团队协作困难。"
+      ],
+      "newConstraints": [
+        "需要启用 PCG 插件与规划图/点集规范。",
+        "生成结果要控制密度与实例数，否则 draw call/内存反弹。",
+        "技术美术要掌握图工具与调试方法，学习成本上升。"
+      ],
+      "successors": [
+        "PCG 与 World Partition/HLOD 组合成为大世界内容管线的一部分。"
+      ],
+      "sources": ["S139"],
+      "links": {"solutions": ["ow-06", "ow-07"], "topics": ["topic-streaming", "topic-engineering"]},
+      "note": "PCG 在 UE5.2 引入；具体转正状态与平台限制以目标版本官方文档为准。"
+    },
+    {
+      "id": "tl-motionmatching",
+      "year": "约 2024（UE5.4 起）",
+      "version": "UE5.4+",
+      "era": "ue5-4-6",
+      "domain": "动画",
+      "tech": "Motion Matching",
+      "oneLiner": "用姿态数据库+查询匹配代替大量状态机过渡，生成更自然的移动与转向。",
+      "problem": "复杂移动/转向用状态机与 Blend Space 组合，过渡数量爆炸且手感难调。",
+      "previousPains": [
+        "状态机过渡组合爆炸，维护成本高。",
+        "转向/急停/起步的脚滑与跳变难消除。",
+        "动画资产与逻辑耦合，新增动作要改状态机。"
+      ],
+      "newConstraints": [
+        "需要高质量动捕数据库与清洗，内容成本前置。",
+        "查询/匹配有 CPU 成本，需要预算与降级。",
+        "调试方式从状态机转向数据/查询，团队要换工作流。"
+      ],
+      "successors": [
+        "Motion Matching 与 Motion Warping/Control Rig 组合；状态机仍在部分场景保留。"
+      ],
+      "sources": ["S009", "S051", "S093"],
+      "links": {"solutions": ["arpg-01", "tps-08"], "topics": ["topic-animation", "topic-movement"]},
+      "note": "Motion Matching 在 UE5.4 周期引入（Game Animation Sample 同期）；具体转正状态以官方文档为准。"
+    },
+    {
+      "id": "tl-mover",
+      "year": "约 2024（UE5.4 起）",
+      "version": "UE5.4+",
+      "era": "ue5-4-6",
+      "domain": "网络",
+      "tech": "Mover（模块化移动与回滚）",
+      "oneLiner": "用模块化移动模式与网络预测/回滚替代 CMC 的部分职责，面向复杂移动同步。",
+      "problem": "CMC 的自定义 Movement Mode 与网络预测在复杂移动/回滚场景下扩展困难。",
+      "previousPains": [
+        "CMC 自定义模式要改引擎类，网络预测边界不清。",
+        "特殊移动（抓钩/攀爬/墙跑）与回滚结合容易漂移。",
+        "移动逻辑与动画/物理耦合，复用困难。"
+      ],
+      "newConstraints": [
+        "Mover 仍是实验/演进中的插件，接入前要评估版本稳定性。",
+        "需要按 Mover 的数据/模式组织重写移动逻辑，迁移成本高。",
+        "与现有 CMC/动画蓝图/网络代码的兼容要专项验证。"
+      ],
+      "successors": [
+        "Mover 与 Network Prediction/Chaos 网络物理组合；CMC 仍是多数项目的默认选择。"
+      ],
+      "sources": ["S045", "S047"],
+      "links": {"topics": ["topic-movement", "topic-net"]},
+      "note": "Mover 在 UE5.4 周期进入实验阶段；本库不把它写成生产默认方案。"
+    },
+    {
+      "id": "tl-uefn-verse",
+      "year": "约 2023 起",
+      "version": "UEFN / Verse",
+      "era": "ue5-1-3",
+      "domain": "工具链",
+      "tech": "UEFN + Verse",
+      "oneLiner": "在 Fortnite 生态里用专用编辑器与 Verse 语言做玩法与内容，走托管发布链路。",
+      "problem": "传统 UE 项目发布链路重、团队门槛高，UGC/轻量玩法需要更低门槛的创作环境。",
+      "previousPains": [
+        "完整 UE 工程对小型团队/个人门槛高。",
+        "玩法脚本与内容发布链路分离，迭代慢。",
+        "跨平台托管与合规由团队自行承担。"
+      ],
+      "newConstraints": [
+        "能力边界受 UEFN/Fortnite 平台限制，不能等同完整 UE。",
+        "Verse 是独立语言与生态，团队要重新学习。",
+        "发布/分成/合规受平台规则约束。"
+      ],
+      "successors": [
+        "UEFN/Verse 持续扩展；与完整 UE 管线仍是两条路径。"
+      ],
+      "sources": ["S141"],
+      "links": {"topics": ["topic-engineering"]},
+      "note": "UEFN 公开上线时间未在本次核验中锁定，年份写“约”；Verse 语言能力以官方参考为准。"
+    },
+    {
+      "id": "tl-metahuman56",
+      "year": "2025（UE5.6）",
+      "version": "UE5.6",
+      "era": "ue5-4-6",
+      "domain": "工具链",
+      "tech": "MetaHuman 引擎内创作",
+      "oneLiner": "把 MetaHuman 的创建/编辑更多收进引擎，减少外部 DCC 往返。",
+      "problem": "数字人资产依赖外部工具链，改脸/改绑定/迭代协作链路长。",
+      "previousPains": [
+        "MetaHuman 创建/编辑要在外部工具与引擎间往返。",
+        "角色迭代牵涉多岗位，版本同步困难。",
+        "导入后的绑定/材质/性能问题要在引擎里二次修。"
+      ],
+      "newConstraints": [
+        "需要 UE5.6+ 与相应工作流，旧版本不能直接套用。",
+        "数字人资产的面数/材质/骨骼成本高，要按平台预算。",
+        "团队要建立数字人资产规范与协作流程。"
+      ],
+      "successors": [
+        "MetaHuman 工作流继续向引擎内整合；具体能力边界以 5.6 公告与文档为准。"
+      ],
+      "sources": ["S135"],
+      "links": {"topics": ["topic-animation"]},
+      "note": "5.6 官方公告明确提到 MetaHuman 可在引擎内完整创作；节点只描述这一方向，不扩展到未核实细节。"
+    }
+  ],
+  "matrix": {
+    "note": "状态取值：转正=随该版本正式交付；可用=可稳定使用；实验/Beta=官方标注实验或测试；弃用=不再推荐；不适用=该版本尚不存在或平台不支持。所有格子都给出说明，避免空值误导选型。",
+    "versions": [
+      {"id": "5.0", "label": "UE5.0"},
+      {"id": "5.1", "label": "UE5.1"},
+      {"id": "5.2", "label": "UE5.2"},
+      {"id": "5.3", "label": "UE5.3"},
+      {"id": "5.4", "label": "UE5.4"},
+      {"id": "5.5", "label": "UE5.5"},
+      {"id": "5.6", "label": "UE5.6"}
+    ],
+    "rows": [
+      {"tech": "Nanite", "domain": "几何", "note": "桌面/主机优先；移动端需单独评估。", "cells": {
+        "5.0": {"status": "转正", "note": "随 UE5.0 交付，适合中大型高模项目；先做平台验证。"},
+        "5.1": {"status": "可用", "note": "可用于生产，但植被/透明等边界仍需验证。"},
+        "5.2": {"status": "可用", "note": "能力继续扩展，资产规范要先立。"},
+        "5.3": {"status": "可用", "note": "适合高模场景；注意流送与内存峰值。"},
+        "5.4": {"status": "可用", "note": "可评估骨骼/植被等扩展，按项目实测。"},
+        "5.5": {"status": "可用", "note": "生产可用；仍需按平台与内容类型验证。"},
+        "5.6": {"status": "可用", "note": "大规模开放世界项目的重点能力之一。"}
+      }},
+      {"tech": "Lumen", "domain": "光照", "note": "桌面/主机为主；移动端通常用烘焙/简化方案。", "cells": {
+        "5.0": {"status": "转正", "note": "随 UE5.0 交付；中大型项目的动态 GI 选项。"},
+        "5.1": {"status": "可用", "note": "适合昼夜/动态光源需求，成本要预算。"},
+        "5.2": {"status": "可用", "note": "雨夜/大面积 emissive 场景需专项压测。"},
+        "5.3": {"status": "可用", "note": "与 Nanite/VSM 组合时注意 GPU 总预算。"},
+        "5.4": {"status": "可用", "note": "生产可用；低端机需回退烘焙。"},
+        "5.5": {"status": "可用", "note": "继续优化，仍需按场景复杂度评估。"},
+        "5.6": {"status": "可用", "note": "大规模开放世界需配合流送与光源预算。"}
+      }},
+      {"tech": "Virtual Shadow Maps", "domain": "阴影", "note": "现代 GPU 优先；移动端受限。", "cells": {
+        "5.0": {"status": "转正", "note": "随 UE5.0 交付，替换 CSM 的主流路径。"},
+        "5.1": {"status": "可用", "note": "适合高精度近景阴影；显存/带宽要预算。"},
+        "5.2": {"status": "可用", "note": "大量动态光源需做预算与降级。"},
+        "5.3": {"status": "可用", "note": "与 Nanite 配合是常见组合。"},
+        "5.4": {"status": "可用", "note": "生产可用；移动端另选方案。"},
+        "5.5": {"status": "可用", "note": "持续优化，仍要控制重叠阴影。"},
+        "5.6": {"status": "可用", "note": "大规模场景需配合光源与阴影距离策略。"}
+      }},
+      {"tech": "TSR", "domain": "抗锯齿", "note": "替代 TAA 的默认上采样路径。", "cells": {
+        "5.0": {"status": "转正", "note": "随 UE5.0 交付，桌面/主机默认可选。"},
+        "5.1": {"status": "可用", "note": "适合高分辨率与高画质项目。"},
+        "5.2": {"status": "可用", "note": "透明/粒子仍需单独验证鬼影。"},
+        "5.3": {"status": "可用", "note": "生产可用；低端平台准备回退。"},
+        "5.4": {"status": "可用", "note": "与超分/动态分辨率组合需调参。"},
+        "5.5": {"status": "可用", "note": "持续优化成本与稳定性。"},
+        "5.6": {"status": "可用", "note": "大规模项目默认候选，按平台验证。"}
+      }},
+      {"tech": "World Partition", "domain": "世界构建", "note": "大世界默认；小项目可不用。", "cells": {
+        "5.0": {"status": "转正", "note": "随 UE5.0 交付，适合开放世界/大团队。"},
+        "5.1": {"status": "可用", "note": "需建立网格/流送源/HLOD 规范。"},
+        "5.2": {"status": "可用", "note": "与 Data Layers/Level Instance 组合使用。"},
+        "5.3": {"status": "可用", "note": "注意跨单元引用与 HLOD 构建成本。"},
+        "5.4": {"status": "可用", "note": "生产可用；管线要支持 HLOD 生成。"},
+        "5.5": {"status": "可用", "note": "适合大团队协作，需 OFPA 规范。"},
+        "5.6": {"status": "可用", "note": "大规模开放世界的默认世界构建方式。"}
+      }},
+      {"tech": "Data Layers", "domain": "世界构建", "note": "与 World Partition 绑定使用。", "cells": {
+        "5.0": {"status": "转正", "note": "随 UE5.0 交付，适合昼夜/任务变体。"},
+        "5.1": {"status": "可用", "note": "需统一分层命名与运行时状态绑定。"},
+        "5.2": {"status": "可用", "note": "滥用会增加流送与内存复杂度。"},
+        "5.3": {"status": "可用", "note": "适合长线运营的内容变体管理。"},
+        "5.4": {"status": "可用", "note": "生产可用；与存档/任务状态要一致。"},
+        "5.5": {"status": "可用", "note": "继续作为大世界状态管理基础。"},
+        "5.6": {"status": "可用", "note": "大规模项目建议纳入内容规范。"}
+      }},
+      {"tech": "MetaSounds", "domain": "音频", "note": "程序化音频优先；大型音频团队可并行中间件。", "cells": {
+        "5.0": {"status": "转正", "note": "随 UE5.0 交付，适合参数驱动音频。"},
+        "5.1": {"status": "可用", "note": "需要音频设计师掌握 DSP 图。"},
+        "5.2": {"status": "可用", "note": "复杂图要控制 CPU/内存成本。"},
+        "5.3": {"status": "可用", "note": "与 Wwise/FMOD 的分工要提前定。"},
+        "5.4": {"status": "可用", "note": "生产可用；跨平台需逐端验证。"},
+        "5.5": {"status": "可用", "note": "适合动态音乐/环境音项目。"},
+        "5.6": {"status": "可用", "note": "可作为主音频图系统，仍需平台验证。"}
+      }},
+      {"tech": "Control Rig", "domain": "动画", "note": "引擎内绑定/程序化动画。", "cells": {
+        "5.0": {"status": "转正", "note": "随 UE5.0 交付，适合减少 DCC 往返。"},
+        "5.1": {"status": "可用", "note": "绑定师需学习引擎内 Rig 工作流。"},
+        "5.2": {"status": "可用", "note": "运行时成本要评估，避免每帧重解算。"},
+        "5.3": {"status": "可用", "note": "与 Sequencer/IK 组合使用。"},
+        "5.4": {"status": "可用", "note": "生产可用；复杂 Rig 要版本管理。"},
+        "5.5": {"status": "可用", "note": "适合程序化修正与演出。"},
+        "5.6": {"status": "可用", "note": "与引擎内动画工作流继续整合。"}
+      }},
+      {"tech": "Motion Warping", "domain": "动画", "note": "目标对齐类动作的常用手段。", "cells": {
+        "5.0": {"status": "转正", "note": "随 UE5.0 交付，适合攀爬/翻越/处决。"},
+        "5.1": {"status": "可用", "note": "Warp 目标与窗口配置错误会扭曲。"},
+        "5.2": {"status": "可用", "note": "网络下要保证目标点一致。"},
+        "5.3": {"status": "可用", "note": "极端距离仍需专门动画。"},
+        "5.4": {"status": "可用", "note": "与 Motion Matching 组合使用。"},
+        "5.5": {"status": "可用", "note": "生产可用；需做失败回退。"},
+        "5.6": {"status": "可用", "note": "复杂移动项目的常用基础能力。"}
+      }},
+      {"tech": "Chaos", "domain": "物理", "note": "UE5 默认物理与破坏。", "cells": {
+        "5.0": {"status": "转正", "note": "随 UE5.0 成为默认，替代 PhysX。"},
+        "5.1": {"status": "可用", "note": "破坏/载具资产要按 Chaos 规范制作。"},
+        "5.2": {"status": "可用", "note": "服务器物理与碎片复制要预算。"},
+        "5.3": {"status": "可用", "note": "旧 PhysX 资产需重调参数。"},
+        "5.4": {"status": "可用", "note": "生产可用；破坏规模要压测。"},
+        "5.5": {"status": "可用", "note": "继续扩展 Vehicles/Destruction。"},
+        "5.6": {"status": "可用", "note": "大规模物理表现需网络与性能预算。"}
+      }},
+      {"tech": "Iris", "domain": "网络", "note": "官方状态随版本变化，生产前做专项验证。", "cells": {
+        "5.0": {"status": "实验", "note": "适合原型/技术预研，不建议直接替换生产复制。"},
+        "5.1": {"status": "实验", "note": "迁移成本高，先做小规模对比。"},
+        "5.2": {"status": "实验", "note": "与 Replication Graph 混用要谨慎。"},
+        "5.3": {"status": "实验", "note": "需专项验证过滤/优先级行为。"},
+        "5.4": {"status": "实验", "note": "可评估，但仍按实验特性管理。"},
+        "5.5": {"status": "实验", "note": "上线前做带宽/回滚/断线测试。"},
+        "5.6": {"status": "实验", "note": "大规模项目可作为优化选项，保留回退。"}
+      }},
+      {"tech": "Substrate", "domain": "材质", "note": "实验性材质系统，生产采用需评估。", "cells": {
+        "5.0": {"status": "不适用", "note": "该版本尚无 Substrate。"},
+        "5.1": {"status": "实验", "note": "引入实验版本，适合技术预研。"},
+        "5.2": {"status": "实验", "note": "材质迁移成本高，不要全量切换。"},
+        "5.3": {"status": "实验", "note": "需验证平台支持与变体成本。"},
+        "5.4": {"status": "实验", "note": "仅建议在独立分支/试验项目使用。"},
+        "5.5": {"status": "实验", "note": "生产采用前必须做兼容与性能验证。"},
+        "5.6": {"status": "实验", "note": "状态以官方 release notes 为准，谨慎采用。"}
+      }},
+      {"tech": "PCG", "domain": "工具链", "note": "大世界内容产能工具。", "cells": {
+        "5.0": {"status": "不适用", "note": "该版本尚无 PCG 框架。"},
+        "5.1": {"status": "不适用", "note": "该版本尚无 PCG 框架。"},
+        "5.2": {"status": "实验", "note": "引入实验版本，适合植被/建筑试验。"},
+        "5.3": {"status": "实验", "note": "需控制生成密度与实例数。"},
+        "5.4": {"status": "实验", "note": "技术美术需掌握图工具与调试。"},
+        "5.5": {"status": "实验", "note": "生产采用前做产能与性能验证。"},
+        "5.6": {"status": "实验", "note": "适合大世界内容管线，状态按官方标注。"}
+      }},
+      {"tech": "Motion Matching", "domain": "动画", "note": "数据驱动移动动画。", "cells": {
+        "5.0": {"status": "不适用", "note": "该版本尚未提供 Motion Matching。"},
+        "5.1": {"status": "不适用", "note": "该版本尚未提供 Motion Matching。"},
+        "5.2": {"status": "不适用", "note": "该版本尚未提供 Motion Matching。"},
+        "5.3": {"status": "不适用", "note": "该版本尚未提供 Motion Matching。"},
+        "5.4": {"status": "实验", "note": "引入实验版本，需要动捕数据库与清洗。"},
+        "5.5": {"status": "实验", "note": "可做原型/中型项目验证，查询成本要预算。"},
+        "5.6": {"status": "实验", "note": "状态以官方标注为准，生产采用需评估。"}
+      }},
+      {"tech": "Mover", "domain": "网络", "note": "模块化移动/回滚插件，实验性质。", "cells": {
+        "5.0": {"status": "不适用", "note": "该版本尚无 Mover。"},
+        "5.1": {"status": "不适用", "note": "该版本尚无 Mover。"},
+        "5.2": {"status": "不适用", "note": "该版本尚无 Mover。"},
+        "5.3": {"status": "不适用", "note": "该版本尚无 Mover。"},
+        "5.4": {"status": "实验", "note": "进入实验阶段，适合原型验证。"},
+        "5.5": {"status": "实验", "note": "不建议直接替换生产 CMC。"},
+        "5.6": {"status": "实验", "note": "复杂移动/回滚项目可评估，保留回退。"}
+      }},
+      {"tech": "Level Streaming", "domain": "世界构建", "note": "传统流送仍可用。", "cells": {
+        "5.0": {"status": "可用", "note": "与 World Partition 并行存在。"},
+        "5.1": {"status": "可用", "note": "小中场景仍可单独使用。"},
+        "5.2": {"status": "可用", "note": "跨关卡引用要规范。"},
+        "5.3": {"status": "可用", "note": "适合线性关卡/副本。"},
+        "5.4": {"status": "可用", "note": "生产可用，注意加载 hitch。"},
+        "5.5": {"status": "可用", "note": "可与 World Partition 混合，但边界要清晰。"},
+        "5.6": {"status": "可用", "note": "不是大世界首选，但仍是有效方案。"}
+      }},
+      {"tech": "Replication Graph", "domain": "网络", "note": "大战场相关性裁剪。", "cells": {
+        "5.0": {"status": "可用", "note": "适合大战场/高玩家数。"},
+        "5.1": {"status": "可用", "note": "需定制节点与分区策略。"},
+        "5.2": {"status": "可用", "note": "与默认复制混用要注意边界。"},
+        "5.3": {"status": "可用", "note": "调试需 Network Profiler/Insights。"},
+        "5.4": {"status": "可用", "note": "生产可用，接入成本高。"},
+        "5.5": {"status": "可用", "note": "可作为 Iris 之外的备选。"},
+        "5.6": {"status": "可用", "note": "大规模同步项目可评估，保留回退。"}
+      }},
+      {"tech": "Blueprint", "domain": "工具链", "note": "主力脚本层，需配合 C++ 基类。", "cells": {
+        "5.0": {"status": "可用", "note": "适合玩法/UI/工具原型。"},
+        "5.1": {"status": "可用", "note": "大型项目要建立命名与性能规范。"},
+        "5.2": {"status": "可用", "note": "蓝图合并冲突需流程管理。"},
+        "5.3": {"status": "可用", "note": "复杂系统建议 C++ 基类 + 蓝图扩展。"},
+        "5.4": {"status": "可用", "note": "生产可用，性能关键路径下沉 C++。"},
+        "5.5": {"status": "可用", "note": "继续作为设计与程序协作层。"},
+        "5.6": {"status": "可用", "note": "团队规范比语言选择更关键。"}
+      }},
+      {"tech": "Sequencer", "domain": "工具链", "note": "过场/演出时间线。", "cells": {
+        "5.0": {"status": "可用", "note": "适合过场、演出与虚拟制片。"},
+        "5.1": {"status": "可用", "note": "大序列要管理资产与性能。"},
+        "5.2": {"status": "可用", "note": "与 Control Rig 组合使用。"},
+        "5.3": {"status": "可用", "note": "生产可用；注意实时预览成本。"},
+        "5.4": {"status": "可用", "note": "继续与虚拟制片工作流整合。"},
+        "5.5": {"status": "可用", "note": "适合高质量过场，需渲染管线配合。"},
+        "5.6": {"status": "可用", "note": "引擎内创作链路的重要组成。"}
+      }},
+      {"tech": "烘焙光照（Lightmaps）", "domain": "光照", "note": "移动端/静态场景仍常用。", "cells": {
+        "5.0": {"status": "可用", "note": "仍支持，移动端与低端平台优先。"},
+        "5.1": {"status": "可用", "note": "适合静态场景与固定光照。"},
+        "5.2": {"status": "可用", "note": "与 Lumen 混用要明确分工。"},
+        "5.3": {"status": "可用", "note": "光照贴图内存与构建时间要预算。"},
+        "5.4": {"status": "可用", "note": "移动端量产的稳妥路径。"},
+        "5.5": {"status": "可用", "note": "静态场景仍具成本优势。"},
+        "5.6": {"status": "可用", "note": "不是所有项目都需要全动态 GI。"}
+      }}
+    ]
+  },
+  "generations": [
+    {
+      "id": "gen-lightmap-lumen",
+      "question": "静态场景的间接光与反射，用烘焙还是实时 GI？",
+      "dimensions": ["效果", "成本", "约束", "迁移风险"],
+      "old": {"name": "烘焙光照贴图", "source": "S002"},
+      "new": {"name": "Lumen", "source": "S002"},
+      "values": [
+        "烘焙：静态可信、动态变化不响应；Lumen：全动态、雨夜/大面积光源需压测。",
+        "烘焙：离线构建+内存；Lumen：运行时 GPU 成本更高。",
+        "烘焙要 UV2 与重烘；Lumen 依赖平台/资产规范与光源预算。",
+        "从烘焙转 Lumen 要重做光照流程与性能预算，移动端通常不迁。"
+      ]
+    },
+    {
+      "id": "gen-lod-nanite",
+      "question": "超高模资产的 LOD 与绘制成本怎么解？",
+      "dimensions": ["效果", "成本", "约束", "迁移风险"],
+      "old": {"name": "静态 LOD", "source": "S001"},
+      "new": {"name": "Nanite", "source": "S001"},
+      "values": [
+        "静态 LOD：远看可用、切换易跳变；Nanite：高模细节稳定，但透明/植被受限。",
+        "静态 LOD：手工产能+多档资产；Nanite：GPU/流送成本，省掉部分手工。",
+        "静态 LOD 要求减面规范；Nanite 要现代 GPU 与资产/材质规范。",
+        "迁移要重建资产与材质，移动端/低端平台可能保留 LOD。"
+      ]
+    },
+    {
+      "id": "gen-taa-tsr",
+      "question": "抗锯齿与上采样选 TAA 还是 TSR？",
+      "dimensions": ["效果", "成本", "约束", "迁移风险"],
+      "old": {"name": "TAA", "source": "S066"},
+      "new": {"name": "TSR", "source": "S066"},
+      "values": [
+        "TAA：细节偏糊、快速运动易鬼影；TSR：细节与稳定性更好。",
+        "TAA 成本较低；TSR 需要更多 GPU 预算与输入。",
+        "TAA 要运动矢量；TSR 对平台/透明/粒子有额外要求。",
+        "切换要重调画面与性能，低端平台需保留回退。"
+      ]
+    },
+    {
+      "id": "gen-lpv-lumen",
+      "question": "动态 GI 的近似方案与 Lumen 怎么选？",
+      "dimensions": ["效果", "成本", "约束", "迁移风险"],
+      "old": {"name": "LPV / DFGI 等近似 GI", "source": "S002"},
+      "new": {"name": "Lumen", "source": "S002"},
+      "values": [
+        "近似方案：漏光/稳定性有限；Lumen：动态反射与间接光更完整。",
+        "近似方案成本较低但调参多；Lumen GPU 成本更高。",
+        "近似方案受场景尺度/光源限制；Lumen 受平台与资产规范限制。",
+        "迁移要重做光照与性能预算，低端平台可能不适用。"
+      ]
+    },
+    {
+      "id": "gen-cmc-mover",
+      "question": "角色移动用 CMC 还是 Mover？",
+      "dimensions": ["效果", "成本", "约束", "迁移风险"],
+      "old": {"name": "CharacterMovementComponent", "source": "S045"},
+      "new": {"name": "Mover", "source": "S045"},
+      "values": [
+        "CMC：成熟稳定；Mover：模块化/回滚设计更灵活，但仍在演进。",
+        "CMC 接入成本低；Mover 要重写移动逻辑与网络预测。",
+        "CMC 自定义模式要改引擎类；Mover 受实验状态与版本限制。",
+        "迁移风险高，建议新项目/原型验证后再考虑。"
+      ]
+    },
+    {
+      "id": "gen-physx-chaos",
+      "question": "物理与破坏用 PhysX 还是 Chaos？",
+      "dimensions": ["效果", "成本", "约束", "迁移风险"],
+      "old": {"name": "PhysX", "source": "S041"},
+      "new": {"name": "Chaos", "source": "S024"},
+      "values": [
+        "PhysX：成熟但大规模破坏受限；Chaos：破坏/载具整合度更高。",
+        "PhysX 旧资产多；Chaos 需要重建破坏资产与调参。",
+        "PhysX 受第三方绑定；Chaos 要按新规范制作几何集合/字段。",
+        "迁移要重调载具/布娃娃/破坏，网络物理要专项验证。"
+      ]
+    },
+    {
+      "id": "gen-unrealscript-blueprint",
+      "question": "玩法脚本用 UnrealScript 还是蓝图/C++？",
+      "dimensions": ["效果", "成本", "约束", "迁移风险"],
+      "old": {"name": "UnrealScript", "source": "S137"},
+      "new": {"name": "Blueprint + C++", "source": "S137"},
+      "values": [
+        "UnrealScript：文本脚本、生态收缩；蓝图：可视化迭代快，C++ 负责性能。",
+        "UnrealScript 已退场；蓝图降低门槛但大规模项目要 C++ 基类。",
+        "蓝图要命名/分层/性能规范；C++ 要编译与热迭代流程。",
+        "迁移是重写而非转换，团队分工要重新设计。"
+      ]
+    },
+    {
+      "id": "gen-streaming-worldpartition",
+      "question": "大世界用传统 Level Streaming 还是 World Partition？",
+      "dimensions": ["效果", "成本", "约束", "迁移风险"],
+      "old": {"name": "Level Streaming", "source": "S011"},
+      "new": {"name": "World Partition", "source": "S003"},
+      "values": [
+        "Level Streaming：手工边界易 hitch；World Partition：网格流送+HLOD 更系统。",
+        "Level Streaming 接入简单；World Partition 要管线/构建支持。",
+        "Level Streaming 依赖关卡划分规范；World Partition 依赖网格/OFPA/HLOD 规范。",
+        "迁移要重划世界与 HLOD，团队协作流程改变。"
+      ]
+    },
+    {
+      "id": "gen-soundcue-metasounds",
+      "question": "音频图用 Sound Cue 还是 MetaSounds？",
+      "dimensions": ["效果", "成本", "约束", "迁移风险"],
+      "old": {"name": "Sound Cue", "source": "S021"},
+      "new": {"name": "MetaSounds", "source": "S022"},
+      "values": [
+        "Sound Cue：随机/分层够用；MetaSounds：程序化/参数驱动更强。",
+        "Sound Cue 上手低；MetaSounds 要 DSP 图能力与预算。",
+        "Sound Cue 复杂逻辑受限；MetaSounds 要平台验证与团队技能。",
+        "迁移要重做音频图与参数绑定，大型团队可分阶段。"
+      ]
+    },
+    {
+      "id": "gen-matinee-sequencer",
+      "question": "过场与演出用 Matinee 还是 Sequencer？",
+      "dimensions": ["效果", "成本", "约束", "迁移风险"],
+      "old": {"name": "Matinee", "source": "S140"},
+      "new": {"name": "Sequencer", "source": "S140"},
+      "values": [
+        "Matinee：轨道/相机能力有限；Sequencer：多轨道与实时预览更强。",
+        "Matinee 旧资产维护成本高；Sequencer 要学习非线性编辑。",
+        "Sequencer 依赖资产/关卡管理与性能预算。",
+        "迁移要重做过场，历史 Matinee 内容需逐段替换。"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1594 @@
+[
+  {
+    "id": "ow-01",
+    "name": "World Partition + OFPA vs 传统 Level Streaming",
+    "aliases": [
+      "World Partition",
+      "OFPA",
+      "level streaming",
+      "流送"
+    ],
+    "type": [
+      "开放世界",
+      "ARPG",
+      "搜打撤"
+    ],
+    "domain": "solution",
+    "category": "大世界与流式加载",
+    "engine": [
+      "UE5",
+      "UE5.0–5.3",
+      "UE5.4+"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "World Partition 用运行时网格自动加载/卸载单元并配合 OFPA 降低协作冲突；传统 Level Streaming 更手工可控但规模管理成本高。",
+    "problem": "公里级世界不能整图加载；手工切分关卡在大团队中冲突频繁，且流送边界难维护。",
+    "mechanism": "World Partition 把世界切成网格单元，按流送源（玩家/相机）加载；OFPA 让每个 Actor 独立文件，减少保存/合并冲突；Data Layer 控制逻辑分层；HLOD 提供远景代理。",
+    "pros": [
+      "自动化流送，适合大世界",
+      "OFPA 显著降低多人协作冲突",
+      "与 HLOD/Data Layer/Nanite 配套"
+    ],
+    "cons": [
+      "运行时网格配置不当会造成频繁加载/卸载",
+      "调试流送边界与内存峰值更复杂",
+      "与旧 Level Streaming 工具链/插件迁移成本"
+    ],
+    "fit": [
+      "开放世界",
+      "大副本 ARPG",
+      "搜打撤大地图"
+    ],
+    "unfit": [
+      "小型关卡",
+      "高度线性、手工控制加载的项目"
+    ],
+    "params": [
+      {
+        "k": "网格尺寸",
+        "v": "按视距/内容密度调",
+        "note": "过小则单元多、管理重"
+      },
+      {
+        "k": "流送源",
+        "v": "玩家/相机/任务",
+        "note": "按玩法配置"
+      },
+      {
+        "k": "加载范围",
+        "v": "大于可视距离",
+        "note": "避免边界 popping"
+      }
+    ],
+    "sources": [
+      "S003",
+      "S014",
+      "S033",
+      "S011"
+    ],
+    "cases": [
+      {
+        "who": "UE5 开放世界默认地图",
+        "note": "默认启用 WP/OFPA/Data Layers/HLOD",
+        "source": "S003"
+      },
+      {
+        "who": "Epic 官方",
+        "note": "OFPA 降低大世界协作冲突",
+        "source": "S014"
+      }
+    ],
+    "tags": [
+      "World Partition",
+      "OFPA",
+      "流送",
+      "大世界"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "新建开放世界模板或把现有地图转换为 World Partition（编辑器提示转换）。",
+      "设置 Runtime Grid 单元尺寸与加载范围（World Settings）。",
+      "开启 One File Per Actor（OFPA），把 Actor 保存为独立文件。",
+      "用 Data Layer 组织任务/区域内容。",
+      "在编辑器中用「World Partition」窗口观察单元加载/卸载。",
+      "Gameplay 中传送到远处，确认单元按流送源加载且无长时间 hitch。"
+    ],
+    "usage": [
+      "接入方式：World Partition + OFPA + Data Layer；传统项目可保留 Level Streaming。",
+      "典型参数：网格尺寸按视距/内容密度；流送源跟随玩家/相机/任务；加载范围大于可视距离。",
+      "集成点：与 HLOD、Nanite、虚拟纹理、PCG 配合；GameMode 中配置流送源。",
+      "版本差异：World Partition 在 UE5 引入，4.x 只有传统 Level Streaming。"
+    ],
+    "optimization": {
+      "performance": [
+        "单元尺寸调优，避免过细导致管理开销",
+        "流送源数量控制",
+        "HLOD 降低远处 draw call"
+      ],
+      "memory": [
+        "加载范围与内存预算联动",
+        "按区域释放"
+      ],
+      "package": [
+        "按区域/章节分块 Cook"
+      ],
+      "iteration": [
+        "WP 可视化窗口 + 自动化传送测试"
+      ],
+      "stability": [
+        "流送边界瞬移要有预加载/遮挡"
+      ],
+      "notWorth": "小型线性关卡用传统 Level Streaming 更可控。"
+    },
+    "verify": [
+      "`stat levels`/`stat streaming` 看单元加载与流送耗时。",
+      "传送/高速移动无长时间 hitch；Insights LoadTime 通道确认。",
+      "内存峰值在设备预算内。"
+    ]
+  },
+  {
+    "id": "ow-02",
+    "name": "HLOD：远景代理 vs 传统 LOD/全量流送",
+    "aliases": [
+      "HLOD",
+      "proxy mesh",
+      "impostor",
+      "远景"
+    ],
+    "type": [
+      "开放世界"
+    ],
+    "domain": "solution",
+    "category": "大世界与流式加载",
+    "engine": [
+      "UE5",
+      "UE4"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "把远处多个 Actor 合并成代理网格/ impostor，减少 draw call 与流送压力；代价是切换穿帮与构建时间。",
+    "problem": "开放世界远景若加载全部高模，draw call/内存/流送都不可承受；直接剔除又会出现空洞。",
+    "mechanism": "按网格/分层生成 HLOD 代理，设置流送距离与过渡；代理可用简化网格/合并材质/impostor；World Partition 的 HLOD 层与运行时网格配合。",
+    "pros": [
+      "显著降低远景 draw call/内存",
+      "覆盖大范围可见内容",
+      "与 World Partition 集成"
+    ],
+    "cons": [
+      "代理构建时间长、包体增大",
+      "LOD 切换/材质差异会穿帮",
+      "动态物体/破坏难以代理"
+    ],
+    "fit": [
+      "开放世界远景",
+      "大战场背景"
+    ],
+    "unfit": [
+      "小场景/室内",
+      "动态变化频繁的世界"
+    ],
+    "params": [
+      {
+        "k": "层级",
+        "v": "2–3 层",
+        "note": "按视距"
+      },
+      {
+        "k": "切换距离",
+        "v": "大于流送单元",
+        "note": "避免空洞"
+      },
+      {
+        "k": "代理类型",
+        "v": "合并网格/impostor",
+        "note": "按美术风格"
+      }
+    ],
+    "sources": [
+      "S012",
+      "S033",
+      "S003"
+    ],
+    "cases": [
+      {
+        "who": "World Partition HLOD",
+        "note": "官方文档给出 WP+HLOD 组合配置",
+        "source": "S033"
+      }
+    ],
+    "tags": [
+      "HLOD",
+      "远景",
+      "代理",
+      "draw call"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "在 World Partition 地图中打开 HLOD 设置，建立 2–3 层 HLOD Layer。",
+      "配置每层的合并网格/材质与生成规则。",
+      "生成 HLOD，检查远处代理与近处原网格的切换。",
+      "调整 HLOD 距离与流送单元关系，避免切换穿帮。",
+      "对比开启/关闭 HLOD 的 draw call 与帧时间。"
+    ],
+    "usage": [
+      "接入方式：HLOD Layer + 构建（Build HLOD）；World Partition 自动管理。",
+      "典型参数：2–3 层；切换距离大于流送单元；代理类型合并网格/impostor。",
+      "集成点：与 Nanite/植被/光照构建配合；HLOD 材质需兼容。",
+      "版本差异：WP HLOD 在 5.x 持续演进，构建流程按版本文档。"
+    ],
+    "optimization": {
+      "performance": [
+        "减少 HLOD 层数/材质复杂度",
+        "代理网格面数预算"
+      ],
+      "memory": [
+        "HLOD 资源随流送，注意包体"
+      ],
+      "package": [
+        "HLOD 数据进包，按区域分块"
+      ],
+      "iteration": [
+        "增量构建，避免全量重跑"
+      ],
+      "stability": [
+        "切换距离/材质不匹配会导致闪烁"
+      ],
+      "notWorth": "场景小、draw call 不紧张时不必做 HLOD。"
+    },
+    "verify": [
+      "远景 draw call/帧时间下降。",
+      "切换处无明显穿帮/闪烁。",
+      "`stat scenerendering` 看绘制调用数。"
+    ]
+  },
+  {
+    "id": "ow-03",
+    "name": "Nanite vs 传统 LOD 管线",
+    "aliases": [
+      "Nanite",
+      "LOD",
+      "virtual geometry",
+      "cluster"
+    ],
+    "type": [
+      "开放世界",
+      "ARPG",
+      "FPS"
+    ],
+    "domain": "solution",
+    "category": "渲染与GI",
+    "engine": [
+      "UE5.0–5.3",
+      "UE5.4+"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "Nanite 用虚拟几何体/簇层级自动选细节，省去手工 LOD；传统 LOD 更可控、平台兼容广，但制作成本高。",
+    "problem": "高细节资产手工做 LOD 成本巨大，且远景三角形浪费严重；传统管线难以覆盖影视级资产。",
+    "mechanism": "Nanite 在导入时构建簇层级与压缩数据，运行时按屏幕误差选择簇、流送与光栅化；传统管线按距离切换预生成 LOD。",
+    "pros": [
+      "Nanite 省 LOD 制作、细节稳定",
+      "支持十亿级三角形场景（公开演讲）",
+      "与 VSM 配合改善阴影"
+    ],
+    "cons": [
+      "Nanite 对材质/蒙皮/程序化变形有约束",
+      "平台/硬件要求与流送内存成本",
+      "传统 LOD 在低端平台/特殊渲染更灵活"
+    ],
+    "fit": [
+      "开放世界高细节静态场景",
+      "影视级资产"
+    ],
+    "unfit": [
+      "大量蒙皮/变形角色",
+      "低端移动端/不支持的平台"
+    ],
+    "params": [
+      {
+        "k": "簇/层级",
+        "v": "导入自动构建",
+        "note": "资产需满足 Nanite 规则"
+      },
+      {
+        "k": "流送",
+        "v": "按屏幕误差",
+        "note": "内存/IO 预算"
+      },
+      {
+        "k": "平台",
+        "v": "按官方支持列表",
+        "note": "不能假设全平台"
+      }
+    ],
+    "sources": [
+      "S001",
+      "S054",
+      "S055",
+      "S065"
+    ],
+    "cases": [
+      {
+        "who": "Epic",
+        "note": "SIGGRAPH 2021 深度讲解 Nanite 管线",
+        "source": "S054"
+      },
+      {
+        "who": "HPG 2022",
+        "note": "Nanite 设计演进与工程约束",
+        "source": "S055"
+      }
+    ],
+    "tags": [
+      "Nanite",
+      "LOD",
+      "虚拟几何",
+      "簇"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "导入一个高面数静态网格，勾选 Enable Nanite。",
+      "对比同资产的传统 LOD 版本在远近处的画质与帧时间。",
+      "在 Nanite 视图中查看簇/三角形密度。",
+      "测试 Nanite 不支持的特性（如特定骨骼网格/透明材质）并记录限制。",
+      "在目标平台验证 Nanite 支持与内存。"
+    ],
+    "usage": [
+      "接入方式：网格资产勾选 Nanite；项目设置中启用。",
+      "典型参数：簇/层级自动构建；流送按屏幕误差；平台按官方支持列表。",
+      "集成点：与 VSM、Lumen、World Partition 配合最佳。",
+      "版本差异：Nanite 平台支持与功能边界随版本变化，需按文档核对。"
+    ],
+    "optimization": {
+      "performance": [
+        "控制过度绘制/材质复杂度",
+        "远处可用 HLOD/impostor"
+      ],
+      "memory": [
+        "Nanite 数据较大，需包体/流送预算"
+      ],
+      "package": [
+        "按区域分块，避免单包过大"
+      ],
+      "iteration": [
+        "Nanite 视图 + 自动化场景基准"
+      ],
+      "stability": [
+        "不支持平台要有回退 LOD"
+      ],
+      "notWorth": "移动端/低端设备或资产面数不高时，传统 LOD 更省。"
+    },
+    "verify": [
+      "`stat rhi`/`stat scenerendering` 看三角形与绘制调用。",
+      "远近切换无明显跳变。",
+      "目标平台帧时间与内存达标。"
+    ]
+  },
+  {
+    "id": "ow-04",
+    "name": "Lumen 动态 GI vs 烘焙光照",
+    "aliases": [
+      "Lumen",
+      "baked lighting",
+      "lightmap",
+      "动态GI"
+    ],
+    "type": [
+      "开放世界",
+      "ARPG",
+      "FPS"
+    ],
+    "domain": "solution",
+    "category": "渲染与GI",
+    "engine": [
+      "UE5.0–5.3",
+      "UE5.4+"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "Lumen 提供动态 GI/反射，适合昼夜/天气变化；烘焙光照稳定便宜，但迭代慢且不响应动态变化。",
+    "problem": "开放世界需要昼夜/天气/破坏后的光照变化；烘焙光照无法实时响应，Lumen 又有 GPU 成本与噪点/漏光问题。",
+    "mechanism": "Lumen 用表面缓存/距离场/硬件追踪做间接光与反射；烘焙用 Lightmap/光照贴图预计算，运行时只采样。",
+    "pros": [
+      "Lumen 动态、迭代快、支持变化",
+      "烘焙稳定、GPU 成本低、适合低端",
+      "可按平台混合（室内烘焙/室外动态）"
+    ],
+    "cons": [
+      "Lumen GPU 成本高、低端机难",
+      "烘焙迭代慢、动态物体/破坏不响应",
+      "混合方案需要 consistent 的材质/光照规则"
+    ],
+    "fit": [
+      "开放世界动态昼夜",
+      "高端 PC/主机"
+    ],
+    "unfit": [
+      "移动端/低端 PC",
+      "静态场景且追求极致性能"
+    ],
+    "params": [
+      {
+        "k": "GI",
+        "v": "Lumen 软/硬件追踪",
+        "note": "按平台"
+      },
+      {
+        "k": "反射",
+        "v": "Lumen/SSR/平面",
+        "note": "质量/成本"
+      },
+      {
+        "k": "烘焙",
+        "v": "Lightmap/Lightmass",
+        "note": "静态场景"
+      }
+    ],
+    "sources": [
+      "S002",
+      "S034",
+      "S001"
+    ],
+    "cases": [
+      {
+        "who": "Epic",
+        "note": "Lumen 官方总览与技术细节",
+        "source": "S002"
+      },
+      {
+        "who": "UE5 示例",
+        "note": "Valley of the Ancient 等示例展示 Lumen/Nanite 组合（示例工程未单独核验）",
+        "source": "S002"
+      }
+    ],
+    "tags": [
+      "Lumen",
+      "烘焙",
+      "GI",
+      "光照"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "新建场景，项目设置中把 GI/反射设为 Lumen。",
+      "放置可移动光源与发光材质，观察动态 GI/反射。",
+      "对比烘焙 Lightmass 版本的画质、迭代时间与运行时开销。",
+      "调整 Lumen 质量/追踪距离/场景细节，记录帧时间变化。",
+      "在目标平台验证 Lumen 支持与性能。"
+    ],
+    "usage": [
+      "接入方式：项目设置 GI/反射方法；灯光设为 Movable/Stationary。",
+      "典型参数：Lumen 软/硬件追踪；反射 Lumen/SSR/平面；质量按设备分档。",
+      "集成点：与 VSM、Nanite、昼夜天气系统配合。",
+      "版本差异：Lumen 在 UE5 引入并持续优化，平台支持按版本核对。"
+    ],
+    "optimization": {
+      "performance": [
+        "降低追踪质量/距离",
+        "限制发光材质面积",
+        "远处用烘焙/探针"
+      ],
+      "memory": [
+        "Lumen 场景缓存/表面缓存占内存"
+      ],
+      "package": [
+        "烘焙光照数据 vs 运行时 GI 的包体权衡"
+      ],
+      "iteration": [
+        "Lumen 免烘焙加快迭代，但需性能回归"
+      ],
+      "stability": [
+        "动态光源过多会导致 GI 闪烁/噪点"
+      ],
+      "notWorth": "静态场景且迭代不急时，烘焙更便宜稳定。"
+    },
+    "verify": [
+      "`stat gpu`/ProfileGPU 看 Lumen 通道耗时。",
+      "动态光照变化下无明显延迟/漏光。",
+      "低端档位有可用回退。"
+    ]
+  },
+  {
+    "id": "ow-05",
+    "name": "虚拟纹理 + Zen/IoStore 流式资源管线",
+    "aliases": [
+      "Virtual Texturing",
+      "VT",
+      "Zen Loader",
+      "IoStore",
+      "流式"
+    ],
+    "type": [
+      "开放世界",
+      "FPS",
+      "ARPG"
+    ],
+    "domain": "solution",
+    "category": "资源管线与包体",
+    "engine": [
+      "UE5",
+      "UE5.0–5.3",
+      "UE5.4+"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "虚拟纹理按页流送，Zen/IoStore 按需加载资产，降低大世界内存峰值与首包；代价是 IO 调度与 hitch 风险。",
+    "problem": "开放世界贴图/资产量巨大，整包加载内存爆；按需加载又容易在边界卡顿。",
+    "mechanism": "虚拟纹理把纹理切成页，按可见性/优先级流送；Zen Loader 在 IoStore 之上按需加载资产包；配合预加载/预算与异步加载。",
+    "pros": [
+      "显著降低常驻内存",
+      "支持超大纹理/资产量",
+      "可与 World Partition 流送配合"
+    ],
+    "cons": [
+      "IO 抖动会造成 hitch/糊图",
+      "配置与调试复杂（页表/优先级/缓存）",
+      "包体组织不当会增加随机读"
+    ],
+    "fit": [
+      "开放世界",
+      "大战场",
+      "高分辨率材质"
+    ],
+    "unfit": [
+      "小项目/低分辨率风格化",
+      "IO 性能极差的平台（需降级）"
+    ],
+    "params": [
+      {
+        "k": "VT 页",
+        "v": "按平台/纹理密度",
+        "note": "页大小影响 IO"
+      },
+      {
+        "k": "流送池",
+        "v": "按内存预算",
+        "note": "避免超预算"
+      },
+      {
+        "k": "预加载",
+        "v": "按流送边界",
+        "note": "减少 hitch"
+      }
+    ],
+    "sources": [
+      "S029",
+      "S032",
+      "S030"
+    ],
+    "cases": [
+      {
+        "who": "UE 官方",
+        "note": "虚拟纹理与 Zen Loader 的官方说明",
+        "source": "S029"
+      }
+    ],
+    "tags": [
+      "虚拟纹理",
+      "Zen",
+      "IoStore",
+      "流式",
+      "内存"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "开启虚拟纹理支持，导入大尺寸纹理并启用 VT。",
+      "用 Zen/IoStore 打包，观察运行时按需加载。",
+      "在开放世界地图中高速移动，监控流送 hitch 与内存。",
+      "调整 VT 页大小/流送池与预加载边界。",
+      "对比关闭 VT 的内存峰值与加载时间。"
+    ],
+    "usage": [
+      "接入方式：Virtual Texture + Zen Loader/IoStore；项目设置启用。",
+      "典型参数：VT 页按平台/纹理密度；流送池按内存预算；预加载按边界。",
+      "集成点：与 World Partition、HLOD、Asset Manager 配合。",
+      "版本差异：IoStore/Zen 为 UE5 管线，4.x 使用传统 Pak。"
+    ],
+    "optimization": {
+      "performance": [
+        "VT 降低显存峰值但增加 IO",
+        "流送优先级按可见性"
+      ],
+      "memory": [
+        "流送池上限",
+        "纹理压缩/尺寸分级"
+      ],
+      "package": [
+        "按区域分块，减少首包"
+      ],
+      "iteration": [
+        "流送可视化 + 自动化巡航测试"
+      ],
+      "stability": [
+        "IO 抖动导致 hitch，需预加载/异步"
+      ],
+      "notWorth": "小场景纹理量不大时，VT 增加复杂度。"
+    },
+    "verify": [
+      "`stat streaming`/`stat rhi` 看流送与显存。",
+      "高速移动无长时间 hitch。",
+      "内存峰值与加载时间达标。"
+    ]
+  },
+  {
+    "id": "ow-06",
+    "name": "地形/植被：Landscape+Foliage vs PCG",
+    "aliases": [
+      "Landscape",
+      "Foliage",
+      "PCG",
+      "植被"
+    ],
+    "type": [
+      "开放世界",
+      "ARPG"
+    ],
+    "domain": "solution",
+    "category": "内容生产与工具链",
+    "engine": [
+      "UE5",
+      "UE4"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "Landscape+Foliage 适合手工控制的地形/植被；PCG 用规则批量生成，适合大规模分布但与艺术一致性有冲突。",
+    "problem": "开放世界植被量巨大，手工摆放产能不足；纯程序化又容易重复、穿模、破坏美术构图。",
+    "mechanism": "Landscape 提供地形分层材质；Foliage 做实例化植被分布与剔除；PCG 用图/规则在样条/表面/体积上生成，可结合手工遮罩与种子。",
+    "pros": [
+      "Foliage 稳定、可控、移动端友好",
+      "PCG 产能高、可快速迭代大范围",
+      "可混合：PCG 铺量+手工精修"
+    ],
+    "cons": [
+      "Foliage 手工量大、难覆盖公里级",
+      "PCG 容易重复/穿模，需要规则与遮罩治理",
+      "两者叠加会增加 draw call/内存"
+    ],
+    "fit": [
+      "开放世界地形/植被",
+      "大范围场景铺量"
+    ],
+    "unfit": [
+      "小型手工场景",
+      "需要逐株精确构图的项目"
+    ],
+    "params": [
+      {
+        "k": "植被密度",
+        "v": "按视距/平台",
+        "note": "实例化+剔除"
+      },
+      {
+        "k": "PCG 种子",
+        "v": "固定/可复现",
+        "note": "版本管理"
+      },
+      {
+        "k": "遮罩",
+        "v": "手工/规则",
+        "note": "控制构图"
+      }
+    ],
+    "sources": [
+      "S040",
+      "S015",
+      "S003"
+    ],
+    "cases": [
+      {
+        "who": "UE Foliage",
+        "note": "官方植被实例化与剔除",
+        "source": "S040"
+      },
+      {
+        "who": "UE PCG",
+        "note": "官方 PCG 框架",
+        "source": "S015"
+      }
+    ],
+    "tags": [
+      "地形",
+      "植被",
+      "PCG",
+      "Foliage"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "用 Landscape 建立地形，Foliage 模式刷植被。",
+      "建立 PCG 图：输入样条/密度遮罩，输出植被/道具。",
+      "固定随机种子，生成后与手工刷的版本对比构图。",
+      "用数据层/遮罩控制 PCG 只在指定区域生效。",
+      "对比两种方式的产能、帧时间与包体。"
+    ],
+    "usage": [
+      "接入方式：Landscape + Foliage；PCG 插件 + PCG Volume/Graph。",
+      "典型参数：植被密度按视距/平台；PCG 种子固定；遮罩手工/规则。",
+      "集成点：与 World Partition、HLOD、Nanite 配合。",
+      "版本差异：PCG 在 UE5 引入，4.x 无此框架。"
+    ],
+    "optimization": {
+      "performance": [
+        "植被密度/剔除距离分档",
+        "PCG 运行时生成需分帧"
+      ],
+      "memory": [
+        "实例化植被/HLOD"
+      ],
+      "package": [
+        "植被资源复用/图集"
+      ],
+      "iteration": [
+        "PCG 图版本化 + 预览"
+      ],
+      "stability": [
+        "种子/规则变更导致全图重建，需缓存"
+      ],
+      "notWorth": "小范围精细场景手工摆放更可控。"
+    },
+    "verify": [
+      "`stat scenerendering` 看植被 draw call。",
+      "PCG 生成结果可复现（同种子同结果）。",
+      "帧时间/内存在目标内。"
+    ]
+  },
+  {
+    "id": "ow-07",
+    "name": "PCG 内容产能：规则生成 + 手工精修 + 版本化",
+    "aliases": [
+      "PCG",
+      "procedural",
+      "内容产能",
+      "工具链"
+    ],
+    "type": [
+      "开放世界",
+      "ARPG"
+    ],
+    "domain": "solution",
+    "category": "内容生产与工具链",
+    "engine": [
+      "UE5.0–5.3",
+      "UE5.4+"
+    ],
+    "maturity": "可用但有条件",
+    "reliability": "A",
+    "level": "进阶",
+    "summary": "用 PCG 图批量铺量，手工遮罩/精修保证构图，配合种子与数据校验让生成结果可复现、可回归。",
+    "problem": "公里级世界的内容产能不可能全靠手工；纯随机生成会重复、穿模、破坏关卡节奏。",
+    "mechanism": "PCG 图按样条/表面/体积生成；用排除体积/手工遮罩/密度曲线控制；固定种子+版本化；Data Validation 校验生成规则；构建时烘焙/生成。",
+    "pros": [
+      "产能高、快速迭代",
+      "可复现、可回归",
+      "与 World Partition/HLOD 配合"
+    ],
+    "cons": [
+      "规则复杂后维护成本高",
+      "艺术一致性需要大量调参",
+      "运行时生成有 CPU/内存成本"
+    ],
+    "fit": [
+      "开放世界铺量",
+      "大副本场景"
+    ],
+    "unfit": [
+      "小团队/小场景",
+      "需要逐物件叙事的关卡"
+    ],
+    "params": [
+      {
+        "k": "生成时机",
+        "v": "编辑器/运行时",
+        "note": "运行时成本高"
+      },
+      {
+        "k": "种子",
+        "v": "固定",
+        "note": "可复现"
+      },
+      {
+        "k": "校验",
+        "v": "Data Validation",
+        "note": "防规则破坏"
+      }
+    ],
+    "sources": [
+      "S015",
+      "S031",
+      "S003"
+    ],
+    "cases": [
+      {
+        "who": "Epic PCG",
+        "note": "官方 PCG 框架与示例",
+        "source": "S015"
+      }
+    ],
+    "tags": [
+      "PCG",
+      "产能",
+      "程序化",
+      "工具链"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "建立 PCG 图：地形采样 → 密度过滤 → 生成道具/植被。",
+      "加入手工遮罩（样条/体积）保护关键构图。",
+      "固定种子并把生成结果纳入版本管理/校验。",
+      "用 Data Validation 检查命名/引用/预算。",
+      "在 CI 中跑生成与校验，确认可复现。"
+    ],
+    "usage": [
+      "接入方式：PCG Graph + 种子 + Data Validation + 版本控制。",
+      "典型参数：编辑器/运行时生成；固定种子；规则分层。",
+      "集成点：与 gen-07 工具链、ow-06 地形植被配合。",
+      "版本差异：PCG 图节点/API 随版本演进，需核对。"
+    ],
+    "optimization": {
+      "performance": [
+        "运行时生成分帧/缓存",
+        "减少重叠规则"
+      ],
+      "memory": [
+        "生成结果实例化，避免重复资产"
+      ],
+      "package": [
+        "生成资产按区域分块"
+      ],
+      "iteration": [
+        "图结构模块化，支持局部重跑"
+      ],
+      "stability": [
+        "规则变更需回归构图检查"
+      ],
+      "notWorth": "内容量小或艺术主导时，手工更快。"
+    },
+    "verify": [
+      "同种子生成结果一致。",
+      "生成耗时/帧时间可控。",
+      "Data Validation 无阻断错误。"
+    ]
+  },
+  {
+    "id": "ow-08",
+    "name": "大世界 AI 调度：Mass + StateTree + 分区激活",
+    "aliases": [
+      "Mass",
+      "StateTree",
+      "AI scheduling",
+      "分区"
+    ],
+    "type": [
+      "开放世界",
+      "ARPG",
+      "搜打撤"
+    ],
+    "domain": "solution",
+    "category": "AI与导航",
+    "engine": [
+      "UE5",
+      "UE5.0–5.3",
+      "UE5.4+"
+    ],
+    "maturity": "可用但有条件",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "按玩家距离/重要性分层：近处 Actor+StateTree，远处 Mass/降频模拟，离开分区则休眠/回收。",
+    "problem": "开放世界 NPC/动物/敌人数量大，全部跑完整 AI 会耗尽 CPU；全部休眠又会让世界「死」。",
+    "mechanism": "World Partition 分区激活；Mass 批量处理远处移动/觅食；StateTree 处理近处复杂行为；按距离调整更新频率与表现精度。",
+    "pros": [
+      "CPU 可控、世界仍有活力",
+      "分层逻辑清晰",
+      "可按玩家可见性精细调度"
+    ],
+    "cons": [
+      "Mass/StateTree/Actor 三套体系整合复杂",
+      "状态迁移容易出现「瞬移/行为跳变」",
+      "调试跨系统问题困难"
+    ],
+    "fit": [
+      "开放世界 NPC/生态",
+      "大世界 PvE"
+    ],
+    "unfit": [
+      "小型关卡/少量 AI"
+    ],
+    "params": [
+      {
+        "k": "分层距离",
+        "v": "近/中/远",
+        "note": "按玩法"
+      },
+      {
+        "k": "更新频率",
+        "v": "远处降频",
+        "note": "省 CPU"
+      },
+      {
+        "k": "激活",
+        "v": "分区/视距",
+        "note": "避免全图模拟"
+      }
+    ],
+    "sources": [
+      "S008",
+      "S013",
+      "S003",
+      "S019"
+    ],
+    "cases": [
+      {
+        "who": "UE Mass",
+        "note": "大规模实体 ECS 框架",
+        "source": "S008"
+      },
+      {
+        "who": "UE StateTree",
+        "note": "分层状态机用于 AI/玩法",
+        "source": "S013"
+      }
+    ],
+    "tags": [
+      "Mass",
+      "StateTree",
+      "AI",
+      "分区",
+      "开放世界"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "启用 MassEntity/MassGameplay 与 StateTree。",
+      "把远处 NPC 放入 Mass，近处用 Actor + StateTree。",
+      "按玩家距离/分区激活设置更新频率与休眠。",
+      "用 Mass 调试视图观察实体/Processor 耗时。",
+      "在 1000+ NPC 规模测试帧时间与内存。"
+    ],
+    "usage": [
+      "接入方式：Mass + StateTree + 分区激活；近处 Actor 代理。",
+      "典型参数：近/中/远分层；远处降频；分区休眠。",
+      "集成点：与 tps-06、ow-09 导航、World Partition 配合。",
+      "版本差异：Mass/StateTree 在 5.x 演进，插件/API 按文档。"
+    ],
+    "optimization": {
+      "performance": [
+        "Processor 批量化",
+        "远处降频/休眠",
+        "分帧更新"
+      ],
+      "memory": [
+        "Fragment 精简",
+        "代理回收"
+      ],
+      "package": [
+        "表现资源 LOD/复用"
+      ],
+      "iteration": [
+        "Mass/StateTree 调试可视化"
+      ],
+      "stability": [
+        "状态在 Actor↔Mass 切换时保持一致"
+      ],
+      "notWorth": "NPC 数量少且行为复杂时，Actor+BT 更易调试。"
+    },
+    "verify": [
+      "Mass 调试视图 Processor 耗时不超预算。",
+      "远/近切换无明显行为断裂。",
+      "大规模 NPC 下帧时间稳定。"
+    ]
+  },
+  {
+    "id": "ow-09",
+    "name": "开放世界导航：Recast vs 分层/流场",
+    "aliases": [
+      "NavMesh",
+      "Recast",
+      "flow field",
+      "分层寻路"
+    ],
+    "type": [
+      "开放世界",
+      "ARPG",
+      "MOBA"
+    ],
+    "domain": "solution",
+    "category": "AI与导航",
+    "engine": [
+      "UE4",
+      "UE5"
+    ],
+    "maturity": "生产验证",
+    "reliability": "B",
+    "level": "深入",
+    "summary": "常规 NPC 用 Recast/NavMesh；大量同目标单位用流场；超大世界用分层寻路降低搜索空间。",
+    "problem": "开放世界地形复杂、距离远，逐个体全图 A* 成本高；动态障碍/破坏会让 NavMesh 失效。",
+    "mechanism": "Recast 生成 NavMesh，Detour 查询+局部避障；流场按网格/目标批量；分层先粗网格再局部细化；动态障碍用 NavMesh 动态修改或局部避障。",
+    "pros": [
+      "NavMesh 成熟、支持复杂地形",
+      "流场适合大规模同目标",
+      "分层降低大世界搜索成本"
+    ],
+    "cons": [
+      "NavMesh 重建/动态修改成本高",
+      "流场对多目标/动态障碍不灵活",
+      "分层实现复杂、调试难"
+    ],
+    "fit": [
+      "开放世界 NPC",
+      "大规模巡逻/迁徙"
+    ],
+    "unfit": [
+      "小场景少量 AI",
+      "全动态可破坏地形"
+    ],
+    "params": [
+      {
+        "k": "Tile",
+        "v": "按世界尺寸",
+        "note": "分块重建"
+      },
+      {
+        "k": "流场",
+        "v": "同目标单位",
+        "note": "批量"
+      },
+      {
+        "k": "避障",
+        "v": "局部 RVO/射线",
+        "note": "补 NavMesh 不足"
+      }
+    ],
+    "sources": [
+      "S020",
+      "S062",
+      "S008"
+    ],
+    "cases": [
+      {
+        "who": "UE Navigation",
+        "note": "Recast/Detour 的官方集成",
+        "source": "S020"
+      }
+    ],
+    "tags": [
+      "导航",
+      "NavMesh",
+      "流场",
+      "分层"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "用 NavMesh Bounds/Recast 生成大世界导航。",
+      "开启导航分块/分层，观察大范围寻路耗时。",
+      "大量同目标单位改用流场，减少逐个体 A*。",
+      "局部用 RVO/射线避障解决拥挤。",
+      "在 1000 单位/远距离寻路下测试 CPU。"
+    ],
+    "usage": [
+      "接入方式：UE Navigation/Recast + 分层寻路 + 流场（自建）。",
+      "典型参数：Tile 按世界尺寸；流场按目标；局部 RVO。",
+      "集成点：与 moba-06、tps-06 Mass 导航配合。",
+      "版本差异：导航系统/Recast 版本随 UE 更新，需核对。"
+    ],
+    "optimization": {
+      "performance": [
+        "分层/分块降低搜索",
+        "流场缓存",
+        "寻路分帧"
+      ],
+      "memory": [
+        "NavMesh 数据按区域流送"
+      ],
+      "package": [
+        "NavMesh 随区域分块"
+      ],
+      "iteration": [
+        "导航调试 + 自动化寻路基准"
+      ],
+      "stability": [
+        "动态障碍/破坏后局部重建 NavMesh"
+      ],
+      "notWorth": "小地图且单位少时，默认 NavMesh 足够。"
+    },
+    "verify": [
+      "远距离寻路耗时不随距离线性爆炸。",
+      "拥挤场景无长期卡死。",
+      "`stat navigation` 看耗时。"
+    ]
+  },
+  {
+    "id": "ow-10",
+    "name": "物理破坏：Chaos 破碎 vs 预破碎/假破坏",
+    "aliases": [
+      "Chaos Destruction",
+      "destruction",
+      "预破碎",
+      "物理"
+    ],
+    "type": [
+      "开放世界",
+      "ARPG",
+      "FPS"
+    ],
+    "domain": "solution",
+    "category": "物理、破坏与载具",
+    "engine": [
+      "UE4",
+      "UE5"
+    ],
+    "maturity": "可用但有条件",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "Chaos 提供实时破碎/场/聚类，适合局部互动；大规模场景常用预破碎/假破坏/贴图切换来控制成本。",
+    "problem": "开放世界破坏既要有反馈，又不能每块碎片都跑完整物理；否则 CPU/网络/内存都会爆。",
+    "mechanism": "Chaos Geometry Collection 预生成破碎层级，运行时按冲击激活/聚类；远景用预破碎动画/贴图/音效伪造；碎片数量/生命周期受限。",
+    "pros": [
+      "互动反馈强、可做解谜/战斗",
+      "Chaos 与引擎集成",
+      "可分层：近处真实、远处假"
+    ],
+    "cons": [
+      "破碎资产制作/内存成本高",
+      "碎片物理 CPU 高、网络同步复杂",
+      "大规模破坏容易引发卡顿/穿模"
+    ],
+    "fit": [
+      "局部可破坏场景",
+      "战斗掩体破坏"
+    ],
+    "unfit": [
+      "全场景实时破坏",
+      "低端移动端"
+    ],
+    "params": [
+      {
+        "k": "碎片预算",
+        "v": "按平台/距离",
+        "note": "限制数量/生命周期"
+      },
+      {
+        "k": "聚类",
+        "v": "Chaos cluster",
+        "note": "降低激活成本"
+      },
+      {
+        "k": "网络",
+        "v": "事件/状态混合",
+        "note": "碎片同步昂贵"
+      }
+    ],
+    "sources": [
+      "S024",
+      "S023",
+      "S001"
+    ],
+    "cases": [
+      {
+        "who": "Chaos Destruction",
+        "note": "官方文档给出破碎/场/聚类",
+        "source": "S024"
+      }
+    ],
+    "tags": [
+      "Chaos",
+      "破坏",
+      "碎片",
+      "物理"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "启用 Chaos Destruction，建立可破碎网格与 Geometry Collection。",
+      "设置伤害阈值/场/聚类，测试局部破坏。",
+      "对比预破碎/假破坏（换模型+特效）的成本与效果。",
+      "在多人下测试破坏的同步与服务器权威。",
+      "大规模破坏场景测试物理耗时与碎片数。"
+    ],
+    "usage": [
+      "接入方式：Chaos Destruction + Geometry Collection；或预破碎资产。",
+      "典型参数：碎片预算按平台/距离；聚类；网络事件/状态混合。",
+      "集成点：与物理、音频、导航（破坏后重建）配合。",
+      "版本差异：Chaos 在 UE5 取代 PhysX 破坏，4.x 方案不同。"
+    ],
+    "optimization": {
+      "performance": [
+        "碎片数/存活时间限制",
+        "远处休眠/合并",
+        "预破碎"
+      ],
+      "memory": [
+        "Geometry Collection 数据较大"
+      ],
+      "package": [
+        "按场景分块，避免全量加载"
+      ],
+      "iteration": [
+        "破坏测试关卡 + 参数热调"
+      ],
+      "stability": [
+        "大量碎片导致物理爆炸，需上限"
+      ],
+      "notWorth": "破坏只是演出时，预破碎/特效更便宜。"
+    },
+    "verify": [
+      "`stat physics`/Insights 看物理耗时。",
+      "多人下破坏结果一致。",
+      "碎片数上限生效，无帧时间爆炸。"
+    ]
+  },
+  {
+    "id": "ow-11",
+    "name": "大世界存档一致性：分区状态/版本迁移/回滚",
+    "aliases": [
+      "save consistency",
+      "world state",
+      "version migration",
+      "存档"
+    ],
+    "type": [
+      "开放世界",
+      "ARPG",
+      "搜打撤"
+    ],
+    "domain": "solution",
+    "category": "存档、回放与一致性",
+    "engine": [
+      "UE4",
+      "UE5"
+    ],
+    "maturity": "可用但有条件",
+    "reliability": "B",
+    "level": "深入",
+    "summary": "把大世界状态按区域/任务/玩家分层存档，带版本号与迁移，避免整图序列化与补丁后坏档。",
+    "problem": "开放世界状态量大（任务/容器/破坏/NPC），整图保存慢且易坏；补丁改动结构后旧档无法加载。",
+    "mechanism": "分层存档：玩家进度/区域状态/世界事件分开；每份带 schema 版本与迁移函数；提交用临时文件+校验；关键状态服务器权威。",
+    "pros": [
+      "存档体积/耗时可控",
+      "支持版本迁移与回滚",
+      "区域状态可独立修复"
+    ],
+    "cons": [
+      "分层边界设计复杂",
+      "跨区域一致性/时序难",
+      "迁移函数累积维护成本"
+    ],
+    "fit": [
+      "开放世界",
+      "长线 ARPG",
+      "搜打撤局外进度"
+    ],
+    "unfit": [
+      "小型线性游戏"
+    ],
+    "params": [
+      {
+        "k": "分层",
+        "v": "玩家/区域/事件",
+        "note": "按变化频率"
+      },
+      {
+        "k": "版本",
+        "v": "schema version",
+        "note": "迁移"
+      },
+      {
+        "k": "提交",
+        "v": "临时文件+校验",
+        "note": "防坏档"
+      }
+    ],
+    "sources": [
+      "S046",
+      "S030",
+      "S035"
+    ],
+    "cases": [
+      {
+        "who": "UE SaveGame",
+        "note": "官方存档体系作为基线",
+        "source": "S046"
+      }
+    ],
+    "tags": [
+      "存档",
+      "版本迁移",
+      "一致性",
+      "开放世界"
+    ],
+    "extra": false,
+    "gap": "开放世界分区存档的一手工程细节少；本条为通用存档架构推导。",
+    "reproduce": [
+      "把存档拆为玩家/区域/事件三层，分别序列化。",
+      "加入 schema 版本与迁移函数。",
+      "写入用临时文件+校验，成功后原子替换。",
+      "模拟补丁升级/坏档/断线，验证迁移与回滚。",
+      "大世界分区状态按需加载，避免整图序列化。"
+    ],
+    "usage": [
+      "接入方式：SaveGame 子类 + 分区状态存储 + 版本迁移。",
+      "典型参数：分层=玩家/区域/事件；版本=schema version；提交=临时文件+校验。",
+      "集成点：与 gen-13 存档、tps-04 结算、World Partition 配合。",
+      "版本差异：SaveGame 序列化机制随版本稳定，但自定义结构需迁移。"
+    ],
+    "optimization": {
+      "performance": [
+        "异步/分帧保存",
+        "只存差异"
+      ],
+      "memory": [
+        "分区状态按需加载"
+      ],
+      "package": [
+        "无"
+      ],
+      "iteration": [
+        "存档版本回放/迁移测试"
+      ],
+      "stability": [
+        "坏档可回退到上一版本"
+      ],
+      "notWorth": "短局无持久世界状态时，简单玩家存档即可。"
+    },
+    "verify": [
+      "旧版本存档可迁移到新版本。",
+      "坏档/断电不产生半写文件。",
+      "大世界保存耗时不阻塞帧。"
+    ]
+  },
+  {
+    "id": "ow-12",
+    "name": "时间/天气系统与 GI/阴影更新",
+    "aliases": [
+      "time of day",
+      "weather",
+      "dynamic GI",
+      "昼夜"
+    ],
+    "type": [
+      "开放世界",
+      "ARPG"
+    ],
+    "domain": "solution",
+    "category": "渲染与GI",
+    "engine": [
+      "UE5",
+      "UE4"
+    ],
+    "maturity": "生产验证",
+    "reliability": "B",
+    "level": "进阶",
+    "summary": "用动态光照/天空/体积云驱动昼夜天气，配合 Lumen/VSM 更新；需控制更新频率与阴影缓存失效成本。",
+    "problem": "昼夜/天气变化会让烘焙光照失效，动态 GI/阴影每帧更新又会推高 GPU 成本。",
+    "mechanism": "定向光/天空光/天空大气按时间驱动；Lumen 随光照变化更新；VSM 缓存失效后重建；天气用粒子/材质/雾/湿滑参数混合。",
+    "pros": [
+      "沉浸感强、支持玩法（夜战/天气）",
+      "Lumen/VSM 可响应动态变化",
+      "可按时间/区域降频更新"
+    ],
+    "cons": [
+      "GPU 成本高，低端机需降级",
+      "VSM 缓存失效会造成阴影闪烁/卡顿",
+      "天气与材质/音频/玩法联动复杂"
+    ],
+    "fit": [
+      "开放世界",
+      "昼夜玩法"
+    ],
+    "unfit": [
+      "静态光照场景",
+      "低端移动端（需烘焙+简化）"
+    ],
+    "params": [
+      {
+        "k": "更新频率",
+        "v": "按时间流速",
+        "note": "不必每帧全量"
+      },
+      {
+        "k": "阴影",
+        "v": "VSM/CSM",
+        "note": "按平台"
+      },
+      {
+        "k": "天气",
+        "v": "材质/粒子/雾",
+        "note": "参数联动"
+      }
+    ],
+    "sources": [
+      "S002",
+      "S065",
+      "S034"
+    ],
+    "cases": [
+      {
+        "who": "UE Lumen/VSM",
+        "note": "动态 GI 与虚拟阴影的官方说明",
+        "source": "S002"
+      }
+    ],
+    "tags": [
+      "昼夜",
+      "天气",
+      "Lumen",
+      "VSM",
+      "GI"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "建立动态天空/太阳/体积云，绑定时间流速。",
+      "开启 Lumen/VSM，观察昼夜变化下的 GI/阴影更新。",
+      "调整更新频率/阴影缓存策略，记录帧时间。",
+      "加入天气（雨/雾/雪）材质与粒子，测试预算。",
+      "在低端档位关闭/降级动态 GI。"
+    ],
+    "usage": [
+      "接入方式：Sky Atmosphere/Volumetric Cloud + Lumen/VSM + 天气材质。",
+      "典型参数：更新频率按时间流速；阴影 VSM/CSM；天气材质/粒子分层。",
+      "集成点：与 ow-04、ow-13、音频/玩法配合。",
+      "版本差异：Sky/Cloud/Lumen 功能随 UE5 版本演进，需核对。"
+    ],
+    "optimization": {
+      "performance": [
+        "降低 GI/阴影更新频率",
+        "远处阴影降级",
+        "天气粒子预算"
+      ],
+      "memory": [
+        "体积云/阴影缓存占显存"
+      ],
+      "package": [
+        "天气材质/纹理分档"
+      ],
+      "iteration": [
+        "时间加速调试 + 性能基准"
+      ],
+      "stability": [
+        "快速时间跳变导致 GI 闪烁，需平滑"
+      ],
+      "notWorth": "固定时间段的场景可烘焙，不必全动态。"
+    },
+    "verify": [
+      "昼夜切换无明显 GI/阴影跳变。",
+      "`stat gpu` 看 GI/阴影通道耗时。",
+      "低端档位可运行。"
+    ]
+  },
+  {
+    "id": "ow-13",
+    "name": "Shader 编译与 PSO 卡顿治理",
+    "aliases": [
+      "PSO",
+      "shader compilation",
+      "hitch",
+      "卡顿"
+    ],
+    "type": [
+      "开放世界",
+      "FPS",
+      "ARPG",
+      "通用"
+    ],
+    "domain": "solution",
+    "category": "性能与工具链",
+    "engine": [
+      "UE4",
+      "UE5"
+    ],
+    "maturity": "生产验证",
+    "reliability": "A",
+    "level": "深入",
+    "summary": "用 PSO 预缓存/收集、材质变体治理、异步编译与加载期预热，减少首次出现的编译卡顿。",
+    "problem": "新材质/特效首次出现时触发 PSO 创建/着色器编译，造成几十到数百毫秒 hitch；开放世界尤其明显。",
+    "mechanism": "PSO Precaching 自动收集并异步编译；手动 PSO 缓存；减少材质变体/关键字组合；在加载/过场预热；用 Insights/stat 定位。",
+    "pros": [
+      "显著减少首次出现卡顿",
+      "官方工具链支持",
+      "可与画质分级配合"
+    ],
+    "cons": [
+      "预缓存增加包体/构建时间",
+      "平台/版本限制（官方文档注明）",
+      "材质变体治理需要长期规范"
+    ],
+    "fit": [
+      "开放世界",
+      "大场景 FPS",
+      "多平台项目"
+    ],
+    "unfit": [
+      "极小项目",
+      "完全不掉帧的静态场景"
+    ],
+    "params": [
+      {
+        "k": "PSO 缓存",
+        "v": "预缓存/手动收集",
+        "note": "按平台"
+      },
+      {
+        "k": "变体",
+        "v": "关键字/材质组合",
+        "note": "越少越好"
+      },
+      {
+        "k": "预热",
+        "v": "加载/过场",
+        "note": "避免战斗中编译"
+      }
+    ],
+    "sources": [
+      "S042",
+      "S025",
+      "S010",
+      "S070"
+    ],
+    "cases": [
+      {
+        "who": "UE PSO Precaching",
+        "note": "官方文档说明自动收集与平台限制",
+        "source": "S042"
+      }
+    ],
+    "tags": [
+      "PSO",
+      "Shader",
+      "卡顿",
+      "预缓存"
+    ],
+    "extra": false,
+    "gap": null,
+    "reproduce": [
+      "打包项目并在真机首次进入新区域，记录卡顿。",
+      "开启 PSO 预缓存收集，录制典型路径。",
+      "打包预缓存后再次测试首次出现卡顿。",
+      "用 `r.ShaderPipelineCache` 相关 CVar（以控制台补全为准）检查缓存状态。",
+      "减少材质变体/关键字组合，复测包体与编译时间。"
+    ],
+    "usage": [
+      "接入方式：PSO Precaching + 材质变体治理 + 加载期预热。",
+      "典型参数：PSO 缓存预缓存/手动收集；变体裁剪；预热在加载/过场。",
+      "集成点：与 gen-11、ow-03/04/05 资源管线配合。",
+      "版本差异：PSO 预缓存平台/版本限制按官方文档核对。"
+    ],
+    "optimization": {
+      "performance": [
+        "减少变体组合",
+        "预编译/预热",
+        "异步编译"
+      ],
+      "memory": [
+        "PSO 缓存文件随包"
+      ],
+      "package": [
+        "缓存体积与变体数量权衡"
+      ],
+      "iteration": [
+        "自动化首次出现测试"
+      ],
+      "stability": [
+        "缓存缺失要有兜底，不崩溃"
+      ],
+      "notWorth": "材质极少的项目可只做基础预热。"
+    },
+    "verify": [
+      "首次进入新区域无长卡顿。",
+      "PSO 缓存命中率可统计。",
+      "包体/编译时间增量在预算内。"
+    ]
+  }
+]

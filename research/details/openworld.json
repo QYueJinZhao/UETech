@@ -1,0 +1,367 @@
+{
+  "ow-01": {
+    "reproduce": [
+      "新建开放世界模板或把现有地图转换为 World Partition（编辑器提示转换）。",
+      "设置 Runtime Grid 单元尺寸与加载范围（World Settings）。",
+      "开启 One File Per Actor（OFPA），把 Actor 保存为独立文件。",
+      "用 Data Layer 组织任务/区域内容。",
+      "在编辑器中用「World Partition」窗口观察单元加载/卸载。",
+      "Gameplay 中传送到远处，确认单元按流送源加载且无长时间 hitch。"
+    ],
+    "usage": [
+      "接入方式：World Partition + OFPA + Data Layer；传统项目可保留 Level Streaming。",
+      "典型参数：网格尺寸按视距/内容密度；流送源跟随玩家/相机/任务；加载范围大于可视距离。",
+      "集成点：与 HLOD、Nanite、虚拟纹理、PCG 配合；GameMode 中配置流送源。",
+      "版本差异：World Partition 在 UE5 引入，4.x 只有传统 Level Streaming。"
+    ],
+    "optimization": {
+      "performance": ["单元尺寸调优，避免过细导致管理开销", "流送源数量控制", "HLOD 降低远处 draw call"],
+      "memory": ["加载范围与内存预算联动", "按区域释放"],
+      "package": ["按区域/章节分块 Cook"],
+      "iteration": ["WP 可视化窗口 + 自动化传送测试"],
+      "stability": ["流送边界瞬移要有预加载/遮挡"],
+      "notWorth": "小型线性关卡用传统 Level Streaming 更可控。"
+    },
+    "verify": [
+      "`stat levels`/`stat streaming` 看单元加载与流送耗时。",
+      "传送/高速移动无长时间 hitch；Insights LoadTime 通道确认。",
+      "内存峰值在设备预算内。"
+    ]
+  },
+  "ow-02": {
+    "reproduce": [
+      "在 World Partition 地图中打开 HLOD 设置，建立 2–3 层 HLOD Layer。",
+      "配置每层的合并网格/材质与生成规则。",
+      "生成 HLOD，检查远处代理与近处原网格的切换。",
+      "调整 HLOD 距离与流送单元关系，避免切换穿帮。",
+      "对比开启/关闭 HLOD 的 draw call 与帧时间。"
+    ],
+    "usage": [
+      "接入方式：HLOD Layer + 构建（Build HLOD）；World Partition 自动管理。",
+      "典型参数：2–3 层；切换距离大于流送单元；代理类型合并网格/impostor。",
+      "集成点：与 Nanite/植被/光照构建配合；HLOD 材质需兼容。",
+      "版本差异：WP HLOD 在 5.x 持续演进，构建流程按版本文档。"
+    ],
+    "optimization": {
+      "performance": ["减少 HLOD 层数/材质复杂度", "代理网格面数预算"],
+      "memory": ["HLOD 资源随流送，注意包体"],
+      "package": ["HLOD 数据进包，按区域分块"],
+      "iteration": ["增量构建，避免全量重跑"],
+      "stability": ["切换距离/材质不匹配会导致闪烁"],
+      "notWorth": "场景小、draw call 不紧张时不必做 HLOD。"
+    },
+    "verify": [
+      "远景 draw call/帧时间下降。",
+      "切换处无明显穿帮/闪烁。",
+      "`stat scenerendering` 看绘制调用数。"
+    ]
+  },
+  "ow-03": {
+    "reproduce": [
+      "导入一个高面数静态网格，勾选 Enable Nanite。",
+      "对比同资产的传统 LOD 版本在远近处的画质与帧时间。",
+      "在 Nanite 视图中查看簇/三角形密度。",
+      "测试 Nanite 不支持的特性（如特定骨骼网格/透明材质）并记录限制。",
+      "在目标平台验证 Nanite 支持与内存。"
+    ],
+    "usage": [
+      "接入方式：网格资产勾选 Nanite；项目设置中启用。",
+      "典型参数：簇/层级自动构建；流送按屏幕误差；平台按官方支持列表。",
+      "集成点：与 VSM、Lumen、World Partition 配合最佳。",
+      "版本差异：Nanite 平台支持与功能边界随版本变化，需按文档核对。"
+    ],
+    "optimization": {
+      "performance": ["控制过度绘制/材质复杂度", "远处可用 HLOD/impostor"],
+      "memory": ["Nanite 数据较大，需包体/流送预算"],
+      "package": ["按区域分块，避免单包过大"],
+      "iteration": ["Nanite 视图 + 自动化场景基准"],
+      "stability": ["不支持平台要有回退 LOD"],
+      "notWorth": "移动端/低端设备或资产面数不高时，传统 LOD 更省。"
+    },
+    "verify": [
+      "`stat rhi`/`stat scenerendering` 看三角形与绘制调用。",
+      "远近切换无明显跳变。",
+      "目标平台帧时间与内存达标。"
+    ]
+  },
+  "ow-04": {
+    "reproduce": [
+      "新建场景，项目设置中把 GI/反射设为 Lumen。",
+      "放置可移动光源与发光材质，观察动态 GI/反射。",
+      "对比烘焙 Lightmass 版本的画质、迭代时间与运行时开销。",
+      "调整 Lumen 质量/追踪距离/场景细节，记录帧时间变化。",
+      "在目标平台验证 Lumen 支持与性能。"
+    ],
+    "usage": [
+      "接入方式：项目设置 GI/反射方法；灯光设为 Movable/Stationary。",
+      "典型参数：Lumen 软/硬件追踪；反射 Lumen/SSR/平面；质量按设备分档。",
+      "集成点：与 VSM、Nanite、昼夜天气系统配合。",
+      "版本差异：Lumen 在 UE5 引入并持续优化，平台支持按版本核对。"
+    ],
+    "optimization": {
+      "performance": ["降低追踪质量/距离", "限制发光材质面积", "远处用烘焙/探针"],
+      "memory": ["Lumen 场景缓存/表面缓存占内存"],
+      "package": ["烘焙光照数据 vs 运行时 GI 的包体权衡"],
+      "iteration": ["Lumen 免烘焙加快迭代，但需性能回归"],
+      "stability": ["动态光源过多会导致 GI 闪烁/噪点"],
+      "notWorth": "静态场景且迭代不急时，烘焙更便宜稳定。"
+    },
+    "verify": [
+      "`stat gpu`/ProfileGPU 看 Lumen 通道耗时。",
+      "动态光照变化下无明显延迟/漏光。",
+      "低端档位有可用回退。"
+    ]
+  },
+  "ow-05": {
+    "reproduce": [
+      "开启虚拟纹理支持，导入大尺寸纹理并启用 VT。",
+      "用 Zen/IoStore 打包，观察运行时按需加载。",
+      "在开放世界地图中高速移动，监控流送 hitch 与内存。",
+      "调整 VT 页大小/流送池与预加载边界。",
+      "对比关闭 VT 的内存峰值与加载时间。"
+    ],
+    "usage": [
+      "接入方式：Virtual Texture + Zen Loader/IoStore；项目设置启用。",
+      "典型参数：VT 页按平台/纹理密度；流送池按内存预算；预加载按边界。",
+      "集成点：与 World Partition、HLOD、Asset Manager 配合。",
+      "版本差异：IoStore/Zen 为 UE5 管线，4.x 使用传统 Pak。"
+    ],
+    "optimization": {
+      "performance": ["VT 降低显存峰值但增加 IO", "流送优先级按可见性"],
+      "memory": ["流送池上限", "纹理压缩/尺寸分级"],
+      "package": ["按区域分块，减少首包"],
+      "iteration": ["流送可视化 + 自动化巡航测试"],
+      "stability": ["IO 抖动导致 hitch，需预加载/异步"],
+      "notWorth": "小场景纹理量不大时，VT 增加复杂度。"
+    },
+    "verify": [
+      "`stat streaming`/`stat rhi` 看流送与显存。",
+      "高速移动无长时间 hitch。",
+      "内存峰值与加载时间达标。"
+    ]
+  },
+  "ow-06": {
+    "reproduce": [
+      "用 Landscape 建立地形，Foliage 模式刷植被。",
+      "建立 PCG 图：输入样条/密度遮罩，输出植被/道具。",
+      "固定随机种子，生成后与手工刷的版本对比构图。",
+      "用数据层/遮罩控制 PCG 只在指定区域生效。",
+      "对比两种方式的产能、帧时间与包体。"
+    ],
+    "usage": [
+      "接入方式：Landscape + Foliage；PCG 插件 + PCG Volume/Graph。",
+      "典型参数：植被密度按视距/平台；PCG 种子固定；遮罩手工/规则。",
+      "集成点：与 World Partition、HLOD、Nanite 配合。",
+      "版本差异：PCG 在 UE5 引入，4.x 无此框架。"
+    ],
+    "optimization": {
+      "performance": ["植被密度/剔除距离分档", "PCG 运行时生成需分帧"],
+      "memory": ["实例化植被/HLOD"],
+      "package": ["植被资源复用/图集"],
+      "iteration": ["PCG 图版本化 + 预览"],
+      "stability": ["种子/规则变更导致全图重建，需缓存"],
+      "notWorth": "小范围精细场景手工摆放更可控。"
+    },
+    "verify": [
+      "`stat scenerendering` 看植被 draw call。",
+      "PCG 生成结果可复现（同种子同结果）。",
+      "帧时间/内存在目标内。"
+    ]
+  },
+  "ow-07": {
+    "reproduce": [
+      "建立 PCG 图：地形采样 → 密度过滤 → 生成道具/植被。",
+      "加入手工遮罩（样条/体积）保护关键构图。",
+      "固定种子并把生成结果纳入版本管理/校验。",
+      "用 Data Validation 检查命名/引用/预算。",
+      "在 CI 中跑生成与校验，确认可复现。"
+    ],
+    "usage": [
+      "接入方式：PCG Graph + 种子 + Data Validation + 版本控制。",
+      "典型参数：编辑器/运行时生成；固定种子；规则分层。",
+      "集成点：与 gen-07 工具链、ow-06 地形植被配合。",
+      "版本差异：PCG 图节点/API 随版本演进，需核对。"
+    ],
+    "optimization": {
+      "performance": ["运行时生成分帧/缓存", "减少重叠规则"],
+      "memory": ["生成结果实例化，避免重复资产"],
+      "package": ["生成资产按区域分块"],
+      "iteration": ["图结构模块化，支持局部重跑"],
+      "stability": ["规则变更需回归构图检查"],
+      "notWorth": "内容量小或艺术主导时，手工更快。"
+    },
+    "verify": [
+      "同种子生成结果一致。",
+      "生成耗时/帧时间可控。",
+      "Data Validation 无阻断错误。"
+    ]
+  },
+  "ow-08": {
+    "reproduce": [
+      "启用 MassEntity/MassGameplay 与 StateTree。",
+      "把远处 NPC 放入 Mass，近处用 Actor + StateTree。",
+      "按玩家距离/分区激活设置更新频率与休眠。",
+      "用 Mass 调试视图观察实体/Processor 耗时。",
+      "在 1000+ NPC 规模测试帧时间与内存。"
+    ],
+    "usage": [
+      "接入方式：Mass + StateTree + 分区激活；近处 Actor 代理。",
+      "典型参数：近/中/远分层；远处降频；分区休眠。",
+      "集成点：与 tps-06、ow-09 导航、World Partition 配合。",
+      "版本差异：Mass/StateTree 在 5.x 演进，插件/API 按文档。"
+    ],
+    "optimization": {
+      "performance": ["Processor 批量化", "远处降频/休眠", "分帧更新"],
+      "memory": ["Fragment 精简", "代理回收"],
+      "package": ["表现资源 LOD/复用"],
+      "iteration": ["Mass/StateTree 调试可视化"],
+      "stability": ["状态在 Actor↔Mass 切换时保持一致"],
+      "notWorth": "NPC 数量少且行为复杂时，Actor+BT 更易调试。"
+    },
+    "verify": [
+      "Mass 调试视图 Processor 耗时不超预算。",
+      "远/近切换无明显行为断裂。",
+      "大规模 NPC 下帧时间稳定。"
+    ]
+  },
+  "ow-09": {
+    "reproduce": [
+      "用 NavMesh Bounds/Recast 生成大世界导航。",
+      "开启导航分块/分层，观察大范围寻路耗时。",
+      "大量同目标单位改用流场，减少逐个体 A*。",
+      "局部用 RVO/射线避障解决拥挤。",
+      "在 1000 单位/远距离寻路下测试 CPU。"
+    ],
+    "usage": [
+      "接入方式：UE Navigation/Recast + 分层寻路 + 流场（自建）。",
+      "典型参数：Tile 按世界尺寸；流场按目标；局部 RVO。",
+      "集成点：与 moba-06、tps-06 Mass 导航配合。",
+      "版本差异：导航系统/Recast 版本随 UE 更新，需核对。"
+    ],
+    "optimization": {
+      "performance": ["分层/分块降低搜索", "流场缓存", "寻路分帧"],
+      "memory": ["NavMesh 数据按区域流送"],
+      "package": ["NavMesh 随区域分块"],
+      "iteration": ["导航调试 + 自动化寻路基准"],
+      "stability": ["动态障碍/破坏后局部重建 NavMesh"],
+      "notWorth": "小地图且单位少时，默认 NavMesh 足够。"
+    },
+    "verify": [
+      "远距离寻路耗时不随距离线性爆炸。",
+      "拥挤场景无长期卡死。",
+      "`stat navigation` 看耗时。"
+    ]
+  },
+  "ow-10": {
+    "reproduce": [
+      "启用 Chaos Destruction，建立可破碎网格与 Geometry Collection。",
+      "设置伤害阈值/场/聚类，测试局部破坏。",
+      "对比预破碎/假破坏（换模型+特效）的成本与效果。",
+      "在多人下测试破坏的同步与服务器权威。",
+      "大规模破坏场景测试物理耗时与碎片数。"
+    ],
+    "usage": [
+      "接入方式：Chaos Destruction + Geometry Collection；或预破碎资产。",
+      "典型参数：碎片预算按平台/距离；聚类；网络事件/状态混合。",
+      "集成点：与物理、音频、导航（破坏后重建）配合。",
+      "版本差异：Chaos 在 UE5 取代 PhysX 破坏，4.x 方案不同。"
+    ],
+    "optimization": {
+      "performance": ["碎片数/存活时间限制", "远处休眠/合并", "预破碎"],
+      "memory": ["Geometry Collection 数据较大"],
+      "package": ["按场景分块，避免全量加载"],
+      "iteration": ["破坏测试关卡 + 参数热调"],
+      "stability": ["大量碎片导致物理爆炸，需上限"],
+      "notWorth": "破坏只是演出时，预破碎/特效更便宜。"
+    },
+    "verify": [
+      "`stat physics`/Insights 看物理耗时。",
+      "多人下破坏结果一致。",
+      "碎片数上限生效，无帧时间爆炸。"
+    ]
+  },
+  "ow-11": {
+    "reproduce": [
+      "把存档拆为玩家/区域/事件三层，分别序列化。",
+      "加入 schema 版本与迁移函数。",
+      "写入用临时文件+校验，成功后原子替换。",
+      "模拟补丁升级/坏档/断线，验证迁移与回滚。",
+      "大世界分区状态按需加载，避免整图序列化。"
+    ],
+    "usage": [
+      "接入方式：SaveGame 子类 + 分区状态存储 + 版本迁移。",
+      "典型参数：分层=玩家/区域/事件；版本=schema version；提交=临时文件+校验。",
+      "集成点：与 gen-13 存档、tps-04 结算、World Partition 配合。",
+      "版本差异：SaveGame 序列化机制随版本稳定，但自定义结构需迁移。"
+    ],
+    "optimization": {
+      "performance": ["异步/分帧保存", "只存差异"],
+      "memory": ["分区状态按需加载"],
+      "package": ["无"],
+      "iteration": ["存档版本回放/迁移测试"],
+      "stability": ["坏档可回退到上一版本"],
+      "notWorth": "短局无持久世界状态时，简单玩家存档即可。"
+    },
+    "verify": [
+      "旧版本存档可迁移到新版本。",
+      "坏档/断电不产生半写文件。",
+      "大世界保存耗时不阻塞帧。"
+    ]
+  },
+  "ow-12": {
+    "reproduce": [
+      "建立动态天空/太阳/体积云，绑定时间流速。",
+      "开启 Lumen/VSM，观察昼夜变化下的 GI/阴影更新。",
+      "调整更新频率/阴影缓存策略，记录帧时间。",
+      "加入天气（雨/雾/雪）材质与粒子，测试预算。",
+      "在低端档位关闭/降级动态 GI。"
+    ],
+    "usage": [
+      "接入方式：Sky Atmosphere/Volumetric Cloud + Lumen/VSM + 天气材质。",
+      "典型参数：更新频率按时间流速；阴影 VSM/CSM；天气材质/粒子分层。",
+      "集成点：与 ow-04、ow-13、音频/玩法配合。",
+      "版本差异：Sky/Cloud/Lumen 功能随 UE5 版本演进，需核对。"
+    ],
+    "optimization": {
+      "performance": ["降低 GI/阴影更新频率", "远处阴影降级", "天气粒子预算"],
+      "memory": ["体积云/阴影缓存占显存"],
+      "package": ["天气材质/纹理分档"],
+      "iteration": ["时间加速调试 + 性能基准"],
+      "stability": ["快速时间跳变导致 GI 闪烁，需平滑"],
+      "notWorth": "固定时间段的场景可烘焙，不必全动态。"
+    },
+    "verify": [
+      "昼夜切换无明显 GI/阴影跳变。",
+      "`stat gpu` 看 GI/阴影通道耗时。",
+      "低端档位可运行。"
+    ]
+  },
+  "ow-13": {
+    "reproduce": [
+      "打包项目并在真机首次进入新区域，记录卡顿。",
+      "开启 PSO 预缓存收集，录制典型路径。",
+      "打包预缓存后再次测试首次出现卡顿。",
+      "用 `r.ShaderPipelineCache` 相关 CVar（以控制台补全为准）检查缓存状态。",
+      "减少材质变体/关键字组合，复测包体与编译时间。"
+    ],
+    "usage": [
+      "接入方式：PSO Precaching + 材质变体治理 + 加载期预热。",
+      "典型参数：PSO 缓存预缓存/手动收集；变体裁剪；预热在加载/过场。",
+      "集成点：与 gen-11、ow-03/04/05 资源管线配合。",
+      "版本差异：PSO 预缓存平台/版本限制按官方文档核对。"
+    ],
+    "optimization": {
+      "performance": ["减少变体组合", "预编译/预热", "异步编译"],
+      "memory": ["PSO 缓存文件随包"],
+      "package": ["缓存体积与变体数量权衡"],
+      "iteration": ["自动化首次出现测试"],
+      "stability": ["缓存缺失要有兜底，不崩溃"],
+      "notWorth": "材质极少的项目可只做基础预热。"
+    },
+    "verify": [
+      "首次进入新区域无长卡顿。",
+      "PSO 缓存命中率可统计。",
+      "包体/编译时间增量在预算内。"
+    ]
+  }
+}

@@ -1,0 +1,287 @@
+[
+ {
+  "id": "pb-gas-01",
+  "topic": "topic-gas",
+  "types": ["ARPG", "MOBA", "通用"],
+  "title": "GameplayTag 爆炸与命名混乱拖垮查询",
+  "statement": "技能/状态 Tag 数量失控、层级混乱，Tag 查询变慢且状态判断经常漏匹配。",
+  "scene": "长线 ARPG、MOBA 多英雄、技能/Buff 数量持续增长。",
+  "symptoms": ["Tag 数量与层级难以维护", "状态判断出现漏判/误判", "Tag 容器查询出现在性能采样中"],
+  "rootCauseClass": "标签与状态建模",
+  "rootCause": "Tag 当作字符串随意新建；缺少层级与命名规范；用 Tag 容器做高频全量遍历。",
+  "candidates": [
+   {"sol": "gas-05", "tradeoff": "Tag 规范/层级与查询优化是根治，但需要长期治理。"},
+   {"sol": "gas-10", "tradeoff": "调试与常见坑清单能发现滥用，但不自动重构。"},
+   {"sol": "gas-01", "tradeoff": "明确 ASC/Ability/Effect 的职责边界能减少无意义 Tag。"}
+  ],
+  "judgment": "先把 Tag 当“状态词汇表”治理：层级、命名、所有权；高频判断用组合 Tag 或缓存，而不是每帧全量遍历。",
+  "verification": ["导出 Tag 清单统计层级/重复", "用 showdebug abilitysystem 观察状态", "采样高频 Tag 查询耗时"],
+  "sources": ["S031", "S035", "S041"]
+ },
+ {
+  "id": "pb-gas-02",
+  "topic": "topic-gas",
+  "types": ["ARPG", "MOBA", "FPS"],
+  "title": "技能在客户端播了但服务器拒绝",
+  "statement": "客户端预测播放技能表现，服务器因冷却/距离/Tag 条件拒绝，导致表现与结算不一致。",
+  "scene": "联机 ARPG 技能、MOBA 技能、射击游戏特殊能力。",
+  "symptoms": ["客户端已播特效/音效但无伤害", "技能进入冷却又回滚", "远端玩家看到不一致表现"],
+  "rootCauseClass": "预测与权威",
+  "rootCause": "预测条件与服务器校验条件不一致；PredictionKey 生命周期错误；表现层早于服务器确认。",
+  "candidates": [
+   {"sol": "gas-06", "tradeoff": "正确使用 PredictionKey/预测窗口是标准解，但调试复杂。"},
+   {"sol": "gas-07", "tradeoff": "Cue 的本地/远端分流能减少假表现，但需要确认时机。"},
+   {"sol": "arpg-05", "tradeoff": "整套服务器权威+预测+回滚能对齐，但改造面大。"}
+  ],
+  "judgment": "把“预测表现”和“权威结算”分开：关键表现等服务器确认，轻量反馈可预测；预测条件必须与服务器校验同源。",
+  "verification": ["模拟延迟与拒绝条件，双端录制表现/结算", "检查 PredictionKey 与 Ability 激活顺序", "统计预测被拒绝率"],
+  "sources": ["S031", "S035", "S058"]
+ },
+ {
+  "id": "pb-gas-03",
+  "topic": "topic-gas",
+  "types": ["ARPG", "MOBA"],
+  "title": "Attribute 初始化顺序导致数值为 0 或被覆盖",
+  "statement": "角色出生时血量/攻击力异常为 0，或装备/Effect 修改被后续初始化覆盖。",
+  "scene": "角色生成、装备穿戴、关卡切换、多人复制。",
+  "symptoms": ["初始属性为默认 0", "装备加成在出生后被清掉", "服务器与客户端数值不一致"],
+  "rootCauseClass": "初始化与复制",
+  "rootCause": "AttributeSet 在 ASC 初始化前被修改；初始化 Effect 与装备 Effect 顺序不确定；复制覆盖本地预测值。",
+  "candidates": [
+   {"sol": "gas-04", "tradeoff": "明确初始化顺序与复制规则是根治，但需要框架约束。"},
+   {"sol": "gas-01", "tradeoff": "职责边界清晰能减少顺序问题。"},
+   {"sol": "gas-03", "tradeoff": "Effect 叠加规则能避免覆盖，但不能解决初始化时机。"}
+  ],
+  "judgment": "把“基础属性初始化 → 装备/成长 → 临时 Effect”做成明确阶段；服务器权威初始化完成后再开放客户端预测。",
+  "verification": ["打印 Attribute 初始化各阶段数值", "构造装备/出生/切关组合用例", "对比服务器与客户端属性"],
+  "sources": ["S031", "S035", "S041"]
+ },
+ {
+  "id": "pb-gas-04",
+  "topic": "topic-gas",
+  "types": ["ARPG", "MOBA"],
+  "title": "Buff/Debuff 叠加规则错误",
+  "statement": "同类 Buff 无限叠加、刷新时长错误，或移除时把其他来源的 Buff 一起清掉。",
+  "scene": "技能增伤、持续伤害、控制状态、装备光环。",
+  "symptoms": ["Buff 数值越叠越高", "控制时间被错误刷新", "移除一个 Buff 后同类效果全消失"],
+  "rootCauseClass": "Effect 叠加与来源",
+  "rootCause": "GE 的 Stacking 规则未按来源/周期配置；移除按 Tag 而非句柄；缺少叠加上限。",
+  "candidates": [
+   {"sol": "gas-03", "tradeoff": "正确配置 Stacking/Period/Remove 规则是标准解，但需要策划理解。"},
+   {"sol": "gas-09", "tradeoff": "数据驱动配置能降低硬编码错误，但规则仍需验证。"},
+   {"sol": "gas-01", "tradeoff": "职责边界能减少多系统重复加 Buff。"}
+  ],
+  "judgment": "按“来源 + 是否可叠 + 上限 + 移除策略”建模；移除必须用 Effect 句柄，不要按 Tag 一刀切。",
+  "verification": ["构造多来源同类 Buff 用例", "检查 Stacking 配置与移除句柄", "统计 Buff 数值曲线"],
+  "sources": ["S031", "S035", "S041"]
+ },
+ {
+  "id": "pb-gas-05",
+  "topic": "topic-gas",
+  "types": ["ARPG", "MOBA", "FPS"],
+  "title": "GameplayCue 批量执行导致表现卡顿且远端不一致",
+  "statement": "团战/多技能同时触发大量 Cue，客户端表现卡顿；远端玩家看到的 Cue 与本地不同。",
+  "scene": "多人团战、范围技能、持续伤害跳字。",
+  "symptoms": ["Cue 触发帧出现尖峰", "远端特效缺失/延迟", "Cue 重复播放或叠加过亮"],
+  "rootCauseClass": "表现层与网络",
+  "rootCause": "Cue 未按本地/远端分流；高频 Cue 未合并/限流；Niagara 系统过重。",
+  "candidates": [
+   {"sol": "gas-07", "tradeoff": "Cue 分流/批量/限流是直接解，但需要表现规范。"},
+   {"sol": "gas-06", "tradeoff": "预测与确认时机影响 Cue 一致性，需要配合。"},
+   {"sol": "arpg-08", "tradeoff": "Niagara 预算与降级能控成本，但不解决 Cue 调度。"}
+  ],
+  "judgment": "把 Cue 分成“本地即时反馈/远端确认表现/纯装饰”三类，分别做限流与降级；高频跳字类不要走完整 Cue。",
+  "verification": ["团战场景抓 Cue 触发次数与帧耗时", "双端对比 Cue 播放", "检查 Niagara 系统复杂度"],
+  "sources": ["S031", "S035", "S057"]
+ },
+ {
+  "id": "pb-phy-01",
+  "topic": "topic-physics",
+  "types": ["FPS", "ARPG", "开放世界"],
+  "title": "物理破坏碎片的网络带宽爆炸",
+  "statement": "破坏产生大量碎片并逐个复制，瞬间带宽打满，远端玩家看到碎片突然消失或位置错乱。",
+  "scene": "可破坏场景、爆炸、载具碰撞、多人联机。",
+  "symptoms": ["破坏瞬间出站带宽尖峰", "远端碎片数量/位置不一致", "DS 物理线程与复制耗时上升"],
+  "rootCauseClass": "网络物理与带宽",
+  "rootCause": "碎片作为独立 Actor 全量复制；没有客户端表现/服务器简化分层；碎片生命周期与休眠未管理。",
+  "candidates": [
+   {"sol": "phy-05", "tradeoff": "碎片分层/合并/客户端表现能省带宽，但会牺牲一致性。"},
+   {"sol": "phy-04", "tradeoff": "Chaos 破坏表现好，但碎片管理是额外工程。"},
+   {"sol": "ow-10", "tradeoff": "预破碎/假破坏更可控，但表现自由度低。"}
+  ],
+  "judgment": "只复制“影响玩法的破坏结果”，碎片表现交给客户端并按种子/简化同步；碎片数量必须设上限。",
+  "verification": ["Net Emulate 下统计破坏带宽", "双端对比碎片数量/位置", "检查碎片 Actor 的复制设置"],
+  "sources": ["S048", "S063", "S065"]
+ },
+ {
+  "id": "pb-phy-02",
+  "topic": "topic-physics",
+  "types": ["FPS", "TPS"],
+  "title": "高速移动/抓钩导致碰撞穿透",
+  "statement": "抓钩、冲刺或高速抛射物在低帧率/高延迟下穿过墙体或跳过碰撞。",
+  "scene": "抓钩移动、高速弹道、载具碰撞、移动端低帧率。",
+  "symptoms": ["角色/投射物穿过薄墙", "高速时命中检测丢失", "低帧率下穿透更严重"],
+  "rootCauseClass": "连续碰撞检测",
+  "rootCause": "使用离散碰撞；CCD 未开启或只对部分物体；Trace 起点/终点跨度太大。",
+  "candidates": [
+   {"sol": "phy-09", "tradeoff": "Sweep/CCD 能解决穿透，但会增加物理成本。"},
+   {"sol": "mov-03", "tradeoff": "抓钩自身要做锚点与扫掠检测，能减少穿透。"},
+   {"sol": "mov-11", "tradeoff": "网络平滑能减少位置跳变，但不能替代碰撞检测。"}
+  ],
+  "judgment": "高速物体必须用 Sweep/CCD；抓钩锚点检测要用形状扫掠而非单点 Trace；低帧率下要限制单帧位移。",
+  "verification": ["低帧率/高延迟下重复高速穿越测试", "检查 CCD 与碰撞体设置", "对比 Sweep 前后的穿透率"],
+  "sources": ["S063", "S065", "S066"]
+ },
+ {
+  "id": "pb-phy-03",
+  "topic": "topic-physics",
+  "types": ["TPS", "开放世界"],
+  "title": "载具网络抖动与悬浮",
+  "statement": "联机载具在远端出现抖动、悬浮或位置回弹，乘客视角尤其明显。",
+  "scene": "多人载具、开放世界追逐、载具战斗。",
+  "symptoms": ["载具远端位置抖动", "轮胎/悬挂表现不同步", "上下车时位置突变"],
+  "rootCauseClass": "网络物理与平滑",
+  "rootCause": "载具物理在客户端/服务器各自模拟；复制频率与插值不匹配；乘客附着关系未处理。",
+  "candidates": [
+   {"sol": "phy-06", "tradeoff": "Chaos Vehicles 提供载具物理与网络平滑，但调参复杂。"},
+   {"sol": "phy-07", "tradeoff": "网络物理复制/权威归属是基础，需要与载具结合。"},
+   {"sol": "phy-08", "tradeoff": "异步物理/固定步长能稳定模拟，但不自动解决网络。"}
+  ],
+  "judgment": "载具物理应由服务器权威，客户端做插值/外推；乘客用附着而非独立复制；不要双端各自模拟再纠偏。",
+  "verification": ["双端录制载具轨迹", "检查复制频率/插值参数", "模拟延迟观察乘客视角"],
+  "sources": ["S063", "S065", "S061"]
+ },
+ {
+  "id": "pb-phy-04",
+  "topic": "topic-physics",
+  "types": ["FPS", "ARPG"],
+  "title": "物理动画/布娃娃抖动与瞬移",
+  "statement": "Physical Animation 或 Ragdoll 在受击/死亡时抖动、关节爆炸或瞬间弹飞。",
+  "scene": "受击反应、死亡布娃娃、物理动画叠加。",
+  "symptoms": ["关节抖动/拉伸", "布娃娃落地瞬间弹飞", "从动画切布娃娃时位置跳变"],
+  "rootCauseClass": "物理动画稳定性",
+  "rootCause": "约束刚度/重力/质量标定不合理；切换时速度未继承；子步进不足。",
+  "candidates": [
+   {"sol": "phy-02", "tradeoff": "Physical Animation/Dead Blending 能改善过渡，但需要参数标定。"},
+   {"sol": "phy-01", "tradeoff": "刚体/约束/材质调参是基础，能减少抖动。"},
+   {"sol": "phy-08", "tradeoff": "子步进/固定步长能提升稳定性，但增加 CPU。"}
+  ],
+  "judgment": "先标定质量/约束/重力，再处理动画到物理的速度继承；低帧率下增加子步进而不是硬压参数。",
+  "verification": ["录制受击/死亡全过程", "检查约束与质量参数", "对比不同子步进的稳定性"],
+  "sources": ["S063", "S065", "S066"]
+ },
+ {
+  "id": "pb-phy-05",
+  "topic": "topic-physics",
+  "types": ["FPS", "开放世界"],
+  "title": "大量刚体/碎片导致物理线程峰值",
+  "statement": "爆炸或场景破坏后，物理线程单帧耗时飙升，GameThread 等待物理结果导致掉帧。",
+  "scene": "大规模破坏、密集道具、多人同屏物理。",
+  "symptoms": ["物理线程峰值明显", "爆炸帧掉帧", "刚体休眠不及时"],
+  "rootCauseClass": "物理预算",
+  "rootCause": "碎片/刚体数量无上限；碰撞复杂度高；没有物理 LOD/Sleep/场景剔除。",
+  "candidates": [
+   {"sol": "phy-10", "tradeoff": "物理预算/剔除/Sleep/物理 LOD 是系统解，但需要逐场景调。"},
+   {"sol": "phy-04", "tradeoff": "Chaos 破坏需要碎片上限，否则成本不可控。"},
+   {"sol": "phy-05", "tradeoff": "网络碎片管理能间接限制数量，但不解决单机峰值。"}
+  ],
+  "judgment": "先设每帧刚体/碎片预算与上限，再用物理 LOD/休眠/剔除；不要用“更多碎片”当卖点而不做预算。",
+  "verification": ["stat physics 观察物理线程峰值", "统计爆炸帧刚体数量", "对比开启 Sleep/物理 LOD 后的耗时"],
+  "sources": ["S063", "S065", "S021"]
+ },
+ {
+  "id": "pb-ui-01",
+  "topic": "topic-ui",
+  "types": ["ARPG", "通用"],
+  "title": "背包/长列表滚动卡顿",
+  "statement": "背包或排行榜滚动时掉帧，Widget 数量随条目线性增长。",
+  "scene": "ARPG 背包、商城列表、排行榜、任务列表。",
+  "symptoms": ["滚动时帧率下降", "Widget 树巨大", "打开背包内存上涨"],
+  "rootCauseClass": "UI 虚拟化",
+  "rootCause": "所有条目一次性创建 Widget；缺少虚拟化/回收；每个条目绑定过多 Tick/动画。",
+  "candidates": [
+   {"sol": "arpg-09", "tradeoff": "数据虚拟化/对象池能解决规模问题，但实现复杂。"},
+   {"sol": "gen-10", "tradeoff": "UMG/Slate 绘制与更新优化能降成本，但不解决条目数量。"},
+   {"sol": "load-01", "tradeoff": "异步加载图标能减少打开卡顿，但不解决滚动。"}
+  ],
+  "judgment": "列表必须虚拟化：只创建可视区域条目并复用；图标异步加载；不要让每个条目独立 Tick。",
+  "verification": ["统计 Widget 数量与滚动帧时间", "用 Slate 性能工具查看绘制", "对比虚拟化前后的内存/帧率"],
+  "sources": ["S072", "S031", "S030"]
+ },
+ {
+  "id": "pb-ui-02",
+  "topic": "topic-ui",
+  "types": ["通用", "ARPG"],
+  "title": "UI 每帧失效重绘导致 CPU/GPU 浪费",
+  "statement": "UI 没有变化却每帧更新/重绘，Slate 绘制与 GameThread 开销持续存在。",
+  "scene": "HUD、血条、小地图、技能冷却。",
+  "symptoms": ["stat slate 显示持续绘制", "UI 相关 GameThread 耗时高", "关闭 UI 后帧率明显提升"],
+  "rootCauseClass": "UI 更新与失效",
+  "rootCause": "属性绑定每帧触发 Invalidation；Tick 里强制重绘；没有使用 Retainer/Invalidation Panel。",
+  "candidates": [
+   {"sol": "gen-10", "tradeoff": "UMG/Slate 更新成本治理是标准解，但需要逐界面重构。"},
+   {"sol": "arpg-09", "tradeoff": "数据虚拟化能减少条目更新，但不解决 HUD 每帧刷新。"},
+   {"sol": "load-02", "tradeoff": "异步资源能减少构造卡顿，与重绘无关。"}
+  ],
+  "judgment": "只让“真正变化”的 UI 失效；静态部分用 Retainer/Invalidation Panel；血条/CD 用事件驱动而不是每帧绑定。",
+  "verification": ["stat slate/stat game 观察 UI 耗时", "逐界面关闭 Tick 对比", "检查属性绑定与 Invalidation 调用"],
+  "sources": ["S072", "S031", "S002"]
+ },
+ {
+  "id": "pb-ui-03",
+  "topic": "topic-ui",
+  "types": ["通用"],
+  "title": "移动端 UI 纹理内存与 overdraw 失控",
+  "statement": "移动端 UI 占大量纹理内存，半透明叠层 overdraw 高，低端机发热掉帧。",
+  "scene": "手游 HUD、活动弹窗、全屏半透明背景。",
+  "symptoms": ["UI 纹理池紧张", "全屏半透明层叠导致 overdraw", "低端机 UI 界面掉帧"],
+  "rootCauseClass": "移动端 UI 成本",
+  "rootCause": "UI 图集未压缩/过大；全屏背景多层叠加；特效与 UI 混用。",
+  "candidates": [
+   {"sol": "gen-10", "tradeoff": "UI 绘制/更新治理能降成本，但需要美术配合。"},
+   {"sol": "mob-09", "tradeoff": "移动端透明/粒子开销治理能减少 overdraw。"},
+   {"sol": "mob-07", "tradeoff": "纹理压缩/预算能降内存，但不解决叠层。"}
+  ],
+  "judgment": "UI 图集按移动端压缩规范制作，减少全屏半透明叠层；装饰性特效不要和可交互 UI 混在同一层。",
+  "verification": ["stat memory 查看 UI 纹理占用", "Arm Mobile Studio 看 overdraw", "对比压缩/减层后的帧率与发热"],
+  "sources": ["S074", "S072", "S029"]
+ },
+ {
+  "id": "pb-ui-04",
+  "topic": "topic-ui",
+  "types": ["通用"],
+  "title": "多分辨率与安全区适配错位",
+  "statement": "不同手机/宽屏比例下 UI 错位、被刘海遮挡，或 DPI 缩放导致模糊。",
+  "scene": "移动端多机型、PC 超宽屏、主机安全区。",
+  "symptoms": ["按钮被刘海/圆角遮挡", "超宽屏 UI 拉伸", "高 DPI 下字体模糊"],
+  "rootCauseClass": "UI 适配",
+  "rootCause": "只用固定锚点；DPI 缩放曲线未按设备档位；安全区未读取。",
+  "candidates": [
+   {"sol": "gen-12", "tradeoff": "跨平台画质/档位体系能统一适配，但需要设备矩阵测试。"},
+   {"sol": "gen-10", "tradeoff": "UMG 布局优化能改善，但不解决安全区。"},
+   {"sol": "mob-08", "tradeoff": "移动端设备分级/动态分辨率能适配性能，不直接解决布局。"}
+  ],
+  "judgment": "使用锚点+安全区+DPI 缩放曲线，按设备档位验证；不要用一套固定像素布局跨所有屏幕。",
+  "verification": ["多机型截图对比安全区/锚点", "检查 DPI 曲线与字体渲染", "超宽屏/折叠屏专项测试"],
+  "sources": ["S072", "S074", "S031"]
+ },
+ {
+  "id": "pb-ui-05",
+  "topic": "topic-ui",
+  "types": ["FPS", "TPS"],
+  "title": "UI 与场景相机/后处理冲突",
+  "statement": "UI 受到场景 DOF/Bloom/曝光影响，或 UI 相机与游戏相机切换导致闪烁/输入错位。",
+  "scene": "第一人称 HUD、瞄准镜、过场与 UI 混用、分屏。",
+  "symptoms": ["UI 被景深模糊", "切换相机时 UI 闪烁", "准星与实际弹道错位"],
+  "rootCauseClass": "相机与后处理",
+  "rootCause": "UI 渲染在受后处理影响的相机下；UI 相机切换未清理；准星未按实际 FOV/弹道校准。",
+  "candidates": [
+   {"sol": "gen-10", "tradeoff": "UI 渲染/相机分离能解决，但需要渲染管线配合。"},
+   {"sol": "rd-04", "tradeoff": "后处理分级能减少影响，但不能隔离 UI。"},
+   {"sol": "gen-09", "tradeoff": "输入/准星校准能解决错位，但不解决后处理。"}
+  ],
+  "judgment": "UI 应在独立后处理之后渲染；瞄准镜/准星按实际相机与弹道校准；切换相机时显式重置 UI 状态。",
+  "verification": ["检查 UI 相机与后处理顺序", "切换相机录屏", "准星与弹道落点对比"],
+  "sources": ["S072", "S002", "S031"]
+ }
+]

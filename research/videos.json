@@ -1,0 +1,1510 @@
+[
+  {
+    "bvid": "BV1Ay4y1q7Kj",
+    "title": "[UnrealFestOnline2020]用Unreal Insights收集、分析及可视化你的数据(官方字幕)",
+    "up": "虚幻引擎官方",
+    "duration": 2030,
+    "pubdate": "2020-11-26",
+    "views": 8016,
+    "language": "中文",
+    "level": "进阶",
+    "category": "性能分析",
+    "domain": "performance",
+    "summary": "Epic 官方 Unreal Fest 演讲，系统演示 Insights 的采集、通道与可视化分析流程。",
+    "points": [
+      "从启动 trace 到在 Insights 中查看时间线，覆盖完整工作流。",
+      "适合建立 Insights 的第一手使用习惯，配合官方文档阅读。",
+      "发布时间较早，具体 UI/通道名以当前版本为准。"
+    ],
+    "type": "官方",
+    "reliability": "A",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-perf"
+  },
+  {
+    "bvid": "BV1Yg4y1M7bT",
+    "title": "[必学必会] UE5 通用场景性能优化技巧—复杂场景的优化思路与解决方案",
+    "up": "为什么不养猫",
+    "duration": 1315,
+    "pubdate": "2023-04-07",
+    "views": 52054,
+    "language": "中文",
+    "level": "进阶",
+    "category": "性能分析",
+    "domain": "performance",
+    "summary": "面向复杂场景的性能优化思路，强调定位顺序与通用手段，而非单点技巧。",
+    "points": [
+      "覆盖 stat 定位、场景复杂度与常见瓶颈的处理顺序。",
+      "适合已有基础、需要把零散技巧串成流程的开发者。",
+      "观点为个人经验，具体数值需在自己的项目复测。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-perf"
+  },
+  {
+    "bvid": "BV1kb411o7DU",
+    "title": "[必学必会] UE5 性能调优【进阶】 常用性能监控方法总结",
+    "up": "为什么不养猫",
+    "duration": 1096,
+    "pubdate": "2023-03-23",
+    "views": 20584,
+    "language": "中文",
+    "level": "进阶",
+    "category": "性能分析",
+    "domain": "performance",
+    "summary": "总结常用性能监控方法与指标口径，适合作为 stat/Insights 的入门索引。",
+    "points": [
+      "把 stat 命令、GPU/CPU 指标与使用场景对应起来。",
+      "适合排查前先建立「看什么指标」的清单。",
+      "个人经验总结，工具版本差异需自行核对。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-perf"
+  },
+  {
+    "bvid": "BV18C4y1A7Np",
+    "title": "【UE5】10分钟学会UE5性能分析，让你的游戏帧数起飞",
+    "up": "贾宝蛋",
+    "duration": 1003,
+    "pubdate": "2023-12-02",
+    "views": 22808,
+    "language": "中文",
+    "level": "入门",
+    "category": "性能分析",
+    "domain": "performance",
+    "summary": "短时长的性能分析入门，适合快速建立 stat/瓶颈定位的直觉。",
+    "points": [
+      "用较短时间演示从卡顿现象到定位指标的流程。",
+      "适合完全没做过性能分析的开发者作为第一站。",
+      "入门向，深度有限，需配合官方文档与实战。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-perf"
+  },
+  {
+    "bvid": "BV1bw4HeKEtu",
+    "title": "UE5 性能优化入门 指北",
+    "up": "ZzxxH",
+    "duration": 1052,
+    "pubdate": "2024-09-12",
+    "views": 33426,
+    "language": "中文",
+    "level": "入门",
+    "category": "性能分析",
+    "domain": "performance",
+    "summary": "以「指北」方式梳理 UE5 性能优化的入门路径与常见误区。",
+    "points": [
+      "强调先定位瓶颈再优化，避免盲目改画质。",
+      "适合作为团队新人的性能入门材料。",
+      "个人教程，参数与结论需结合项目验证。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-perf"
+  },
+  {
+    "bvid": "BV14MNtzJEaF",
+    "title": "UE5 优化第 2 集：Unreal Insights 新手指南",
+    "up": "Axiss_F",
+    "duration": 1027,
+    "pubdate": "2025-06-19",
+    "views": 1166,
+    "language": "中文",
+    "level": "入门",
+    "category": "性能分析",
+    "domain": "performance",
+    "summary": "Insights 新手向操作指南，适合第一次接触 Trace 的开发者。",
+    "points": [
+      "演示启动 trace、打开会话与基础时间线阅读。",
+      "可作为官方 Insights 文档的补充操作视频。",
+      "个人教程，版本 UI 可能与当前不同。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-perf"
+  },
+  {
+    "bvid": "BV1gdA2zGEnb",
+    "title": "搞懂UE5渲染管线，性能优化直接提升30%",
+    "up": "人宅",
+    "duration": 1043,
+    "pubdate": "2026-02-27",
+    "views": 15964,
+    "language": "中文",
+    "level": "进阶",
+    "category": "渲染管线",
+    "domain": "rendering",
+    "summary": "以管线阶段与性能优化关系为主线，讲清 UE5 渲染管线的宏观结构。",
+    "points": [
+      "把几何/光照/阴影/后处理等阶段与瓶颈对应起来。",
+      "适合已有 UE 基础、需要建立管线心智模型的开发者。",
+      "标题中的 30% 为作者表述，实际收益因项目而异。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-render-basics"
+  },
+  {
+    "bvid": "BV1pdwEzyELv",
+    "title": "UE学习分享_虚幻引擎渲染管线概述：结合虚幻渲染源码入口函数DeferredShadingSceneRenderer::Render与思维导图理解管线的宏观顺序",
+    "up": "松谷福",
+    "duration": 3933,
+    "pubdate": "2026-03-13",
+    "views": 2733,
+    "language": "中文",
+    "level": "深入",
+    "category": "渲染管线",
+    "domain": "rendering",
+    "summary": "从 `DeferredShadingSceneRenderer::Render` 入口出发，结合源码与思维导图梳理管线顺序。",
+    "points": [
+      "适合想从源码层面理解渲染顺序的图形程序员。",
+      "以延迟渲染路径为主线，覆盖主要 pass 的组织方式。",
+      "需要 C++/渲染基础，观看门槛较高。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-render-basics"
+  },
+  {
+    "bvid": "BV1jEbBzdEta",
+    "title": "2025 虚幻引擎UE5渲染入门（传统渲染+多通道渲染） 不是小白不要看",
+    "up": "叶桑讲UE5",
+    "duration": 2255,
+    "pubdate": "2025-08-14",
+    "views": 2783,
+    "language": "中文",
+    "level": "入门",
+    "category": "渲染管线",
+    "domain": "rendering",
+    "summary": "偏影视/地编方向的 UE5 渲染入门，覆盖传统渲染与多通道渲染流程。",
+    "points": [
+      "适合需要出图/影视流程而非纯实时游戏的用户。",
+      "内容含渲染设置与多通道输出，和实时性能专题互补。",
+      "非性能分析向，游戏客户端开发者按需取用。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-render-basics"
+  },
+  {
+    "bvid": "BV17go5YQE8p",
+    "title": "【二】虚幻引擎官方学习指导 | 详解垃圾回收内存管理机制《Unity与虚幻引擎对比》",
+    "up": "Apeak_虚幻丰哥",
+    "duration": 760,
+    "pubdate": "2025-04-14",
+    "views": 3594,
+    "language": "中文",
+    "level": "进阶",
+    "category": "GC/内存",
+    "domain": "gc",
+    "summary": "围绕官方学习指导讲解 UE 垃圾回收与内存管理，并与 Unity 做对比。",
+    "points": [
+      "适合从 Unity 转 UE、需要建立 GC 差异认知的开发者。",
+      "覆盖 GC 基本机制与内存管理关注点。",
+      "UP 主注明内容基于 Enduring Games 制作，属搬运/翻译性质。"
+    ],
+    "type": "搬运",
+    "reliability": "B",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-gc"
+  },
+  {
+    "bvid": "BV1PX9cBLEJN",
+    "title": "UE垃圾回收看不懂？一个例子讲清楚GC机制",
+    "up": "来杯凉白开-",
+    "duration": 850,
+    "pubdate": "2026-04-02",
+    "views": 2641,
+    "language": "中文",
+    "level": "入门",
+    "category": "GC/内存",
+    "domain": "gc",
+    "summary": "用具体例子解释 UE GC 的标记-清除过程，降低概念理解门槛。",
+    "points": [
+      "以示例对象/引用关系演示可达性判断。",
+      "适合第一次接触 UObject GC 的开发者。",
+      "个人讲解，细节以官方 Objects/Object Handling 文档为准。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-gc"
+  },
+  {
+    "bvid": "BV1brMy6aExi",
+    "title": "垃圾回收（GC）基础",
+    "up": "IGBeginner0116",
+    "duration": 466,
+    "pubdate": "2026-08-05",
+    "views": 9429,
+    "language": "中文",
+    "level": "入门",
+    "category": "GC/内存",
+    "domain": "gc",
+    "summary": "通用 GC 概念科普（引用计数、标记-清除、GC Roots、分代），不专指 UE。",
+    "points": [
+      "适合补齐 GC 通用术语后再看 UE 实现。",
+      "内容为语言/运行时通用概念，不是 UE 专属机制。",
+      "看 UE 时需注意 UE 的标记-清除与增量/集群差异。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-gc"
+  },
+  {
+    "bvid": "BV1cWHczGEV2",
+    "title": "虚幻引擎5 GC垃圾回收源码实现原理探析",
+    "up": "ABOUTCG",
+    "duration": 220,
+    "pubdate": "2025-09-29",
+    "views": 560,
+    "language": "中文",
+    "level": "深入",
+    "category": "GC/内存",
+    "domain": "gc",
+    "summary": "从源码角度分析 UE5 GC 的实现原理，时长较短，适合作为源码阅读索引。",
+    "points": [
+      "聚焦实现层而非使用层，适合想读 GC 源码的开发者。",
+      "短时长决定其覆盖面有限，需配合源码自行展开。",
+      "个人/机构讲解，具体类名以版本源码为准。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-gc"
+  },
+  {
+    "bvid": "BV1pT4y1p7UB",
+    "title": "【UE笔记】76 网络联机、同步与请求 虚幻引擎",
+    "up": "H_M_Z",
+    "duration": 1069,
+    "pubdate": "2024-01-07",
+    "views": 6736,
+    "language": "中文",
+    "level": "入门",
+    "category": "网络同步",
+    "domain": "solution",
+    "summary": "以笔记形式讲解 UE 联机、属性同步与 RPC 请求的基础链路。",
+    "points": [
+      "覆盖复制、RPC 与基础联机概念，适合入门。",
+      "可作为网络专题的第一支操作视频。",
+      "个人笔记向，深度有限，需配合官方 Networking 文档。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-net"
+  },
+  {
+    "bvid": "BV1w1t86cEsN",
+    "title": "多人网络教程，涵盖复制、网络角色、GameMode、PlayerController、GameState、PlayerState、本地控制、所有权和 RPC",
+    "up": "Apeak_虚幻丰哥",
+    "duration": 3519,
+    "pubdate": "2026-08-31",
+    "views": 1764,
+    "language": "中文",
+    "level": "进阶",
+    "category": "网络同步",
+    "domain": "solution",
+    "summary": "系统覆盖 UE 多人网络核心概念与角色/所有权/RPC 链路，时长近一小时。",
+    "points": [
+      "把 GameMode/PlayerController/GameState/PlayerState 的职责与网络关系讲清。",
+      "适合已能写单机逻辑、需要建立联机心智模型的开发者。",
+      "版本以 5.7/5.8 为主，其他版本 API 需核对。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-net"
+  },
+  {
+    "bvid": "BV1g98R6SEMs",
+    "title": "Lyra - 网络同步",
+    "up": "正在做梦的林汀",
+    "duration": 896,
+    "pubdate": "2026-08-26",
+    "views": 374,
+    "language": "中文",
+    "level": "深入",
+    "category": "网络同步",
+    "domain": "solution",
+    "summary": "以 Lyra 示例工程为对象分析网络同步实现，适合看工程化落地。",
+    "points": [
+      "从实际示例工程看复制/预测/同步的组织方式。",
+      "适合已有网络基础、想对照商业级工程的开发者。",
+      "个人解读，具体实现以 Lyra 源码为准。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-net"
+  },
+  {
+    "bvid": "BV1yohV68Ete",
+    "title": "Unreal - 网络同步",
+    "up": "正在做梦的林汀",
+    "duration": 2297,
+    "pubdate": "2026-08-25",
+    "views": 833,
+    "language": "中文",
+    "level": "进阶",
+    "category": "网络同步",
+    "domain": "solution",
+    "summary": "较系统地讲解 Unreal 网络同步的概念与实现思路。",
+    "points": [
+      "适合作为网络专题的进阶视频，配合复制/RPC 实践。",
+      "覆盖同步模型与常见问题。",
+      "个人教程，需与官方文档交叉验证。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-net"
+  },
+  {
+    "bvid": "BV1sptJ6TEPn",
+    "title": "UE5教学之Motion Matching 01-理论讲解(重要)",
+    "up": "冰火工作室",
+    "duration": 1234,
+    "pubdate": "2026-09-02",
+    "views": 3580,
+    "language": "中文",
+    "level": "进阶",
+    "category": "动画",
+    "domain": "solution",
+    "summary": "Motion Matching 理论讲解，适合在动手前建立代价/特征/查询的概念。",
+    "points": [
+      "解释 Motion Matching 的基本原理与关键参数。",
+      "适合动画系统专题的入门理论课。",
+      "个人教程，版本与节点名以当前引擎为准。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-animation"
+  },
+  {
+    "bvid": "BV1z8SWB9EFX",
+    "title": "UE5最简版本motion matching示例",
+    "up": "最强人类韦少",
+    "duration": 1703,
+    "pubdate": "2025-12-02",
+    "views": 7105,
+    "language": "中文",
+    "level": "进阶",
+    "category": "动画",
+    "domain": "solution",
+    "summary": "用最小示例搭起 Motion Matching，适合跟着做第一版可运行 Demo。",
+    "points": [
+      "从零搭最小 Motion Matching 工程，降低上手门槛。",
+      "适合配合理论与官方示例工程一起看。",
+      "个人教程，步骤需按当前版本调整。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-animation"
+  },
+  {
+    "bvid": "BV1qy421B7JD",
+    "title": "basic motion matching与learned motion matching源码精读，原理解读，运行示范与总结借鉴",
+    "up": "砂糖橘hia",
+    "duration": 5504,
+    "pubdate": "2024-03-04",
+    "views": 3181,
+    "language": "中文",
+    "level": "深入",
+    "category": "动画",
+    "domain": "solution",
+    "summary": "对基础与学习型 Motion Matching 做源码精读，适合深入理解实现细节。",
+    "points": [
+      "覆盖 basic/learned Motion Matching 的实现与运行示范。",
+      "适合已能使用 MM、想读源码的动画程序员。",
+      "时长较长，建议分主题观看。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-animation"
+  },
+  {
+    "bvid": "BV1GmeV67Ewm",
+    "title": "UE5教学之Motion Matching 07-Offset Root Bone以及MM的打磨",
+    "up": "冰火工作室",
+    "duration": 1615,
+    "pubdate": "2026-09-14",
+    "views": 502,
+    "language": "中文",
+    "level": "深入",
+    "category": "动画",
+    "domain": "solution",
+    "summary": "Motion Matching 系列第 7 集，聚焦 Offset Root Bone 与效果打磨。",
+    "points": [
+      "适合已经跑通 MM、需要处理脚滑/根骨偏移的开发者。",
+      "覆盖实际打磨中的常见问题。",
+      "个人教程，参数需按项目骨架/动画集调整。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-animation"
+  },
+  {
+    "bvid": "BV1TuWUevEmU",
+    "title": "【UE5.4】 下一代开放大世界技术教程【世界分区&world partition】 #1",
+    "up": "虚幻贝贝",
+    "duration": 957,
+    "pubdate": "2024-08-23",
+    "views": 21341,
+    "language": "中文",
+    "level": "进阶",
+    "category": "开放世界",
+    "domain": "solution",
+    "summary": "World Partition 系列教程第 1 集，面向开放大世界的分区与流送配置。",
+    "points": [
+      "从 UE5.4 角度演示 World Partition 的基本配置。",
+      "适合开放世界专题的动手入口。",
+      "个人教程，版本差异需注意。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-streaming"
+  },
+  {
+    "bvid": "BV17WvNexEus",
+    "title": "【熟肉】UE5.4 世界分区和数据层 （data layer and  world partition）",
+    "up": "虚幻贝贝",
+    "duration": 1593,
+    "pubdate": "2024-07-29",
+    "views": 1860,
+    "language": "中文",
+    "level": "进阶",
+    "category": "开放世界",
+    "domain": "solution",
+    "summary": "翻译/搬运向视频，讲 World Partition 与 Data Layer 的组合使用。",
+    "points": [
+      "覆盖 Data Layer 如何组织任务/区域内容。",
+      "适合需要做区域状态切换的开放世界项目。",
+      "熟肉属搬运，原始来源需自行回溯。"
+    ],
+    "type": "搬运",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-streaming"
+  },
+  {
+    "bvid": "BV1f94y1R7HQ",
+    "title": "UE5 World Partition",
+    "up": "蒙系古哩",
+    "duration": 1644,
+    "pubdate": "2022-07-02",
+    "views": 1911,
+    "language": "中文",
+    "level": "进阶",
+    "category": "开放世界",
+    "domain": "solution",
+    "summary": "UE5 World Partition 的系统讲解，适合作为早期版本的概念入门。",
+    "points": [
+      "解释 World Partition 的单元/流送概念。",
+      "发布较早，部分 UI 与当前版本不同。",
+      "建议与 Epic 官方文档对照观看。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-streaming"
+  },
+  {
+    "bvid": "BV1oofDBpECQ",
+    "title": "GAS伴侣： 中文教程丨用纯蓝图的方式使用Gas",
+    "up": "熊猫淘金",
+    "duration": 21520,
+    "pubdate": "2026-02-03",
+    "views": 2076,
+    "language": "中文",
+    "level": "进阶",
+    "category": "GAS",
+    "domain": "solution",
+    "summary": "超长 GAS 纯蓝图系列课，覆盖从基础到较完整的能力系统搭建。",
+    "points": [
+      "适合不想写 C++、先用蓝图理解 GAS 结构的开发者。",
+      "体量约 6 小时，建议按章节学习而非一次看完。",
+      "纯蓝图方案在性能/工程化上有边界，进阶仍需 C++。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-gas"
+  },
+  {
+    "bvid": "BV16wdBYHEpy",
+    "title": "GAS Companion的使用教程",
+    "up": "菜叶的黄花",
+    "duration": 4098,
+    "pubdate": "2025-04-13",
+    "views": 1008,
+    "language": "中文",
+    "level": "进阶",
+    "category": "GAS",
+    "domain": "solution",
+    "summary": "围绕 GAS Companion 插件讲解 GAS 的工程化使用方式。",
+    "points": [
+      "适合已了解 GAS 概念、想减少样板代码的开发者。",
+      "覆盖插件接入与常见配置。",
+      "插件版本与 GAS 版本兼容性需核对。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-gas"
+  },
+  {
+    "bvid": "BV14hJ9z8EvQ",
+    "title": "【蓝图基础教程】蓝图通信的四种方式  蓝图转换/事件分发器/蓝图接口 详细教程讲解",
+    "up": "飞鱼影视-交互应用",
+    "duration": 592,
+    "pubdate": "2025-09-24",
+    "views": 3835,
+    "language": "中文",
+    "level": "入门",
+    "category": "蓝图与C++",
+    "domain": "solution",
+    "summary": "讲清蓝图通信的四种方式，适合打牢蓝图架构基础。",
+    "points": [
+      "对比直接引用、事件分发器、接口等通信方式的适用场景。",
+      "适合初学者避免到处 Cast 的坏习惯。",
+      "个人教程，示例工程可自行搭建验证。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-engineering"
+  },
+  {
+    "bvid": "BV1Sj411i7sZ",
+    "title": "(美学阿姨)蓝图入门_02关卡蓝图",
+    "up": "美学阿姨",
+    "duration": 969,
+    "pubdate": "2023-08-23",
+    "views": 6514,
+    "language": "中文",
+    "level": "入门",
+    "category": "蓝图与C++",
+    "domain": "solution",
+    "summary": "关卡蓝图入门，讲清关卡级事件与引用关系。",
+    "points": [
+      "适合完全新手理解关卡蓝图的执行入口。",
+      "内容较基础，进阶需看蓝图通信/调试。",
+      "发布较早，UI 与当前版本略有差异。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-engineering"
+  },
+  {
+    "bvid": "BV1YC79zeEJz",
+    "title": "纯干货！UE5蓝图开发中5种调试方案 快速有效解决问题 Debug 蓝图调试器 断点检测 Print打印文本节点 绘制形状 节点禁用",
+    "up": "飞鱼影视-交互应用",
+    "duration": 1262,
+    "pubdate": "2025-05-13",
+    "views": 3579,
+    "language": "中文",
+    "level": "入门",
+    "category": "蓝图与C++",
+    "domain": "solution",
+    "summary": "总结蓝图调试的 5 种手段，适合建立可复现的排障习惯。",
+    "points": [
+      "覆盖断点、打印、绘制调试形状、节点禁用等手法。",
+      "适合从「猜」转向可验证的调试流程。",
+      "个人教程，工具入口以当前版本为准。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-engineering"
+  },
+  {
+    "bvid": "BV1Cd4y1V7G5",
+    "title": "【虚幻引擎】爆肝两个月！拜托三连了！这绝对是全B站最用心的UE5.1全中文新手入门公开教程，耗时千余小时开发！",
+    "up": "GenJi是真想教会你",
+    "duration": 28374,
+    "pubdate": "2023-01-18",
+    "views": 2873825,
+    "language": "中文",
+    "level": "入门",
+    "category": "UE入门",
+    "domain": "solution",
+    "summary": "体量很大的 UE5.1 全中文新手入门课，适合从零建立完整工作流。",
+    "points": [
+      "覆盖编辑器、蓝图、地编、材质等入门主题。",
+      "适合愿意系统投入时间的新手。",
+      "版本为 UE5.1，部分 UI/节点与新版不同。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-engineering"
+  },
+  {
+    "bvid": "BV1qYSvBHELW",
+    "title": "【最新版】UE5零基础入门教程 | 新手必刷 — 虚幻5完整系列教程",
+    "up": "星露Studio",
+    "duration": 24040,
+    "pubdate": "2025-11-30",
+    "views": 1373575,
+    "language": "中文",
+    "level": "入门",
+    "category": "UE入门",
+    "domain": "solution",
+    "summary": "较新的 UE5 零基础系列课，适合作为系统入门的主线。",
+    "points": [
+      "按系列组织，覆盖从零到基础完整流程。",
+      "发布时间较新，版本差异小于老教程。",
+      "个人教程，深度与工程规范需结合官方资料补充。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-engineering"
+  },
+  {
+    "bvid": "BV1waQuYeEWy",
+    "title": "新【更新完成】虚幻引擎UE5 全面基础入门教程 地编-材质-特效-蓝图【三连收藏转发】观看",
+    "up": "乔治-周士诚",
+    "duration": 137315,
+    "pubdate": "2025-03-14",
+    "views": 1201160,
+    "language": "中文",
+    "level": "入门",
+    "category": "UE入门",
+    "domain": "solution",
+    "summary": "超长综合入门合集，覆盖地编/材质/特效/蓝图，适合当作查阅型资料库。",
+    "points": [
+      "主题覆盖面广，适合按需检索而非线性看完。",
+      "体量极大（约 38 小时），学习成本高。",
+      "个人教程，版本与工程规范需自行甄别。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-engineering"
+  },
+  {
+    "bvid": "BV1Wk9EYvEoy",
+    "title": "虚幻5 C++ 游戏开发从入门到秃头",
+    "up": "黑子的游戏空间",
+    "duration": 168432,
+    "pubdate": "2025-03-04",
+    "views": 285199,
+    "language": "中文",
+    "level": "进阶",
+    "category": "蓝图与C++",
+    "domain": "solution",
+    "summary": "超长 UE5 C++ 系列课，适合从蓝图过渡到 C++/工程化。",
+    "points": [
+      "覆盖 C++ 项目结构、类与引擎 API 的长期系列。",
+      "体量极大（约 47 小时），建议按主题分段学习。",
+      "个人教程，部分实现方式需结合官方编码规范。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-engineering"
+  },
+  {
+    "bvid": "BV1e14y1t7uH",
+    "title": "UE5 异步加载资源的方法",
+    "up": "神奇张严",
+    "duration": 1313,
+    "pubdate": "2022-08-23",
+    "views": 2111,
+    "language": "中文",
+    "level": "进阶",
+    "category": "资源加载",
+    "domain": "solution",
+    "summary": "异步加载资源的入门演示，覆盖 Async Load / 流送的基本调用与回调。",
+    "points": [
+      "从同步 LoadObject 过渡到异步加载，观察卡顿差异。",
+      "适合第一次接触 Soft Reference / StreamableManager 的开发者。",
+      "发布较早，节点/接口名以当前版本为准。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-loading"
+  },
+  {
+    "bvid": "BV1jDrGBwE5N",
+    "title": "(UE5)关卡切换卡顿？试试异步加载",
+    "up": "伤心的人闪别乱丢",
+    "duration": 332,
+    "pubdate": "2026-01-10",
+    "views": 3633,
+    "language": "中文",
+    "level": "进阶",
+    "category": "资源加载",
+    "domain": "solution",
+    "summary": "短时长演示用异步加载消除关卡切换卡顿，适合快速建立直觉。",
+    "points": [
+      "以「关卡切换卡顿」为问题入口，演示异步加载的收益。",
+      "适合作为加载专题的第一支问题导向视频。",
+      "时长很短，只覆盖主流程，细节需配合文档。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-loading"
+  },
+  {
+    "bvid": "BV1rN4y1L787",
+    "title": "UE5 - World Partition",
+    "up": "Fisher_GG",
+    "duration": 3255,
+    "pubdate": "2022-08-02",
+    "views": 847,
+    "language": "中文",
+    "level": "进阶",
+    "category": "资源加载",
+    "domain": "solution",
+    "summary": "World Partition 的系统讲解，覆盖分区、流送与编辑器工作流。",
+    "points": [
+      "适合与 Level Streaming 对照，理解单元化流送。",
+      "发布较早，当前版本的 Data Layer/Level Instance 需另查。",
+      "个人教程，配置项以目标版本为准。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-loading"
+  },
+  {
+    "bvid": "BV1354y1j7ej",
+    "title": "【UE4】pak打包加密、挂载(mount)基础及未cook和cook的pak在不同模式下的区别说明",
+    "up": "天空游荡的鱼",
+    "duration": 3676,
+    "pubdate": "2021-04-26",
+    "views": 12394,
+    "language": "中文",
+    "level": "进阶",
+    "category": "资源加载",
+    "domain": "solution",
+    "summary": "系统讲解 Pak 打包、加密、挂载与 cook/未 cook 的行为差异。",
+    "points": [
+      "覆盖 Pak 生命周期与挂载顺序，适合做分包/补丁前打基础。",
+      "对「未 cook 资源在编辑器/PIE 下可用」的差异讲得较细。",
+      "UE4 向内容，UE5 的 IoStore 需另查官方文档。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-loading"
+  },
+  {
+    "bvid": "BV1yJ4m1p7vZ",
+    "title": "Easy pak插件打包教程",
+    "up": "老邱Devil",
+    "duration": 3241,
+    "pubdate": "2024-04-14",
+    "views": 4847,
+    "language": "中文",
+    "level": "进阶",
+    "category": "资源加载",
+    "domain": "solution",
+    "summary": "围绕 Easy Pak 插件演示打包与挂载流程，适合快速跑通分包。",
+    "points": [
+      "适合需要把内容拆成多个 Pak 的工程实践。",
+      "插件为第三方工具，正式项目需评估维护与兼容性。",
+      "步骤以插件版本为准，不能替代引擎 Cook 规则。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-loading"
+  },
+  {
+    "bvid": "BV1sz7uzbErs",
+    "title": "【国语】精通虚幻引擎UE5破坏效果Chaos从基础到进阶教程",
+    "up": "JaysongShao",
+    "duration": 14326,
+    "pubdate": "2025-06-01",
+    "views": 5430,
+    "language": "中文",
+    "level": "进阶",
+    "category": "物理/破坏",
+    "domain": "solution",
+    "summary": "Chaos 破坏从基础到进阶的长篇教程，覆盖 Geometry Collection 与破碎工作流。",
+    "points": [
+      "适合系统学习 Chaos Destruction 的完整链路。",
+      "体量约 4 小时，建议按章节跟做。",
+      "个人教程，性能与网络部分需结合官方文档。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-physics"
+  },
+  {
+    "bvid": "BV1nb4y1J7ru",
+    "title": "UE5如何录制和播放Chaos破碎缓存，节省性能（学习分享）",
+    "up": "八层肚",
+    "duration": 578,
+    "pubdate": "2022-01-14",
+    "views": 15793,
+    "language": "中文",
+    "level": "进阶",
+    "category": "物理/破坏",
+    "domain": "solution",
+    "summary": "演示录制/回放 Chaos 破碎缓存，用「预计算」换运行时性能。",
+    "points": [
+      "适合需要大量重复破坏表现但不想实时模拟的场景。",
+      "指出缓存与实时模拟的取舍边界。",
+      "短教程，缓存体积与版本兼容需自行验证。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-physics"
+  },
+  {
+    "bvid": "BV1fvwzeuE3r",
+    "title": "UE5布娃娃物理教程：主动布娃娃，站起来和移动平台（完整指南）",
+    "up": "文杏肉坨坨",
+    "duration": 3716,
+    "pubdate": "2025-01-19",
+    "views": 4783,
+    "language": "中文",
+    "level": "进阶",
+    "category": "物理/破坏",
+    "domain": "solution",
+    "summary": "主动布娃娃（Active Ragdoll）完整指南，覆盖起身与移动平台交互。",
+    "points": [
+      "适合做命中反应/倒地/起身的表现层。",
+      "涉及物理与动画的混合控制，是物理动画的典型难点。",
+      "个人教程，参数与骨架需按项目重调。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-physics"
+  },
+  {
+    "bvid": "BV1oGaazjExp",
+    "title": "UE5 驾驶系统教程：结合动画示例项目，实现完整的角色上下车与驾驶功能 #1",
+    "up": "虚幻贝贝",
+    "duration": 2710,
+    "pubdate": "2025-09-05",
+    "views": 4818,
+    "language": "中文",
+    "level": "进阶",
+    "category": "物理/破坏",
+    "domain": "solution",
+    "summary": "结合动画示例项目做角色上下车与驾驶，连接载具物理与移动表现。",
+    "points": [
+      "覆盖上下车状态切换与座舱对齐。",
+      "适合与 Chaos Vehicles / 载具专题对照。",
+      "系列第 1 集，后续步骤需按系列跟进。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-physics"
+  },
+  {
+    "bvid": "BV1GC4y1H71i",
+    "title": "UE5 VR 手机 虚幻引擎  移动端优化 终极教程  适用于安卓 苹果 IOS VR 头显 手机 移动端 复杂场景优化教程",
+    "up": "UE五栋大楼",
+    "duration": 3361,
+    "pubdate": "2023-10-29",
+    "views": 7038,
+    "language": "中文",
+    "level": "进阶",
+    "category": "移动端渲染",
+    "domain": "solution",
+    "summary": "面向手机/VR 的移动端优化长教程，覆盖复杂场景与平台设置。",
+    "points": [
+      "适合建立移动端「带宽/填充率/分辨率」的优化顺序。",
+      "同时覆盖 Android/iOS 与 VR，注意平台差异。",
+      "个人教程，具体机型数据需自行实测。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-mobile"
+  },
+  {
+    "bvid": "BV16H4y1e7vg",
+    "title": "UE安卓优化：提升阴影渲染质感",
+    "up": "倾海海海海",
+    "duration": 561,
+    "pubdate": "2024-02-01",
+    "views": 7365,
+    "language": "中文",
+    "level": "进阶",
+    "category": "移动端渲染",
+    "domain": "solution",
+    "summary": "聚焦 Android 阴影质量与开销的平衡，适合移动端光照专题。",
+    "points": [
+      "演示移动端阴影设置对画质/性能的影响。",
+      "适合与「烘焙 vs 动态阴影」对比一起看。",
+      "短教程，机型覆盖有限。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-mobile"
+  },
+  {
+    "bvid": "BV1kgN5z6EPw",
+    "title": "UE5 游戏技能系统 (GAS) 教程系列",
+    "up": "章鱼烧烤酱",
+    "duration": 57464,
+    "pubdate": "2026-03-09",
+    "views": 1613,
+    "language": "中文",
+    "level": "进阶",
+    "category": "GAS",
+    "domain": "solution",
+    "summary": "超长 GAS 系列课，覆盖架构、Effect、Cue、预测与工程化。",
+    "points": [
+      "体量极大（约 16 小时），适合按章节系统学习。",
+      "覆盖从基础到联机预测的完整链路。",
+      "个人教程，版本 API 需按目标引擎核对。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-gas"
+  },
+  {
+    "bvid": "BV1zm421n7YX",
+    "title": "用GAS制作技能冷却【UE5】",
+    "up": "卡露拉Carula",
+    "duration": 1848,
+    "pubdate": "2024-03-28",
+    "views": 7705,
+    "language": "中文",
+    "level": "进阶",
+    "category": "GAS",
+    "domain": "solution",
+    "summary": "以技能冷却为例讲 GAS 的 Effect/Tag/UI 联动，适合第一个可运行技能。",
+    "points": [
+      "把冷却、消耗与 UI 反馈串成一条完整链路。",
+      "适合 GAS 入门后的第一个实战小案例。",
+      "个人教程，未覆盖复杂预测场景。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-gas"
+  },
+  {
+    "bvid": "BV1opge6DEDn",
+    "title": "UE5GAS游戏玩法能力系统快速入门",
+    "up": "饭桶小满",
+    "duration": 2318,
+    "pubdate": "2026-07-24",
+    "views": 2763,
+    "language": "中文",
+    "level": "进阶",
+    "category": "GAS",
+    "domain": "solution",
+    "summary": "GAS 快速入门，覆盖 ASC/Ability/Effect 的最小接入流程。",
+    "points": [
+      "适合从零接入 GAS 的第一站。",
+      "强调最小可用链路而非完整框架。",
+      "入门向，网络预测与工程化需继续深入。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-gas"
+  },
+  {
+    "bvid": "BV1po17BTEgb",
+    "title": "多人模式下的GAS与客户端预测的简单实现",
+    "up": "莱尼德",
+    "duration": 227,
+    "pubdate": "2025-11-04",
+    "views": 676,
+    "language": "中文",
+    "level": "进阶",
+    "category": "GAS",
+    "domain": "solution",
+    "summary": "短演示：多人模式下 GAS 与客户端预测的最小实现。",
+    "points": [
+      "直面 GAS 联机预测这一高频坑点。",
+      "适合已能跑通单机技能、准备联机的开发者。",
+      "时长很短，只覆盖最小路径。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-gas"
+  },
+  {
+    "bvid": "BV1fP4y1m7Pq",
+    "title": "如何在虚幻引擎5中制作非常简单的抓钩系统【UE5教程】",
+    "up": "果果CG",
+    "duration": 602,
+    "pubdate": "2022-11-02",
+    "views": 2513,
+    "language": "中文",
+    "level": "进阶",
+    "category": "复杂移动",
+    "domain": "solution",
+    "summary": "最简抓钩系统演示：射线找锚点 + 拉伸/收绳。",
+    "points": [
+      "适合先跑通「锚点检测 + 位移」的最小闭环。",
+      "未覆盖复杂绳索约束与联机预测。",
+      "入门向，可作为抓钩专题的第一步。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-movement"
+  },
+  {
+    "bvid": "BV1fm411y77c",
+    "title": "【UE5 | 教程】虚幻引擎5 上的抓钩系统教程",
+    "up": "虚幻社区",
+    "duration": 1920,
+    "pubdate": "2024-04-30",
+    "views": 4485,
+    "language": "中文",
+    "level": "进阶",
+    "category": "复杂移动",
+    "domain": "solution",
+    "summary": "较完整的抓钩教程，覆盖锚点、绳索与摆动表现。",
+    "points": [
+      "比最简版本更接近可玩的手感实现。",
+      "适合与物理约束/自定义 CMC 模式对照。",
+      "个人教程，参数需按项目重调。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-movement"
+  },
+  {
+    "bvid": "BV1sS8q6bEDr",
+    "title": "UE5 攀爬系统教程",
+    "up": "AI冲锋",
+    "duration": 39219,
+    "pubdate": "2026-08-21",
+    "views": 708,
+    "language": "中文",
+    "level": "进阶",
+    "category": "复杂移动",
+    "domain": "solution",
+    "summary": "超长攀爬系统教程，覆盖边缘探测、状态机与动画融合。",
+    "points": [
+      "体量约 11 小时，适合系统跟做一套攀爬。",
+      "覆盖 Ledge Detection 与动画过渡等关键难点。",
+      "个人教程，动画资产需自行准备。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-movement"
+  },
+  {
+    "bvid": "BV1mv4y1y7UE",
+    "title": "【UE5】如何实现炫技的贴墙奔跑？虚幻引擎-游戏教学",
+    "up": "CG欧拉_",
+    "duration": 2422,
+    "pubdate": "2023-01-12",
+    "views": 8918,
+    "language": "中文",
+    "level": "进阶",
+    "category": "复杂移动",
+    "domain": "solution",
+    "summary": "墙跑实现教学，覆盖贴墙检测、重力衰减与相机倾斜。",
+    "points": [
+      "适合跑酷/动作向移动的扩展。",
+      "重点在墙面法线与相机表现。",
+      "个人教程，网络一致性需另行处理。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-movement"
+  },
+  {
+    "bvid": "BV1RF411A7gk",
+    "title": "超多游戏都有的滑铲机制是怎么做到的？一起来学吧！【UE4/5教程】双语字幕",
+    "up": "IPBF_UE游戏教程",
+    "duration": 586,
+    "pubdate": "2022-08-05",
+    "views": 15551,
+    "language": "中文",
+    "level": "进阶",
+    "category": "复杂移动",
+    "domain": "solution",
+    "summary": "滑铲机制拆解，覆盖速度曲线、碰撞与动画切换。",
+    "points": [
+      "短小聚焦，适合作为滑铲/斜坡专题的入口。",
+      "双语字幕，UE4/5 通用思路。",
+      "未覆盖联机预测与复杂地形。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-movement"
+  },
+  {
+    "bvid": "BV1ci421S7J6",
+    "title": "【UE5】甩甩乐！绳索运动系统-UE5动作游戏教程",
+    "up": "吃瓜大魔王_",
+    "duration": 1823,
+    "pubdate": "2024-05-20",
+    "views": 5230,
+    "language": "中文",
+    "level": "进阶",
+    "category": "复杂移动",
+    "domain": "solution",
+    "summary": "绳索摆荡/运动系统教学，覆盖约束与摆动手感。",
+    "points": [
+      "适合做绳索、Zipline 与摆荡类移动。",
+      "可与抓钩专题互补。",
+      "个人教程，物理参数需按项目调。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-movement"
+  },
+  {
+    "bvid": "BV1GbkBBKEDo",
+    "title": "超详细的网络游戏同步系统教学",
+    "up": "初见net",
+    "duration": 16554,
+    "pubdate": "2025-11-11",
+    "views": 28760,
+    "language": "中文",
+    "level": "进阶",
+    "category": "网络同步",
+    "domain": "solution",
+    "summary": "长篇网络同步教学，覆盖状态同步、预测与工程实现。",
+    "points": [
+      "体量约 4.6 小时，适合系统补齐网络同步链路。",
+      "同时讨论多种同步模型，便于横向比较。",
+      "个人教程，引擎细节需与官方文档交叉验证。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-net"
+  },
+  {
+    "bvid": "BV18V5xz6ELC",
+    "title": "UE5 网络同步 网络复制教程 #3 物理同步 动画复制",
+    "up": "都要恰饭的",
+    "duration": 566,
+    "pubdate": "2025-04-19",
+    "views": 2072,
+    "language": "中文",
+    "level": "进阶",
+    "category": "网络同步",
+    "domain": "solution",
+    "summary": "网络复制系列第 3 集，聚焦物理同步与动画复制。",
+    "points": [
+      "适合补齐「物理/动画如何复制」的常见缺口。",
+      "与物理表现专题直接相关。",
+      "短教程，只覆盖基础复制。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-net"
+  },
+  {
+    "bvid": "BV1zknd6CEhx",
+    "title": "游戏面试官：帧同步和状态同步有什么区别？以王者荣耀、CS2为例",
+    "up": "晚上做游戏",
+    "duration": 297,
+    "pubdate": "2026-10-26",
+    "views": 3355,
+    "language": "中文",
+    "level": "进阶",
+    "category": "网络同步",
+    "domain": "solution",
+    "summary": "用王者荣耀/CS2 对比帧同步与状态同步的差异与适用场景。",
+    "points": [
+      "适合快速建立两种同步模型的直觉。",
+      "以具体品类为例，便于做选型讨论。",
+      "短视频，结论需结合项目约束验证。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-net"
+  },
+  {
+    "bvid": "BV1KZ4y1F7mD",
+    "title": "齐齐课《王者荣耀》Moba帧同步实时对战案例",
+    "up": "齐齐课-Plane",
+    "duration": 484,
+    "pubdate": "2021-04-26",
+    "views": 17191,
+    "language": "中文",
+    "level": "进阶",
+    "category": "网络同步",
+    "domain": "solution",
+    "summary": "以 MOBA 为例讲帧同步实时对战，属于公开课程片段。",
+    "points": [
+      "适合了解 MOBA 帧同步的工程关注点。",
+      "发布较早，具体实现随版本变化。",
+      "课程片段，深度有限。"
+    ],
+    "type": "个人教程",
+    "reliability": "C",
+    "check": {
+      "method": "bilibili view API",
+      "date": "2026-11-04",
+      "status": "verified"
+    },
+    "topic": "topic-net"
+  }
+]

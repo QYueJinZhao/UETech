@@ -1,0 +1,250 @@
+[
+  {
+    "id": "derive-fps",
+    "type": "FPS",
+    "goal": "在极短 TTK 下，让玩家信任「我看到 → 我瞄准 → 我开枪 → 命中」的因果闭环；任何一帧的偏差都会被感知为不公平。",
+    "constraints": [
+      {"name": "端到端延迟", "value": "输入到画面反馈通常需控制在约 100ms 量级以内（含显示延迟），否则跟枪与甩狙明显发涩", "note": "经验阈值，需按设备/显示/网络实测，不作为精确标准"},
+      {"name": "服务器 tick", "value": "竞技向常见 64–128Hz；VALORANT 公开选择 128 tick", "note": "tick 越高，CPU/带宽成本越高；S057"},
+      {"name": "带宽", "value": "单玩家通常按数十 KB/s 量级规划，需做相关性与增量压缩", "note": "量级随玩家数、移动频率、复制属性数量变化"},
+      {"name": "反作弊", "value": "命中、伤害、移动必须服务器可复核；客户端只负责表现与预测", "note": "服务器权威是硬约束，不是可选项"},
+      {"name": "帧率", "value": "PC 竞技向 144fps+，主机 60/120fps 档位；帧预算 6.9ms/16.6ms/8.3ms", "note": "由目标帧率反推"}
+    ],
+    "variables": [
+      {"name": "权威程度", "tradeoff": "纯服务器判定最公平但手感迟钝；服务器权威+客户端预测/回滚手感好但实现复杂"},
+      {"name": "tick 与回滚窗口", "tradeoff": "高 tick 降低误差但成本上升；回滚窗口覆盖最大延迟，窗口越大服务器历史缓存与校验成本越高"},
+      {"name": "表现层欺骗", "tradeoff": "客户端可先播命中特效/音效提升手感，但必须能被服务器拒绝并回滚，否则产生「假命中」"},
+      {"name": "复制粒度", "tradeoff": "属性级复制灵活但带宽高；Iris/Replication Graph 可按相关性裁剪，代价是配置复杂度"}
+    ],
+    "chain": [
+      {"from": "TTK 极短，几十毫秒决定生死", "to": "命中判定必须精确且可复核", "need": "服务器权威 + 延迟补偿（历史位置回滚）"},
+      {"from": "需要回滚历史位置", "to": "服务器保存每个 tick 的命中体状态", "need": "固定 tick、历史缓冲、命中体（hitbox）快照"},
+      {"from": "回滚窗口受最大延迟约束", "to": "高延迟玩家获得更大回溯优势", "need": "延迟上限、区域服务器、peeker 优势治理"},
+      {"from": "客户端要即时反馈", "to": "预测移动/开火表现", "need": "客户端预测 + 服务器校正 + 平滑插值"},
+      {"from": "玩家数/地图规模上升", "to": "复制带宽与 CPU 成为瓶颈", "need": "Iris、Replication Graph、相关性裁剪、增量压缩"},
+      {"from": "作弊与误判风险", "to": "关键判定不可信任客户端", "need": "服务器伤害结算、行为检测、录像审计"}
+    ],
+    "rollback": "若团队网络工程能力不足：降低 tick、关闭复杂回滚，改为「服务器宽松判定 + 客户端表现」，并明确接受高延迟下的命中争议；或用 Mover/Network Prediction 等引擎能力减少自研。",
+    "mainstream": {
+      "summary": "公开演讲显示的主流拼图是：服务器权威 + 客户端预测 + 延迟补偿回滚 + 高 tick 专用服务器；表现层尽量即时，判定层尽量服务器化。",
+      "cases": [
+        {"who": "VALORANT", "note": "128 tick 专用服务器 + 延迟补偿，公开讨论 peeker's advantage 与命中注册", "source": "S057"},
+        {"who": "Overwatch", "note": "ECS 玩法架构 + Statescript 服务器权威，脚本行为自动预测/复制", "source": "S048"},
+        {"who": "Halo: Reach", "note": "客户端预测与服务器权威的网络玩法实现", "source": "S050"}
+      ],
+      "sources": ["S004", "S048", "S050", "S057", "S059"]
+    },
+    "gaps": [
+      "没有找到 VALORANT/CS 系列完整、可公开复现的服务器实现文档；部分结论来自工程博客与演讲，属于二手拼图。",
+      "不同地区/运营商的实际延迟分布与回滚窗口取值，缺少公开数据。"
+    ]
+  },
+  {
+    "id": "derive-tps-extraction",
+    "type": "TPS/搜打撤",
+    "goal": "第三人称要「角色表演可信」，搜打撤要「风险回报可信 + 信息不对称可玩」；两者都要求长局内的状态一致性与低挫败感。",
+    "constraints": [
+      {"name": "单局时长", "value": "搜打撤常见 20–40 分钟量级", "note": "长局放大存档/重连/结算问题"},
+      {"name": "地图规模", "value": "单图常为数百米到公里级，需分区流式与 AI 调度", "note": "与开放世界同源但局内生命周期更短"},
+      {"name": "库存权威", "value": "高价值战利品必须服务器权威，客户端不可决定拾取结果", "note": "防复制、防刷、防透视"},
+      {"name": "结算一致性", "value": "撤离/死亡结算必须幂等、可重试、可审计", "note": "网络抖动与崩溃会导致重复结算"},
+      {"name": "动画质量", "value": "第三人称相机始终看到全身，动画瑕疵暴露度高", "note": "转向、掩体、上下坡、持枪切换"},
+      {"name": "音频信息", "value": "脚步/换弹/开门是核心情报，必须空间化且与服务器状态一致", "note": "声音传播与遮挡"}
+    ],
+    "variables": [
+      {"name": "相机与命中", "tradeoff": "SpringArm 快速可用但遮挡处理粗糙；自定义相机/多探测更稳但调试成本高"},
+      {"name": "动画方案", "tradeoff": "Motion Matching 响应好但动画数据与内存成本高；状态机可控但过渡多、维护重"},
+      {"name": "战利品权威", "tradeoff": "全服务器权威最安全但延迟明显；客户端预表现+服务器确认手感好但需回滚"},
+      {"name": "AI 规模", "tradeoff": "Actor+BT 易调试但有规模上限；Mass/ECS 规模大但调试与表现层整合复杂"},
+      {"name": "局内持久化", "tradeoff": "每步写库最安全但成本高；检查点+事务日志更现实但需要幂等设计"}
+    ],
+    "chain": [
+      {"from": "第三人称可见全身", "to": "动画/转向/持枪姿态要求高", "need": "Motion Matching 或高质量分层状态机 + 动画预算"},
+      {"from": "掩体与瞄准依赖相机", "to": "相机碰撞与穿透处理成为手感核心", "need": "SpringArm 探测/自定义相机 + 相机延迟与震动"},
+      {"from": "战利品价值高", "to": "拾取/背包/掉落不能信任客户端", "need": "服务器权威库存 + 事务/幂等 + 反复制"},
+      {"from": "局内死亡即失去物资", "to": "结算必须可靠且可审计", "need": "撤离结算状态机 + 重试/对账 + 存档版本"},
+      {"from": "信息不对称是玩法核心", "to": "声音与视野必须可信", "need": "空间音频/遮挡 + 服务器视野裁剪 + 反雷达"},
+      {"from": "PvE 敌人密度与巡逻", "to": "大规模 AI 调度与分区激活", "need": "Mass/StateTree + 分区感知 + LOD AI"}
+    ],
+    "rollback": "若公开一手资料不足或团队规模有限：优先复用 FPS 的服务器权威/延迟补偿骨架，搜打撤的库存与结算先做「事务化 + 幂等 + 对账」，动画先用状态机保证可控，再逐步引入 Motion Matching。",
+    "mainstream": {
+      "summary": "搜打撤的公开技术演讲稀缺，可确认的拼图是：沿用 FPS 的服务器权威网络骨架，叠加库存/结算的事务化设计与大规模 AI 调度；TPS 侧依赖 Motion Matching/高质量动画与相机手感。",
+      "cases": [
+        {"who": "第三人称动作（TLOU2）", "note": "Motion Matching 落地经验可迁移到 TPS 移动/持枪", "source": "S053"},
+        {"who": "GAS 体系", "note": "技能/状态/属性复制可作为背包与状态同步的参考", "source": "S007"},
+        {"who": "SaveGame", "note": "官方存档体系可作为局外进度基线，局内结算需额外事务设计", "source": "S046"}
+      ],
+      "sources": ["S007", "S009", "S046", "S053", "S057"]
+    },
+    "gaps": [
+      "未找到 Escape from Tarkov / Hunt: Showdown 等搜打撤品类的可靠一手技术演讲；相关结论只能从 FPS 网络与通用库存设计推导，标注为待核实。",
+      "搜打撤的「局内结算事务」缺少公开工程细节，本库给的是设计推导而非厂商实证。"
+    ]
+  },
+  {
+    "id": "derive-moba",
+    "type": "MOBA",
+    "goal": "10 名玩家在 30–60 分钟内获得绝对公平、可回放、可重连的确定性对局；同时让低端机也能稳定参与团战。",
+    "constraints": [
+      {"name": "公平性", "value": "相同输入应产生相同结果；服务器不能因帧率/网络差异偏袒一方", "note": "确定性是核心约束"},
+      {"name": "tick", "value": "常见 30Hz 逻辑 tick 量级，团战需要稳定步进", "note": "具体项目不同，需实测"},
+      {"name": "带宽", "value": "帧同步只传输入，带宽远低于状态同步；代价是确定性要求", "note": "状态同步在 UE 默认管线更易落地"},
+      {"name": "断线重连", "value": "分钟级对局必须支持重连与观战/回放", "note": "需要快照+输入重放或服务器状态导出"},
+      {"name": "低端机", "value": "团战特效/UI 是主要瓶颈，需可降级", "note": "画质分级与特效预算"},
+      {"name": "反作弊", "value": "服务器权威或确定性校验；录像审计是必备", "note": "MOBA 的数值/视野作弊影响大"}
+    ],
+    "variables": [
+      {"name": "同步模型", "tradeoff": "帧同步/确定性：带宽低、回放天然，但浮点/随机/顺序必须严格一致；状态同步：易落地、容错好，但带宽与服务器 CPU 高"},
+      {"name": "数值精度", "tradeoff": "定点数可保证跨平台一致但改动大；浮点需锁定编译器/数学库/顺序，风险高"},
+      {"name": "技能框架", "tradeoff": "GAS 功能全、复制/预测成熟，但学习曲线与运行时开销；自研数据驱动更贴合 MOBA 但重复造轮子"},
+      {"name": "AI 寻路", "tradeoff": "Recast/NavMesh 通用但小兵海量寻路成本高；流场适合固定 lanes/大量单位"},
+      {"name": "视野", "tradeoff": "服务器裁剪最安全但 CPU 高；客户端裁剪易被透视，需服务器校验"}
+    ],
+    "chain": [
+      {"from": "绝对公平 + 可回放", "to": "模拟必须可重复", "need": "确定性 tick、固定随机种子、稳定排序、定点数或严格浮点约束"},
+      {"from": "低带宽", "to": "只同步输入/命令", "need": "帧同步/锁步 + 输入缓冲 + 校验和"},
+      {"from": "断线重连", "to": "需要快速恢复对局状态", "need": "周期快照 + 输入重放；或服务器状态序列化"},
+      {"from": "技能组合爆炸", "to": "不能为每个技能写死网络逻辑", "need": "GAS/数据驱动技能 + 标签/效果组合"},
+      {"from": "小兵/野怪海量", "to": "Actor 寻路不可行", "need": "流场/分层寻路 + 群体 AI 调度"},
+      {"from": "团战帧率", "to": "特效/UI 是主瓶颈", "need": "Niagara 预算、UMG 优化、画质分级"}
+    ],
+    "rollback": "若无法保证跨平台确定性：放弃帧同步，改用服务器权威状态同步（UE 默认复制 + 预测），并接受更高带宽/CPU；回放改为服务器录像而非客户端重演。",
+    "mainstream": {
+      "summary": "公开资料确认 LoL 为实现确定性重构了模拟并讨论时间步/回放一致性；但「是否帧同步」未在公开文章中明确，不能臆断。UE 项目更常见的现实选择是服务器权威状态同步 + 预测。",
+      "cases": [
+        {"who": "League of Legends", "note": "Riot 公开 determinism 系列，讨论固定/可变时间步与回放一致性", "source": "S058"},
+        {"who": "UE 通用", "note": "Gameplay Framework + 复制体系作为状态同步骨架", "source": "S035"},
+        {"who": "GAS", "note": "技能/属性/效果的复制与预测", "source": "S007"}
+      ],
+      "sources": ["S007", "S035", "S058", "S060"]
+    },
+    "gaps": [
+      "没有公开的 LoL/Dota 2 完整同步架构文档；帧同步与状态同步的实际边界属于社区推断，需标注待核实。",
+      "MOBA 专用的小兵流场/分路调度缺少可靠公开演讲，本库按通用寻路原理推导。"
+    ]
+  },
+  {
+    "id": "derive-openworld",
+    "type": "开放世界",
+    "goal": "让玩家在无缝大世界中持续获得「探索有回报、画面不穿帮、加载无打断」的沉浸感；同时把内容产能压到团队可交付的范围。",
+    "constraints": [
+      {"name": "内存", "value": "主机世代通常按 GB 级总预算规划，几何/纹理/动画/音频各自有上限", "note": "具体平台差异大，需按项目实测"},
+      {"name": "IO 带宽", "value": "流式加载受存储带宽与解压成本约束，HDD/低速 SSD 更敏感", "note": "Zen/IoStore 与虚拟纹理影响明显"},
+      {"name": "加载卡顿", "value": "流式边界、PSO 编译、材质加载都可能造成 hitch", "note": "需要预算与预加载策略"},
+      {"name": "画面一致性", "value": "LOD 切换、GI 更新、阴影页缺失都会穿帮", "note": "Nanite/Lumen/VSM 有各自限制"},
+      {"name": "内容产能", "value": "手工摆放无法覆盖公里级世界", "note": "PCG + 模块化 Kit + 团队流水线"},
+      {"name": "跨平台", "value": "同一世界要覆盖 PC/主机/移动端档位", "note": " scalability + 平台特性开关"}
+    ],
+    "variables": [
+      {"name": "世界组织", "tradeoff": "World Partition 自动化但调试/版本管理复杂；传统 Level Streaming 可控但手工成本高"},
+      {"name": "几何", "tradeoff": "Nanite 省 LOD 但增加流送/内存与平台限制；传统 LOD 可控但制作成本高"},
+      {"name": "光照", "tradeoff": "Lumen 动态、迭代快但 GPU 成本高；烘焙稳定、便宜但迭代慢且动态变化受限"},
+      {"name": "内容生成", "tradeoff": "PCG 产能高但可控性/艺术一致性难；手工摆放质量高但产能低"},
+      {"name": "AI 规模", "tradeoff": "Mass 规模大但表现/调试难；Actor+BT 易控但数量受限"}
+    ],
+    "chain": [
+      {"from": "无缝探索", "to": "不能整图加载", "need": "World Partition / Level Streaming + 流送源"},
+      {"from": "分区加载", "to": "远处需要代替物", "need": "HLOD 代理 + 流送距离 + 阴影/GI 降级"},
+      {"from": "高细节几何", "to": "传统 LOD 制作成本爆炸", "need": "Nanite（或严格 LOD 管线）"},
+      {"from": "动态昼夜/天气", "to": "烘焙 GI 无法响应", "need": "Lumen 动态 GI（或有限动态光照方案）"},
+      {"from": "大量贴图/资产", "to": "内存与 IO 压力", "need": "虚拟纹理 + Zen/IoStore + 资产预算"},
+      {"from": "公里级内容", "to": "手工产能不足", "need": "PCG + 模块化 Kit + 编辑器工具链"},
+      {"from": "跨平台", "to": "同一内容多档画质", "need": "Scalability + 平台分级 + 特性开关"}
+    ],
+    "rollback": "若目标平台不支持 Nanite/Lumen 或团队产能不足：退回传统 LOD + 烘焙光照 + Level Streaming，牺牲动态性与细节，换取稳定帧率与可预测包体。",
+    "mainstream": {
+      "summary": "Epic 官方管线给出的主流拼图是 World Partition + OFPA + HLOD + Nanite + Lumen + 虚拟纹理/Zen；实际项目会按平台与美术风格做取舍，而非全量开启。",
+      "cases": [
+        {"who": "UE5 开放世界默认地图", "note": "默认启用 World Partition、OFPA、Data Layers、HLOD", "source": "S003"},
+        {"who": "Nanite 管线", "note": "SIGGRAPH/HPG 公开讲解簇构建、流送与光栅化", "source": "S054"},
+        {"who": "Lumen", "note": "官方技术细节说明追踪与表面缓存", "source": "S034"}
+      ],
+      "sources": ["S001", "S002", "S003", "S014", "S032", "S033", "S054"]
+    },
+    "gaps": [
+      "未找到可公开引用的 Fortnite/原神等开放世界项目的完整流式预算演讲；本库给的是引擎能力与推导，不是厂商实证。",
+      "具体平台的内存/IO 预算是经验量级，必须按项目与设备实测，不能直接套用。"
+    ]
+  },
+  {
+    "id": "derive-arpg",
+    "type": "ARPG",
+    "goal": "让技能输入在最短时间内得到可信的动作/特效/数值反馈，同时支撑长线成长、词条组合与联机一致性。",
+    "constraints": [
+      {"name": "动作反馈", "value": "攻击前摇/命中帧/受击反馈必须与输入对齐，偏差会被读成「手感差」", "note": "动画与判定帧同步"},
+      {"name": "技能组合", "value": "技能/词条/状态组合爆炸，不能为每个组合写死逻辑", "note": "数据驱动 + 标签/效果系统"},
+      {"name": "联机权威", "value": "伤害/掉落/冷却必须服务器可复核", "note": "GAS 预测键或自研校验"},
+      {"name": "特效性能", "value": "团战/多技能叠加时 Niagara/半透明是主瓶颈", "note": "GPU 预算与降级"},
+      {"name": "UI 复杂度", "value": "背包/词条/技能面板常成为 UMG 性能热点", "note": "Slate/UMG 优化"},
+      {"name": "动画预算", "value": "大量敌人同屏，骨骼/动画图更新成本高", "note": "LOD 动画/更新频率分级"}
+    ],
+    "variables": [
+      {"name": "动画", "tradeoff": "Motion Matching 表现好但数据/内存成本高；状态机+Blend Space 可控但过渡维护重"},
+      {"name": "技能框架", "tradeoff": "GAS 成熟但重；自研轻量但复制/预测/调试要自己做"},
+      {"name": "命中判定", "tradeoff": "AnimNotify+多段碰撞直观但易与动画脱节；服务器判定公平但延迟明显"},
+      {"name": "AI", "tradeoff": "BT 易调试；StateTree 更现代；Mass 适合大量杂兵但表现层整合难"},
+      {"name": "数值", "tradeoff": "DataTable/Asset 数据驱动灵活；硬编码性能好但不可扩展"}
+    ],
+    "chain": [
+      {"from": "动作反馈要求高", "to": "动画与判定帧必须可对齐", "need": "AnimNotify/AnimState + 服务器命中窗口 + 表现层预测"},
+      {"from": "技能组合爆炸", "to": "逻辑不能写死", "need": "GAS（Ability/Effect/Tag）或自研数据驱动框架"},
+      {"from": "联机", "to": "伤害/掉落/冷却需权威", "need": "服务器权威 + 预测键/回滚 + 反作弊"},
+      {"from": "大量敌人", "to": "AI/动画成本上升", "need": "BT/StateTree + 动画 LOD + Mass 调度"},
+      {"from": "特效叠加", "to": "GPU/半透明瓶颈", "need": "Niagara 预算、材质复杂度控制、画质分级"},
+      {"from": "长线成长", "to": "数值/词条需要可配置", "need": "Data Asset/DataTable + 版本化存档"}
+    ],
+    "rollback": "若团队没有 GAS 经验：先用轻量自研技能框架（数据驱动 + 服务器校验）保证交付，再逐步迁移到 GAS；动画先用状态机保证可控，再试点 Motion Matching。",
+    "mainstream": {
+      "summary": "公开资料支持的主流拼图是 Motion Matching + GAS + 行为树/StateTree + Niagara；联机 ARPG 以服务器权威+预测为基线。",
+      "cases": [
+        {"who": "Motion Matching", "note": "Epic 官方文档与 GDC/TLOU2 演讲给出落地路径", "source": "S051"},
+        {"who": "GAS", "note": "官方文档给出 Ability/Effect/Attribute/预测键体系", "source": "S007"},
+        {"who": "StateTree", "note": "官方文档给出分层状态机方案", "source": "S013"}
+      ],
+      "sources": ["S007", "S009", "S013", "S018", "S039", "S051"]
+    },
+    "gaps": [
+      "没有公开的国产 ARPG（如原神/崩坏）完整技能框架文档；相关实践只能从 GAS 与通用架构推导。",
+      "Motion Matching 在联机 ARPG 中的带宽/回滚成本缺少公开实测数据。"
+    ]
+  },
+  {
+    "id": "derive-common",
+    "type": "通用",
+    "goal": "在服务器成本、包体、构建时间、跨平台与团队规模约束下，把技术方案做成可交付、可观测、可回滚的工程体系。",
+    "constraints": [
+      {"name": "服务器成本", "value": "专用服务器按 CPU/内存/带宽计费；tick 与玩家数直接乘成本", "note": "需要成本模型而非只看技术"},
+      {"name": "包体与更新", "value": "包体影响下载转化与平台审核；补丁影响回滚能力", "note": "资源管线与热更策略"},
+      {"name": "构建时间", "value": "大团队每日构建可能数小时，需增量/分布式", "note": "工程化与版本管理"},
+      {"name": "跨平台", "value": "PC/主机/移动端的 CPU/GPU/内存/输入差异大", "note": "Scalability 与特性开关"},
+      {"name": "可观测性", "value": "线上崩溃/卡顿/网络问题必须可定位", "note": "Insights/Telemetry/日志"}
+    ],
+    "variables": [
+      {"name": "服务器形态", "tradeoff": "Listen Server 便宜但主机优势/作弊风险；Dedicated 公平但成本高；P2P 省服务器但 NAT/延迟不可控"},
+      {"name": "编排", "tradeoff": "自建 IDC 可控但运维重；云原生/Agones 弹性好但冷启动与成本波动"},
+      {"name": "测试", "tradeoff": "手工测试覆盖浅；Gauntlet/自动化覆盖深但维护成本高"},
+      {"name": "包体", "tradeoff": "高压缩省下载但解压/加载 CPU 高；分包/按需加载降低首包但增加流式复杂度"}
+    ],
+    "chain": [
+      {"from": "服务器成本随 tick/玩家数上升", "to": "需要按玩法选择 tick 与权威模型", "need": "成本模型 + 压测 + 编排"},
+      {"from": "线上问题不可复现", "to": "需要可观测性", "need": "Insights/Network Profiler/崩溃上报/日志"},
+      {"from": "大团队并行", "to": "资产冲突与构建变慢", "need": "OFPA/Perforce/Git LFS + 增量构建"},
+      {"from": "跨平台差异", "to": "需要统一档位与特性开关", "need": "Scalability + 设备分级 + PSO/着色器策略"},
+      {"from": "发布风险", "to": "需要可回滚与可验证", "need": "自动化回归 + 灰度 + 存档兼容"}
+    ],
+    "rollback": "若团队工程能力有限：先做 Listen Server + 小规模、手工测试 + 基础日志；把 Dedicated/云原生/自动化留到有明确成本或规模痛点时再上。",
+    "mainstream": {
+      "summary": "公开资料支持的通用拼图是 Dedicated Server + 编排、Unreal Insights/Network Profiler、Gauntlet 自动化、Scalability 分级与 Zen/IoStore 资源管线。",
+      "cases": [
+        {"who": "UE Dedicated Server", "note": "官方文档给出 Server 目标与打包启动", "source": "S028"},
+        {"who": "Gauntlet", "note": "官方文档给出跨平台会话测试框架", "source": "S043"},
+        {"who": "Agones", "note": "Kubernetes 上分配游戏服务器", "source": "S080"}
+      ],
+      "sources": ["S010", "S025", "S028", "S030", "S043", "S074", "S080"]
+    },
+    "gaps": [
+      "服务器成本的具体单价与区域差异不适合写死；本库只给成本结构与量级。",
+      "AIGC 生产管线缺少可核验的 UE 官方端到端文档，相关条目只做方向性描述并标注缺口。"
+    ]
+  }
+]
