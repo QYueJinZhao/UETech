@@ -1,0 +1,278 @@
+{
+  "meta": {
+    "title": "UE 技术学习路线图",
+    "subtitle": "18 章 → 35 个能力项 → 5 个阶段 → 4 条方向",
+    "weeklyHours": "每周 6–8 小时",
+    "totalWeeks": "12–18 周",
+    "notes": "章节 order 仍作为阅读导航；能力分组、阶段验收与方向分支以本文件为准。"
+  },
+  "abilities": [
+    { "id": "ab-01", "name": "能把一帧拆成 Game / Render / GPU，判断瓶颈在哪", "level": "掌握", "chapters": ["render-basics", "perf"], "refs": { "solutions": ["gen-05"], "problems": ["pb-render-01", "pb-perf-01"], "interviews": ["iq-fps-009"] } },
+    { "id": "ab-02", "name": "能给出帧预算与 1% low 基线，设计固定场景复测", "level": "掌握", "chapters": ["perf"], "refs": { "solutions": ["gen-04", "gen-06"], "problems": ["pb-perf-02", "pb-perf-03"], "interviews": ["iq-arpg-006"] } },
+    { "id": "ab-03", "name": "能判断 GC 尖峰，区分泄漏、缓存与高分配频率", "level": "掌握", "chapters": ["gc"], "refs": { "solutions": ["gc-06", "gc-11"], "problems": ["pb-gc-01", "pb-gc-02"], "interviews": ["iq-rts-003"] } },
+    { "id": "ab-04", "name": "能用引用、弱指针与对象池管理 UObject 生命周期", "level": "了解", "chapters": ["gc"], "refs": { "solutions": ["gc-10", "gc-02"], "problems": ["pb-gc-03", "pb-gc-04"], "interviews": ["iq-fps-006"] } },
+    { "id": "ab-05", "name": "能拆解加载流水线，判断卡顿在 IO、解压还是反序列化", "level": "掌握", "chapters": ["loading"], "refs": { "solutions": ["load-01", "load-09"], "problems": ["pb-load-01", "pb-load-03"], "interviews": ["iq-smg-003"] } },
+    { "id": "ab-06", "name": "能设计异步加载与预加载策略，控制主线程尖峰", "level": "掌握", "chapters": ["loading"], "refs": { "solutions": ["load-03", "load-06"], "problems": ["pb-load-02", "pb-load-05"], "interviews": ["iq-slg-008"] } },
+    { "id": "ab-07", "name": "能配置流送单元与半径，解释换页压力与常驻内存", "level": "掌握", "chapters": ["streaming"], "refs": { "solutions": ["ow-01", "load-04"], "problems": ["pb-stream-01", "pb-stream-02"], "interviews": ["iq-slg-002"] } },
+    { "id": "ab-08", "name": "能用 HLOD / 远景代理兜底，接受画质与成本取舍", "level": "理解", "chapters": ["streaming"], "refs": { "solutions": ["ow-02", "ow-05"], "problems": ["pb-stream-03", "pb-stream-05"], "interviews": ["iq-smg-008"] } },
+    { "id": "ab-09", "name": "能设计分包边界与共享依赖，解释补丁体积", "level": "掌握", "chapters": ["asset"], "refs": { "solutions": ["load-07", "gen-15"], "problems": ["pb-asset-01", "pb-asset-02"], "interviews": ["iq-smg-003"] } },
+    { "id": "ab-10", "name": "能把包体与补丁体积纳入回归，而不是只看帧率", "level": "理解", "chapters": ["asset"], "refs": { "solutions": ["load-10", "load-02"], "problems": ["pb-asset-03", "pb-asset-04"], "interviews": ["iq-fps-013"] } },
+    { "id": "ab-11", "name": "能判断 GI 该用 Lumen 还是烘焙，并解释漏光与延迟", "level": "掌握", "chapters": ["gi"], "refs": { "solutions": ["ow-04", "ow-12"], "problems": ["pb-gi-01", "pb-gi-03"], "interviews": ["iq-core-046"] } },
+    { "id": "ab-12", "name": "能读 GPU 统计，定位 GI / 反射通道的成本", "level": "掌握", "chapters": ["gi"], "refs": { "solutions": ["ow-03"], "problems": ["pb-gi-02", "pb-gi-04"], "interviews": ["iq-fps-039"] } },
+    { "id": "ab-13", "name": "能判断移动端瓶颈是带宽、填充还是发热降频", "level": "掌握", "chapters": ["mobile"], "refs": { "solutions": ["mob-01", "mob-03"], "problems": ["pb-mobile-01", "pb-mobile-02"], "interviews": ["iq-core-042"] } },
+    { "id": "ab-14", "name": "能解释 TBDR 片上内存与 overdraw 的关系", "level": "理解", "chapters": ["mobile"], "refs": { "solutions": ["mob-02"], "problems": ["pb-mobile-03", "pb-mobile-04"], "interviews": ["iq-core-043"] } },
+    { "id": "ab-15", "name": "能复现 PSO 首帧卡顿，设计预缓存与变体收敛", "level": "掌握", "chapters": ["shader-pso"], "refs": { "solutions": ["gen-11", "ow-13"], "problems": ["pb-shader-01", "pb-shader-02"], "interviews": ["iq-core-009"] } },
+    { "id": "ab-16", "name": "能控制材质变体数量与构建成本", "level": "理解", "chapters": ["shader-pso"], "refs": { "solutions": ["mob-05", "gen-15"], "problems": ["pb-shader-03", "pb-shader-05"], "interviews": ["iq-core-018"] } },
+    { "id": "ab-17", "name": "能比较状态同步、帧同步与预测回滚并选型", "level": "掌握", "chapters": ["net"], "refs": { "solutions": ["fps-01", "fps-02", "fps-03"], "problems": ["pb-net-01", "pb-net-05"], "interviews": ["iq-fps-003"] } },
+    { "id": "ab-18", "name": "能用 RTT 与抖动分析预测误差和回滚窗口", "level": "掌握", "chapters": ["net"], "refs": { "solutions": ["fps-06", "net-05"], "problems": ["pb-net-03", "pb-net-04"], "interviews": ["iq-fps-009"] } },
+    { "id": "ab-19", "name": "能解释插值、外推与延迟补偿的边界", "level": "了解", "chapters": ["net"], "refs": { "solutions": ["net-01", "net-07"], "problems": ["pb-net-02"], "interviews": ["iq-arpg-001"] } },
+    { "id": "ab-20", "name": "能划分 Ability / Effect / Attribute / Cue 的职责", "level": "掌握", "chapters": ["gas"], "refs": { "solutions": ["gas-01", "gas-09"], "problems": ["pb-gas-01", "pb-gas-04"], "interviews": ["iq-arpg-001", "iq-arpg-003"] } },
+    { "id": "ab-21", "name": "能判断哪些技能可预测，并设计回滚与表现纠正", "level": "掌握", "chapters": ["gas"], "refs": { "solutions": ["gas-06", "gas-10"], "problems": ["pb-gas-02", "pb-gas-03"], "interviews": ["iq-arpg-007"] } },
+    { "id": "ab-22", "name": "能设计服务器权威与信息裁剪，消除透视收益", "level": "掌握", "chapters": ["anticheat"], "refs": { "solutions": ["fps-09", "tps-07"], "problems": ["pb-cheat-01", "pb-cheat-02"], "interviews": ["iq-fps-007"] } },
+    { "id": "ab-23", "name": "能组合裁剪、权威与检测三层防线", "level": "理解", "chapters": ["anticheat"], "refs": { "solutions": ["net-08", "gen-18"], "problems": ["pb-cheat-03", "pb-cheat-05"], "interviews": ["iq-rts-023"] } },
+    { "id": "ab-24", "name": "能解释活跃刚体、休眠与子步进对物理成本的影响", "level": "掌握", "chapters": ["physics"], "refs": { "solutions": ["phy-01", "phy-04"], "problems": ["pb-phy-01", "pb-phy-02"], "interviews": ["iq-rts-001"] } },
+    { "id": "ab-25", "name": "能设计破坏结果的同步与本地碎片表现", "level": "理解", "chapters": ["physics"], "refs": { "solutions": ["phy-05", "ow-10"], "problems": ["pb-phy-03", "pb-phy-05"], "interviews": ["iq-arpg-004"] } },
+    { "id": "ab-26", "name": "能定位动画开销，并按角色重要度做 LOD 与降频", "level": "掌握", "chapters": ["animation"], "refs": { "solutions": ["arpg-10", "tps-08"], "problems": ["pb-anim-01", "pb-anim-02"], "interviews": ["iq-arpg-005"] } },
+    { "id": "ab-27", "name": "能判断 Motion Matching 的收益与检索代价", "level": "理解", "chapters": ["animation"], "refs": { "solutions": ["arpg-01"], "problems": ["pb-anim-04", "pb-anim-05"], "interviews": ["iq-arpg-002"] } },
+    { "id": "ab-28", "name": "能把特殊移动做成明确的状态切换与合法性检测", "level": "掌握", "chapters": ["movement"], "refs": { "solutions": ["mov-01", "mov-09"], "problems": ["pb-move-01", "pb-move-02"], "interviews": ["iq-fps-004"] } },
+    { "id": "ab-29", "name": "能处理特殊移动的预测、回滚与橡皮筋", "level": "掌握", "chapters": ["movement"], "refs": { "solutions": ["mov-11", "mov-03"], "problems": ["pb-move-03", "pb-move-04"], "interviews": ["iq-fps-002"] } },
+    { "id": "ab-30", "name": "能按距离与重要度分档群体 AI，并给寻路限流", "level": "掌握", "chapters": ["ai-nav"], "refs": { "solutions": ["tps-06", "ow-08"], "problems": ["pb-ai-01", "pb-ai-02"], "interviews": ["iq-rts-004"] } },
+    { "id": "ab-31", "name": "能判断 Mass / ECS 与 Actor + 行为树的适用边界", "level": "了解", "chapters": ["ai-nav"], "refs": { "solutions": ["ow-08", "ow-09"], "problems": ["pb-ai-03", "pb-ai-05"], "interviews": ["iq-smg-006"] } },
+    { "id": "ab-32", "name": "能定位 UI 的 CPU 重建与 GPU overdraw", "level": "掌握", "chapters": ["ui"], "refs": { "solutions": ["gen-10", "mob-07"], "problems": ["pb-ui-01", "pb-ui-03"], "interviews": ["iq-smg-004"] } },
+    { "id": "ab-33", "name": "能用虚拟化与脏标记把 UI 成本绑到可见项", "level": "理解", "chapters": ["ui"], "refs": { "solutions": ["arpg-09", "gen-12"], "problems": ["pb-ui-02", "pb-ui-04"], "interviews": ["iq-smg-009"] } },
+    { "id": "ab-34", "name": "能搭建最小流水线、基线对比与性能门禁", "level": "掌握", "chapters": ["engineering"], "refs": { "solutions": ["gen-05", "gen-04"], "problems": ["pb-eng-01", "pb-eng-02"], "interviews": ["iq-smg-001"] } },
+    { "id": "ab-35", "name": "能设计崩溃上报、灰度发布与回滚预案", "level": "掌握", "chapters": ["engineering"], "refs": { "solutions": ["gen-17", "net-10"], "problems": ["pb-eng-03", "pb-eng-04"], "interviews": ["iq-slg-005"] } }
+  ],
+  "stages": [
+    {
+      "id": "s1",
+      "order": 1,
+      "name": "基础与度量",
+      "goal": "先建立「一帧」的坐标系：能拆 Game / Render / GPU，能量化基线，能解释 GC 尖峰。没有这一步，后面的优化都只能靠感觉。",
+      "chapters": ["render-basics", "perf", "gc"],
+      "abilities": ["ab-01", "ab-02", "ab-03", "ab-04"],
+      "acceptance": [
+        "在目标硬件上固定机位连续采集 60 秒，能说出最慢的是 Game、Render 还是 GPU，并给出证据。",
+        "能写出 60fps 与 30fps 的帧预算，并解释 1% low 与长帧为什么不能只看平均。",
+        "能复现一次 GC 尖峰，指出是分配频率、对象数量还是泄漏，并给出验证路径。"
+      ],
+      "hours": "2–3 周（每周 6–8 小时，约 12–24 小时）",
+      "projectId": "pj-01"
+    },
+    {
+      "id": "s2",
+      "order": 2,
+      "name": "内容与资源",
+      "goal": "让内容进得去、加载不卡、包体可控：能把加载卡顿归因到 IO/解压/反序列化，能配置流送，能解释分包与补丁体积。",
+      "chapters": ["loading", "streaming", "asset"],
+      "abilities": ["ab-05", "ab-06", "ab-07", "ab-08", "ab-09", "ab-10"],
+      "acceptance": [
+        "能对一次加载卡顿给出分段归因，并用异步/预加载把主线程尖峰压到可接受范围。",
+        "能画出「流送半径—常驻单元—内存」的关系，并说明为什么不能只靠加大半径。",
+        "能解释一次小改动为什么产生大补丁，并给出分包调整方案与代价。"
+      ],
+      "hours": "2–3 周（约 12–24 小时）",
+      "projectId": "pj-02"
+    },
+    {
+      "id": "s3",
+      "order": 3,
+      "name": "渲染与画质",
+      "goal": "能在画质与成本之间做可解释的取舍：GI 用 Lumen 还是烘焙、移动端瓶颈在哪、PSO 卡顿怎么根治。",
+      "chapters": ["gi", "mobile", "shader-pso"],
+      "abilities": ["ab-11", "ab-12", "ab-13", "ab-14", "ab-15", "ab-16"],
+      "acceptance": [
+        "能在同一场景给出 Lumen 与烘焙（或移动端两条路径）的通道级对比，并说明适用边界。",
+        "能指出移动端瓶颈是带宽、填充还是降频，并给出分档方案。",
+        "能在打包构建里复现 PSO 卡顿，并用预缓存把未命中次数压下来。"
+      ],
+      "hours": "2–3 周（约 12–24 小时）",
+      "projectId": "pj-03"
+    },
+    {
+      "id": "s4",
+      "order": 4,
+      "name": "联机、战斗与移动",
+      "goal": "把「好玩」做成可同步的系统：权威与预测、技能预测与回滚、破坏与特殊移动、动画与群体 AI 的预算边界。",
+      "chapters": ["net", "gas", "anticheat", "physics", "animation", "movement"],
+      "abilities": ["ab-17", "ab-18", "ab-19", "ab-20", "ab-21", "ab-22", "ab-23", "ab-24", "ab-25", "ab-26", "ab-27", "ab-28", "ab-29"],
+      "acceptance": [
+        "能在 100/200ms 延迟与抖动下记录预测偏差、回滚次数与观感，并给出可预测/不可预测清单。",
+        "能构造一次服务器拒绝，客户端正确回滚且表现被纠正。",
+        "能解释破坏瞬间的物理尖峰，并给出碎片上限、休眠与同步策略。",
+        "能把特殊移动的抖动归因到状态切换、检测容差或预测路径，而不是笼统归因到动画。"
+      ],
+      "hours": "4–6 周（约 24–48 小时）",
+      "projectId": "pj-04"
+    },
+    {
+      "id": "s5",
+      "order": 5,
+      "name": "规模化、界面与交付",
+      "goal": "让项目撑得住规模、界面不拖后腿、长期不退化：群体 AI 分档、UI 成本与可见项绑定、CI 门禁与灰度回滚。",
+      "chapters": ["ai-nav", "ui", "engineering"],
+      "abilities": ["ab-30", "ab-31", "ab-32", "ab-33", "ab-34", "ab-35"],
+      "acceptance": [
+        "能给出 200 单位群体的 CPU 曲线与分档阈值，证明上限可解释。",
+        "能让长列表滚动时的每帧 UI 成本与总条目数解耦，并给出验证数据。",
+        "CI 能拦住一次人为性能回归；按 runbook 完成一次灰度发布与回滚演练。"
+      ],
+      "hours": "2–3 周（约 12–24 小时）",
+      "projectId": "pj-05"
+    }
+  ],
+  "projects": [
+    {
+      "id": "pj-01",
+      "stageId": "s1",
+      "name": "60 帧小场景 + 帧预算报告",
+      "deliverable": "一个可打包的小场景（固定机位）+ 一份帧预算报告：Game / Render / GPU 时间、最慢线程、1% low、瓶颈归因与三条候选优化。",
+      "acceptance": [
+        "报告能复现：写明构建类型、分辨率、画质档位、场景版本与采集时长。",
+        "能指出一个瓶颈，并给出改前/改后的对照数字，而不是只写「优化了」。",
+        "至少一条候选优化被验证有效，另一条被证伪并说明原因。"
+      ],
+      "failures": [
+        "只在编辑器 PIE 里测，不打包，数值与目标平台不可比。",
+        "只报平均 FPS，不报长帧与 1% low，尖峰被平均掩盖。",
+        "没有固定机位与场景版本，前后数据不可复现。"
+      ]
+    },
+    {
+      "id": "pj-02",
+      "stageId": "s2",
+      "name": "带流式加载的小地图",
+      "deliverable": "一张可高速穿行的小地图（World Partition 或 Level Streaming）+ 流送曲线：常驻单元、内存、IO 随位置变化。",
+      "acceptance": [
+        "以冲刺/调试相机速度穿越整图，记录最长帧，证明没有长时间卡顿。",
+        "给出半径/单元大小与常驻内存的关系，并说明选择依据。",
+        "冷启动与热缓存两种条件都测过，不只测编辑器。"
+      ],
+      "failures": [
+        "只按正常走路速度测，触发不了流送压力。",
+        "不断加大半径掩盖问题，内存与加载时间一起失控。",
+        "只看画面有没有空洞，不看流送统计与内存曲线。"
+      ]
+    },
+    {
+      "id": "pj-03",
+      "stageId": "s3",
+      "name": "渲染特性取舍台",
+      "deliverable": "同一场景的 Lumen / 烘焙（或移动端 Forward / Deferred）A/B 配置 + PSO 预缓存记录 + 一页取舍说明。",
+      "acceptance": [
+        "给出两条路径的通道级 GPU 时间与画质对比，机位与分辨率固定。",
+        "在薄墙、屏幕外、快速移动光源三种边界下记录漏光/延迟表现。",
+        "打包构建中 PSO 未命中次数显著下降，并附收集覆盖率。"
+      ],
+      "failures": [
+        "只开关特性，不看同一基线，结论无法归因。",
+        "只在理想场景测，不测薄墙与屏幕外，漏光被掩盖。",
+        "只在编辑器里预热 PSO，打包后仍然卡。"
+      ]
+    },
+    {
+      "id": "pj-04",
+      "stageId": "s4",
+      "name": "带预测回滚的联机 demo",
+      "deliverable": "listen server + 2 客户端的移动与一个可预测技能 demo + 延迟/抖动测试记录 + 技能预测清单。",
+      "acceptance": [
+        "在 100/200ms 延迟与抖动下记录预测偏差、回滚次数与观感。",
+        "构造一次服务器拒绝（冷却/距离/权威判定），客户端正确回滚且表现被纠正。",
+        "给出哪些技能预测、哪些不预测的理由，并说明回滚窗口的选择。"
+      ],
+      "failures": [
+        "只在 LAN 测，延迟与抖动没有真正被验证。",
+        "把所有技能都开预测，回滚成本与表现错位失控。",
+        "只同步状态不同步表现（Cue），回滚后画面与数值对不上。"
+      ]
+    },
+    {
+      "id": "pj-05",
+      "stageId": "s5",
+      "name": "规模化与工程化演练",
+      "deliverable": "200 单位群体场景 + 虚拟化 UI 长列表 + CI 性能门禁 + 发布/回滚 runbook。",
+      "acceptance": [
+        "给出群体 AI 的 CPU 曲线与分档阈值，证明上限可解释。",
+        "长列表滚动时 UI 每帧成本与总条目数解耦，并有数据。",
+        "CI 拦住一次人为性能回归；按 runbook 完成一次灰度发布与回滚演练。"
+      ],
+      "failures": [
+        "只优化单个 AI，不看规模与寻路请求集中。",
+        "UI 只做视觉虚拟化，数据仍全量绑定，滚动照样卡。",
+        "门禁阈值拍脑袋，误报后直接关掉，回归再次漏过。"
+      ]
+    }
+  ],
+  "branches": [
+    {
+      "id": "br-render",
+      "name": "渲染 / 图形",
+      "short": "画质与 GPU",
+      "mainDiff": "主线只要求能判断与取舍；这条分支要求能读通道、做 A/B、定位到具体 pass，并把移动端与 PSO 当成主战场。",
+      "focus": "ProfileGPU / RenderDoc、Lumen 与烘焙、移动端 TBDR、PSO 与变体收敛",
+      "chapters": ["render-basics", "perf", "gc", "loading", "streaming", "asset", "gi", "mobile", "shader-pso", "engineering"],
+      "extraAbilities": ["ab-11", "ab-12", "ab-13", "ab-14", "ab-15", "ab-16"],
+      "extraGaps": ["gap-material", "gap-nanite"]
+    },
+    {
+      "id": "br-net",
+      "name": "网络与服务器",
+      "short": "权威与同步",
+      "mainDiff": "主线要求能选型与解释；这条分支要求能改复制、做延迟模拟、设计权威边界与反作弊，并承担服务器侧成本。",
+      "focus": "状态同步/帧同步、预测回滚、GAS 预测、相关性裁剪、专用服务器",
+      "chapters": ["render-basics", "perf", "gc", "loading", "streaming", "net", "gas", "anticheat", "physics", "movement", "engineering"],
+      "extraAbilities": ["ab-17", "ab-18", "ab-19", "ab-20", "ab-21", "ab-22", "ab-23", "ab-29"],
+      "extraGaps": ["gap-net-advanced"]
+    },
+    {
+      "id": "br-gameplay",
+      "name": "Gameplay 与技能",
+      "short": "好玩与可同步",
+      "mainDiff": "主线偏机制理解；这条分支要求把技能、移动、动画、物理、群体 AI 做成可联机、可回滚、可扩展的系统。",
+      "focus": "GAS、CharacterMovement、动画与物理、群体 AI、破坏与特殊移动",
+      "chapters": ["render-basics", "perf", "gc", "loading", "streaming", "asset", "gi", "gas", "physics", "animation", "movement", "ai-nav", "ui", "engineering"],
+      "extraAbilities": ["ab-20", "ab-21", "ab-24", "ab-25", "ab-26", "ab-27", "ab-28", "ab-29", "ab-30", "ab-31"],
+      "extraGaps": ["gap-audio", "gap-mm", "gap-pcg"]
+    },
+    {
+      "id": "br-perf",
+      "name": "性能与工具",
+      "short": "度量与门禁",
+      "mainDiff": "主线只要求会看指标；这条分支要求建立基线、做回归、把性能与包体变成流水线门禁，并维护误报治理。",
+      "focus": "Insights / Gauntlet、固定场景基线、UI 成本、PSO、CI 与灰度",
+      "chapters": ["render-basics", "perf", "gc", "loading", "streaming", "asset", "gi", "mobile", "shader-pso", "ui", "engineering"],
+      "extraAbilities": ["ab-01", "ab-02", "ab-32", "ab-33", "ab-34", "ab-35"],
+      "extraGaps": ["gap-pcg", "gap-console"]
+    }
+  ],
+  "prereqNotes": [
+    { "from": "render-basics", "to": "perf", "kind": "must", "skipCost": "跳过：后面所有「卡」只能靠感觉，无法判断是 CPU 还是 GPU。", "parallel": [] },
+    { "from": "perf", "to": "gi", "kind": "must", "skipCost": "跳过：会把 Lumen 成本当成「画质税」，不知道贵在哪个通道。", "parallel": ["gc"] },
+    { "from": "loading", "to": "streaming", "kind": "must", "skipCost": "跳过：会把流送卡顿误判为半径问题，越调越糟。", "parallel": [] },
+    { "from": "streaming", "to": "asset", "kind": "must", "skipCost": "跳过：分包边界与流送单元脱节，补丁体积和换页压力同时失控。", "parallel": [] },
+    { "from": "net", "to": "gas", "kind": "must", "skipCost": "跳过：会把「预测」当成万能开关，不知道哪些技能根本不能预测。", "parallel": ["physics", "animation"] },
+    { "from": "net", "to": "anticheat", "kind": "must", "skipCost": "跳过：会把信息裁剪和延迟补偿混为一谈，做出既卡又漏的防护。", "parallel": ["gas"] },
+    { "from": "net", "to": "movement", "kind": "must", "skipCost": "跳过：特殊移动的回拉会被当成动画或状态机 bug。", "parallel": [] },
+    { "from": "animation", "to": "movement", "kind": "must", "skipCost": "跳过：会把移动抖动归因到动画，改错地方。", "parallel": [] },
+    { "from": "physics", "to": "movement", "kind": "must", "skipCost": "跳过：特殊移动的碰撞/容差问题会被当成状态逻辑错误。", "parallel": [] },
+    { "from": "perf", "to": "engineering", "kind": "must", "skipCost": "跳过：CI 门禁没有可信基线，只能拦构建失败，拦不住性能退化。", "parallel": [] },
+    { "from": "asset", "to": "engineering", "kind": "must", "skipCost": "跳过：门禁只盯帧率，包体与补丁体积继续劣化。", "parallel": [] },
+    { "from": "ai-nav", "to": "ui", "kind": "parallel", "skipCost": "可并行：两者都只依赖 perf；先做哪个取决于项目是「单位多」还是「界面重」。", "parallel": ["ai-nav", "ui"] }
+  ],
+  "parallelGroups": [
+    { "stageId": "s1", "chapters": ["perf", "gc"], "note": "两者都只依赖 render-basics，可并行；先学哪个取决于当前痛点是帧还是 GC。" },
+    { "stageId": "s2", "chapters": ["loading", "streaming"], "note": "loading 是 streaming 的前置，不建议并行；asset 需要两者都读过之后再动。" },
+    { "stageId": "s3", "chapters": ["gi", "mobile", "shader-pso"], "note": "三者都只依赖 render-basics + perf，可并行；但都建议先完成阶段 1 的基线报告。" },
+    { "stageId": "s4", "chapters": ["gas", "anticheat", "physics", "animation"], "note": "都依赖 net；gas/anticheat/physics/animation 可在 net 之后并行，movement 需要 animation + physics + net 三者。" },
+    { "stageId": "s5", "chapters": ["ai-nav", "ui"], "note": "可并行；engineering 需要 perf + asset，建议放在最后。" }
+  ],
+  "gaps": [
+    { "id": "gap-audio", "name": "音频与 MetaSounds", "why": "18 章没有音频管线：混音总线、空间化、音频线程预算、MetaSounds 图与参数驱动都未成章。做项目一定会遇到，但当前只能靠速查库零散条目。", "neededBy": ["br-gameplay"] },
+    { "id": "gap-material", "name": "材质与 Substrate 深入", "why": "只有零散引用 rd-10；材质图、BSDF、Substrate 分层、材质变体与性能取舍没有成章。渲染方向会明显受限。", "neededBy": ["br-render"] },
+    { "id": "gap-mm", "name": "Motion Matching 深入", "why": "animation 章只讲到取舍层；姿势库采集、轨迹特征、搜索结构与调参没有展开。想真正落地 MM 还需要补这一章。", "neededBy": ["br-gameplay"] },
+    { "id": "gap-console", "name": "跨平台与主机认证", "why": "TRC/TCR、内存/存储/网络认证、平台 SDK 差异与提审流程未覆盖；这属于上线前的硬门槛，不是优化技巧。", "neededBy": ["br-perf"] },
+    { "id": "gap-pcg", "name": "工具链与 PCG", "why": "PCG 框架、编辑器工具、自动化资产生成与工具维护未覆盖；工程章只讲 CI 与发布，不涉及内容生产工具。", "neededBy": ["br-gameplay", "br-perf"] },
+    { "id": "gap-nanite", "name": "Nanite 深入", "why": "速查库有 rd-06 条目，但没有成章讲簇层级、fallback、与 VSM/流送的交互和限制条件。渲染方向需要补。", "neededBy": ["br-render"] },
+    { "id": "gap-net-advanced", "name": "网络进阶：Iris / Replication Graph / 服务器编排", "why": "net 章讲的是模型与预测；复制优化、相关性图、专用服务器编排与容量规划只在速查库，没有形成学习路径。", "neededBy": ["br-net"] }
+  ]
+}

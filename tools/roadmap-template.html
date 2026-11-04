@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UE 技术学习路线 · 从零到能做项目</title>
+<meta name="description" content="18 章能力树、5 个阶段、项目演练与 4 条方向分支；前置依赖可视化、本机学习进度与交互图解。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="assets/base.css">
+</head>
+<body>
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>能力路线图 · 图解原理 · 速查库</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="reference/audit.html">审核报告</a>
+    <a class="tb-link" href="reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <div class="kicker">先懂机制，再记方案</div>
+    <h1>18 章，从零到能独立做一个 UE 项目</h1>
+    <p class="lede">这不是节点列表：它先回答「这个阶段要能做什么」，再给可观测的验收标准与项目演练，最后才落到章节。每章 8 屏，先给场景，再给直觉，然后用可交互图解讲清原理。已学记录只保存在本机浏览器。</p>
+    <div class="hero-actions">
+      <a class="btn primary" href="learn/__FIRST_ID__.html">从第一章开始</a>
+      <a class="btn ghost" href="#roadmap">看能力树</a>
+      <a class="btn ghost" href="reference/index.html">直接查方案</a>
+    </div>
+    <div class="progress-card">
+      <div><div class="kicker">学习进度</div><div class="pct" id="pct">0%</div></div>
+      <div class="track"><div class="fill" id="fill"></div></div>
+      <div class="note" id="progress-note">进度只保存在本机浏览器（localStorage），不上传。标记「已学」后会检查前置是否完成。</div>
+    </div>
+  </section>
+
+  <section id="roadmap">
+    <div class="roadmap-toolbar">
+      <div class="kicker">按方向切换视图</div>
+      <div class="filters" id="branch-filters">
+        <button class="branchbtn on" type="button" data-branch-filter="all">全部方向</button>
+        __BRANCH_FILTERS__
+      </div>
+      <div class="branch-infos">__BRANCH_INFO__</div>
+      <p class="note" id="branch-note">主线：按 5 个阶段推进。切换方向后只显示该方向需要的章节，并给出与主线的差异、重点与额外缺口。</p>
+    </div>
+    <div class="legend">
+      <span><i class="lg-dot ok"></i>已学</span>
+      <span><i class="lg-dot"></i>未开始</span>
+      <span><i class="lg-dot warn"></i>前置未完成</span>
+      <span>节点顺序是阅读导航；阶段与能力项见每组标题</span>
+    </div>
+    __STAGES__
+  </section>
+
+  <section id="deps">
+    <h2>前置依赖：谁必须先学，谁能并行</h2>
+    <p class="note">箭头表示「必须先学」。同阶段的上下箭头表示阶段内先后；跨列箭头表示跨阶段前置。切换方向会高亮相关节点，其余降权。</p>
+    __DEPGRAPH__
+    <div class="legend">
+      <span>左 → 右：阶段推进</span>
+      <span>实线箭头：硬前置</span>
+      <span>同一阶段内的并行组见右侧说明</span>
+    </div>
+    <div class="deps-cols">
+      <div class="deps-col"><h3>跳过会踩什么坑</h3>__PREREQ__</div>
+      <div class="deps-col"><h3>哪些可以并行</h3>__PARALLEL__</div>
+    </div>
+  </section>
+
+  <section id="gaps">
+    <h2>待补章节 · 不假装已覆盖</h2>
+    <p class="note">下面这些能力是路线图需要、但当前 18 章没有覆盖的。它们不会被算进「已学」，也不会被含糊地说成「速查库里有」。</p>
+    <div class="gap-grid">__GAPS__</div>
+  </section>
+
+  <section class="foot">
+    <div class="foot-stats">__STATS__</div>
+    <div>__AUDIT__ · <a href="reference/audit.html">查看内容审核报告 →</a></div>
+    <div>本页为静态 HTML，无 CDN、可离线双击打开；数据源在 <code>research/learning/</code>，章节由 <code>chapters/*.json</code> 驱动，路线由 <code>roadmap.json</code> 驱动。</div>
+    <div>速查库保留原有方案 / 问题 / 面试题 / 对比 / 插件 / 来源，入口在顶部与页脚。</div>
+    <div><a href="reference/index.html">进入速查库 →</a></div>
+  </section>
+</main>
+
+<script src="assets/site.js"></script>
+<script>
+/* 兼容旧深链：index.html#card-<id> → 速查库对应条目 */
+(function () {
+  if (/^#card-/.test(location.hash)) location.replace('reference/catalog.html' + location.hash);
+})();
+</script>
+</body>
+</html>
