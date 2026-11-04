@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>内容审核报告 · UE 技术学习站</title>
+<meta name="description" content="18 章 × 7 维内容审核：BLOCKER / MAJOR / MINOR 逐条证据、修复状态与 MINOR 清单。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+<style>
+.audit-wrap{max-width:1120px}
+.astats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+.astat{background:var(--paper-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.astat b{font-size:30px;line-height:1}
+.astat span{color:var(--muted);font-size:13px;line-height:1.5}
+.method{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}
+.method div{background:var(--paper-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.method b{display:block;margin-bottom:4px}
+.method span{color:var(--muted);font-size:13.5px;line-height:1.6}
+.audit-list{display:grid;gap:14px;margin-top:14px}
+.audit-card{background:var(--paper-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.audit-card header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.audit-card h3{margin:0;font-size:17px}
+.scoregrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-top:12px}
+.score{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center}
+.score span{display:block;color:var(--muted);font-size:11.5px;line-height:1.3;min-height:2.6em}
+.score b{display:block;font-size:20px;margin-top:4px}
+.score.low b{color:var(--bad)}
+.score.high b{color:var(--ok)}
+.issue{background:var(--paper-2);border:1px solid var(--line);border-left-width:4px;border-radius:10px;padding:12px 14px;margin-top:10px}
+.issue[data-sev="BLOCKER"]{border-left-color:var(--bad)}
+.issue[data-sev="MAJOR"]{border-left-color:var(--amber)}
+.issue[data-sev="MINOR"]{border-left-color:var(--line-2)}
+.issue-head{display:flex;gap:10px;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:12.5px}
+.issue-head .mono{color:var(--ink);font-weight:700}
+.issue p{margin:8px 0 0;line-height:1.7}
+.issue p b{display:inline-block;margin-right:8px;color:var(--ink-2)}
+.issue .dim{color:var(--muted);font-size:12.5px}
+.fixed{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--ok);color:var(--ok)}
+.fixed.open{border-color:var(--amber);color:var(--amber)}
+.sev{font-size:12px;padding:2px 8px;border-radius:999px;color:#fff;font-weight:700}
+.sev.blocker{background:var(--bad)}
+.sev.major{background:var(--amber)}
+.sev.minor{background:var(--line-2);color:var(--ink)}
+.sevgroup{margin-top:18px}
+.sevgroup h3{display:flex;align-items:center;gap:10px;margin:0 0 4px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.filters button{border:1px solid var(--line);background:var(--paper-2);color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:13px}
+.filters button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+@media(max-width:900px){.scoregrid{grid-template-columns:repeat(4,minmax(0,1fr))}.astats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.scoregrid{grid-template-columns:repeat(2,minmax(0,1fr))}.astats{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>内容审核报告</b><span>18 章 × 7 维 · 证据可复核</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">路线图</a>
+    <a class="tb-link" href="index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap audit-wrap">
+  <section class="hero">
+    <div class="kicker">内容审核 · __DATE__</div>
+    <h1>先判错，再谈优化</h1>
+    <p class="lede">__SUMMARY__</p>
+    <div class="astats">__STATS__</div>
+  </section>
+
+  <section>
+    <h2>审核标准与维度</h2>
+    <p class="note">范围：__SCOPE__</p>
+    <p class="note">判定口径：__STANDARD__</p>
+    <div class="method">
+      <div><b>概念正确性</b><span>机制描述能否对应官方文档/公开技术分享；有没有把经验说法写成引擎事实。</span></div>
+      <div><b>原理讲透程度</b><span>是否解释「为什么这样设计」，还是只罗列现象；类比是否会引起误解。</span></div>
+      <div><b>图解质量</b><span>示意图与真实机制的关系、简化是否标注、参数是否对应机制量。</span></div>
+      <div><b>难度与节奏</b><span>每屏信息量、前置是否交代、术语是否首次解释、时长估计是否合理。</span></div>
+      <div><b>自测题质量</b><span>是否只考记忆、有没有考察权衡与边界条件、解析是否讲清「为什么错」。</span></div>
+      <div><b>动手可执行性</b><span>步骤能否在编辑器走通、预期现象是否写清、有无遗漏插件/项目设置/版本。</span></div>
+      <div><b>术语与一致性</b><span>同一概念跨章叫法是否统一，与速查库条目是否对得上。</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>逐章评分与证据</h2>
+    <p class="note">分数为 1–5；点开每章可看逐维证据。低于 4 的维度不是「文风问题」，而是审核问题的来源。</p>
+    <div class="audit-list">__SCORES__</div>
+  </section>
+
+  <section>
+    <h2>问题清单</h2>
+    <div class="filters" id="sev-filters">
+      <button type="button" class="on" data-sev-filter="all">全部</button>
+      <button type="button" data-sev-filter="BLOCKER">BLOCKER</button>
+      <button type="button" data-sev-filter="MAJOR">MAJOR</button>
+      <button type="button" data-sev-filter="MINOR">MINOR</button>
+    </div>
+    <div id="issue-list">__ISSUES__</div>
+  </section>
+
+  <section class="foot">
+    <div>审核数据源：<code>research/learning/audit.json</code>；路线图数据源：<code>research/learning/roadmap.json</code>。</div>
+    <div>本页为静态 HTML，无 CDN，可离线双击打开；所有修复都落在章节 JSON 与图解说明里，不在本页「口头通过」。</div>
+    <div><a href="../index.html">回到路线图 →</a> · <a href="index.html">进入速查库 →</a></div>
+  </section>
+</main>
+
+<script src="../assets/site.js"></script>
+<script>
+(function () {
+  var btns = document.querySelectorAll('[data-sev-filter]');
+  var groups = document.querySelectorAll('[data-sev-group]');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener('click', function () {
+      var v = this.getAttribute('data-sev-filter');
+      for (var j = 0; j < btns.length; j++) btns[j].classList.toggle('on', btns[j] === this);
+      for (var k = 0; k < groups.length; k++) {
+        groups[k].hidden = v !== 'all' && groups[k].getAttribute('data-sev-group') !== v;
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

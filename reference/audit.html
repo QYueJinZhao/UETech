@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>内容审核报告 · UE 技术学习站</title>
+<meta name="description" content="18 章 × 7 维内容审核：BLOCKER / MAJOR / MINOR 逐条证据、修复状态与 MINOR 清单。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+<style>
+.audit-wrap{max-width:1120px}
+.astats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+.astat{background:var(--paper-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.astat b{font-size:30px;line-height:1}
+.astat span{color:var(--muted);font-size:13px;line-height:1.5}
+.method{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}
+.method div{background:var(--paper-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.method b{display:block;margin-bottom:4px}
+.method span{color:var(--muted);font-size:13.5px;line-height:1.6}
+.audit-list{display:grid;gap:14px;margin-top:14px}
+.audit-card{background:var(--paper-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.audit-card header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.audit-card h3{margin:0;font-size:17px}
+.scoregrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-top:12px}
+.score{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center}
+.score span{display:block;color:var(--muted);font-size:11.5px;line-height:1.3;min-height:2.6em}
+.score b{display:block;font-size:20px;margin-top:4px}
+.score.low b{color:var(--bad)}
+.score.high b{color:var(--ok)}
+.issue{background:var(--paper-2);border:1px solid var(--line);border-left-width:4px;border-radius:10px;padding:12px 14px;margin-top:10px}
+.issue[data-sev="BLOCKER"]{border-left-color:var(--bad)}
+.issue[data-sev="MAJOR"]{border-left-color:var(--amber)}
+.issue[data-sev="MINOR"]{border-left-color:var(--line-2)}
+.issue-head{display:flex;gap:10px;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:12.5px}
+.issue-head .mono{color:var(--ink);font-weight:700}
+.issue p{margin:8px 0 0;line-height:1.7}
+.issue p b{display:inline-block;margin-right:8px;color:var(--ink-2)}
+.issue .dim{color:var(--muted);font-size:12.5px}
+.fixed{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--ok);color:var(--ok)}
+.fixed.open{border-color:var(--amber);color:var(--amber)}
+.sev{font-size:12px;padding:2px 8px;border-radius:999px;color:#fff;font-weight:700}
+.sev.blocker{background:var(--bad)}
+.sev.major{background:var(--amber)}
+.sev.minor{background:var(--line-2);color:var(--ink)}
+.sevgroup{margin-top:18px}
+.sevgroup h3{display:flex;align-items:center;gap:10px;margin:0 0 4px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.filters button{border:1px solid var(--line);background:var(--paper-2);color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:13px}
+.filters button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+@media(max-width:900px){.scoregrid{grid-template-columns:repeat(4,minmax(0,1fr))}.astats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.scoregrid{grid-template-columns:repeat(2,minmax(0,1fr))}.astats{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>内容审核报告</b><span>18 章 × 7 维 · 证据可复核</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">路线图</a>
+    <a class="tb-link" href="index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap audit-wrap">
+  <section class="hero">
+    <div class="kicker">内容审核 · 2026-11-04</div>
+    <h1>先判错，再谈优化</h1>
+    <p class="lede">共审 18 章 × 7 维；平均 4.18/5。BLOCKER 2 条（已修 2）、MAJOR 8 条（已修 8）、MINOR 8 条（已修 5、列出 3）。</p>
+    <div class="astats"><div class="astat"><b>2</b><span>BLOCKER<br>已修 2</span></div><div class="astat"><b>8</b><span>MAJOR<br>已修 8</span></div><div class="astat"><b>8</b><span>MINOR<br>已修 5</span></div><div class="astat"><b>4.18</b><span>平均分<br>满分 5</span></div></div>
+  </section>
+
+  <section>
+    <h2>审核标准与维度</h2>
+    <p class="note">范围：18 章正文 + 交互图解 + 自测 + 章节引用的速查库关键结论</p>
+    <p class="note">判定口径：概念可对应官方文档/公开技术分享；不把经验说法写成引擎事实；图解简化必须标注；自测要考权衡与边界；动手步骤要能在编辑器走通并写清前提。</p>
+    <div class="method">
+      <div><b>概念正确性</b><span>机制描述能否对应官方文档/公开技术分享；有没有把经验说法写成引擎事实。</span></div>
+      <div><b>原理讲透程度</b><span>是否解释「为什么这样设计」，还是只罗列现象；类比是否会引起误解。</span></div>
+      <div><b>图解质量</b><span>示意图与真实机制的关系、简化是否标注、参数是否对应机制量。</span></div>
+      <div><b>难度与节奏</b><span>每屏信息量、前置是否交代、术语是否首次解释、时长估计是否合理。</span></div>
+      <div><b>自测题质量</b><span>是否只考记忆、有没有考察权衡与边界条件、解析是否讲清「为什么错」。</span></div>
+      <div><b>动手可执行性</b><span>步骤能否在编辑器走通、预期现象是否写清、有无遗漏插件/项目设置/版本。</span></div>
+      <div><b>术语与一致性</b><span>同一概念跨章叫法是否统一，与速查库条目是否对得上。</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>逐章评分与证据</h2>
+    <p class="note">分数为 1–5；点开每章可看逐维证据。低于 4 的维度不是「文风问题」，而是审核问题的来源。</p>
+    <div class="audit-list"><article class="audit-card">
+    <header><h3>01 · 渲染管线：一帧里到底发生了什么</h3><span class="mono">render-basics</span></header>
+    <div class="scoregrid"><div class="score high"><span>概念正确性</span><b>5</b></div><div class="score "><span>原理讲透程度</span><b>4</b></div><div class="score high"><span>图解质量</span><b>5</b></div><div class="score high"><span>难度与节奏</span><b>5</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score high"><span>术语与一致性</span><b>5</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 5/5</dt><dd>Game/Render/GPU 三段流水线与「并行取最慢一环」的表述和 UE 帧管线一致，没有把编辑器与打包差异说死。</dd><dt>原理讲透程度 · 4/5</dt><dd>解释了为什么 CPU 与 GPU 可以重叠、同步点在哪里；但没有展开 RHI 提交队列。</dd><dt>图解质量 · 5/5</dt><dd>frame-budget 的可调项直接对应 Game/Render/GPU 负载，瓶颈切换是机制量，不是装饰。</dd><dt>难度与节奏 · 5/5</dt><dd>先场景后术语，45 分钟估计合理；一屏只讲一件事。</dd><dt>自测题质量 · 4/5</dt><dd>3 题都问「为什么」，能区分 CPU/GPU 归因；缺一道「半透明特效到底压哪」的边界题。</dd><dt>动手可执行性 · 4/5</dt><dd>stat unit 与分辨率缩放的对照实验可在编辑器复现；未写明最终数值应在打包构建取。</dd><dt>术语与一致性 · 5/5</dt><dd>Game 线程、Render 线程、RHI 首次出现即解释。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>02 · 性能优化：先定位，再谈预算</h3><span class="mono">perf</span></header>
+    <div class="scoregrid"><div class="score high"><span>概念正确性</span><b>5</b></div><div class="score high"><span>原理讲透程度</span><b>5</b></div><div class="score high"><span>图解质量</span><b>5</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score high"><span>动手可执行性</span><b>5</b></div><div class="score high"><span>术语与一致性</span><b>5</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 5/5</dt><dd>stat unit、1% low、长帧、ProfileGPU 的用法与 UE 工具一致。</dd><dt>原理讲透程度 · 5/5</dt><dd>把「平均帧率会骗人」讲到长帧与周期性事件，属于机制层而非清单。</dd><dt>图解质量 · 5/5</dt><dd>frame-budget 用同一组线程负载解释预算被谁吃掉。</dd><dt>难度与节奏 · 4/5</dt><dd>信息密度偏高，50 分钟略紧；预算表与工具命令集中在同一屏。</dd><dt>自测题质量 · 4/5</dt><dd>第 3 题给出 Game 线程超预算的数值判断，考的是归因而非记忆。</dd><dt>动手可执行性 · 5/5</dt><dd>固定机位、同分辨率、改前改后的对照可执行。</dd><dt>术语与一致性 · 5/5</dt><dd>1% low、长帧、预算首次出现都有解释。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>03 · GC 与内存：卡在看不见的地方</h3><span class="mono">gc</span></header>
+    <div class="scoregrid"><div class="score "><span>概念正确性</span><b>4</b></div><div class="score "><span>原理讲透程度</span><b>4</b></div><div class="score "><span>图解质量</span><b>4</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score "><span>术语与一致性</span><b>4</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 4/5</dt><dd>标记-清除、根集、增量 GC、GC 集群的机制描述可对应 UE 公开资料。</dd><dt>原理讲透程度 · 4/5</dt><dd>解释了为什么 GC 尖峰是机制性的，以及对象池不能消除 GC。</dd><dt>图解质量 · 4/5</dt><dd>gc-mark 用可点击的标记/清除演示可达性，但对象数量与遍历长度是定性表达。</dd><dt>难度与节奏 · 4/5</dt><dd>45 分钟合理；术语密度可控。</dd><dt>自测题质量 · 4/5</dt><dd>考「对象池能不能消除 GC」「增量 GC 换来了什么」，属于权衡题。</dd><dt>动手可执行性 · 4/5</dt><dd>stat gc / obj list 的观测路径可执行，但未写清部分命令只在特定构建可用。</dd><dt>术语与一致性 · 4/5</dt><dd>根集、可达、增量、集群首次出现均有解释。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>04 · 资源加载：为什么打开背包会卡一下</h3><span class="mono">loading</span></header>
+    <div class="scoregrid"><div class="score low"><span>概念正确性</span><b>3</b></div><div class="score "><span>原理讲透程度</span><b>4</b></div><div class="score "><span>图解质量</span><b>4</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score "><span>术语与一致性</span><b>4</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 3/5</dt><dd>同步/异步/预加载的分类正确；但把反序列化与对象创建笼统写成「必须回到 Game 线程」，忽略了异步加载线程可承担大部分反序列化，属于机制性过度概括。</dd><dt>原理讲透程度 · 4/5</dt><dd>IO、解压、反序列化、对象创建的分段讲清了，问题在最后一段的绝对化。</dd><dt>图解质量 · 4/5</dt><dd>load-flow 用资产体积与单帧卡顿上限联动，能解释「为什么同步会尖峰」。</dd><dt>难度与节奏 · 4/5</dt><dd>40 分钟偏短，但信息量匹配。</dd><dt>自测题质量 · 4/5</dt><dd>第 3 题直接问「异步为什么仍会尖峰」，考的是边界。</dd><dt>动手可执行性 · 4/5</dt><dd>在打包构建里看 Game 线程尖峰可执行；未写明 Standalone/PIE 差异。</dd><dt>术语与一致性 · 4/5</dt><dd>反序列化、Primary Asset、StreamableManager 有解释，但反序列化的线程归属写错。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>05 · 大世界流送：无缝世界其实是「一直在换页」</h3><span class="mono">streaming</span></header>
+    <div class="scoregrid"><div class="score "><span>概念正确性</span><b>4</b></div><div class="score "><span>原理讲透程度</span><b>4</b></div><div class="score "><span>图解质量</span><b>4</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score high"><span>术语与一致性</span><b>5</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 4/5</dt><dd>World Partition、单元、流送源、HLOD、半径平方增长的表述与机制一致。</dd><dt>原理讲透程度 · 4/5</dt><dd>解释了「半径不是万能解」，把内存与 IO 吞吐一起考虑。</dd><dt>图解质量 · 4/5</dt><dd>wp-grid 的半径/流送源位置直接对应常驻单元数，参数是机制量。</dd><dt>难度与节奏 · 4/5</dt><dd>55 分钟合理；先讲换页压力再讲配置。</dd><dt>自测题质量 · 4/5</dt><dd>考「半径调大为什么会先撞内存」，属于边界题。</dd><dt>动手可执行性 · 4/5</dt><dd>高速穿行与最长帧的记录方式可执行；未写明需要 World Partition 地图。</dd><dt>术语与一致性 · 5/5</dt><dd>单元、流送源、HLOD 统一使用，和速查库条目对得上。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>06 · 资源管线与包体：为什么补丁总是越更越大</h3><span class="mono">asset</span></header>
+    <div class="scoregrid"><div class="score "><span>概念正确性</span><b>4</b></div><div class="score "><span>原理讲透程度</span><b>4</b></div><div class="score "><span>图解质量</span><b>4</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score "><span>术语与一致性</span><b>4</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 4/5</dt><dd>共享依赖、块失效范围、首包与后续下载的推理正确。</dd><dt>原理讲透程度 · 4/5</dt><dd>把「压缩率不是包体大头」讲到重复依赖与分包边界，属于机制层。</dd><dt>图解质量 · 4/5</dt><dd>chunk-pack 的区域包/共享依赖比例能解释重复体积与失效范围；为示意并已标注。</dd><dt>难度与节奏 · 4/5</dt><dd>50 分钟合理。</dd><dt>自测题质量 · 4/5</dt><dd>三题都在考取舍（越细不一定越小、共享依赖不总是独立块），质量较高。</dd><dt>动手可执行性 · 4/5</dt><dd>对比单包/分包的体积与补丁可执行；未写明需要 IoStore 打包。</dd><dt>术语与一致性 · 4/5</dt><dd>Pak 与 Chunk 分别解释，但正文把两者合并成「块」的说法造成概念混淆。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>07 · 全局光照：Lumen 为什么贵，什么时候该烘焙</h3><span class="mono">gi</span></header>
+    <div class="scoregrid"><div class="score "><span>概念正确性</span><b>4</b></div><div class="score high"><span>原理讲透程度</span><b>5</b></div><div class="score high"><span>图解质量</span><b>5</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score high"><span>动手可执行性</span><b>5</b></div><div class="score "><span>术语与一致性</span><b>4</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 4/5</dt><dd>表面缓存、屏幕空间追踪、回退、时域累积与 Lumen 公开资料一致，并明确「屏幕外看不到」是机制性的。</dd><dt>原理讲透程度 · 5/5</dt><dd>把「每帧估计 vs 提前算死」讲成一条因果链，能推出延迟、噪点、漏光。</dd><dt>图解质量 · 5/5</dt><dd>lumen-trace 的反弹次数/屏幕内可见比例直接对应噪点与回退路径。</dd><dt>难度与节奏 · 4/5</dt><dd>55 分钟合理；类比边界写清。</dd><dt>自测题质量 · 4/5</dt><dd>考「为什么反射看不到屏幕外」，是机制题。</dd><dt>动手可执行性 · 5/5</dt><dd>固定相机/分辨率、切换 Lumen 与烘焙的对照可执行；未写明硬件光线追踪前提。</dd><dt>术语与一致性 · 4/5</dt><dd>表面缓存、屏幕空间追踪、时域累积有解释。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>08 · 移动端渲染：带宽比算力更容易先撞墙</h3><span class="mono">mobile</span></header>
+    <div class="scoregrid"><div class="score "><span>概念正确性</span><b>4</b></div><div class="score high"><span>原理讲透程度</span><b>5</b></div><div class="score high"><span>图解质量</span><b>5</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score high"><span>动手可执行性</span><b>5</b></div><div class="score "><span>术语与一致性</span><b>4</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 4/5</dt><dd>TBDR、片上内存、overdraw、带宽、发热的因果链与移动 GPU 公开资料一致。</dd><dt>原理讲透程度 · 5/5</dt><dd>解释了为什么移动端「省带宽」比「省指令」更关键。</dd><dt>图解质量 · 5/5</dt><dd>tbdr-flow 的 overdraw 与分辨率直接映射带宽压力。</dd><dt>难度与节奏 · 4/5</dt><dd>55 分钟合理；信息密度偏高但分段清楚。</dd><dt>自测题质量 · 4/5</dt><dd>考「为什么半透明在移动端更贵」，属于机制题。</dd><dt>动手可执行性 · 5/5</dt><dd>真机/Mobile Preview、Feature Level、overdraw 对照可执行；未写明设备与 Feature Level 前提。</dd><dt>术语与一致性 · 4/5</dt><dd>TBDR、overdraw、带宽、Feature Level 有解释。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>09 · 着色器与 PSO：第一次看到新效果时的那一下卡</h3><span class="mono">shader-pso</span></header>
+    <div class="scoregrid"><div class="score "><span>概念正确性</span><b>4</b></div><div class="score "><span>原理讲透程度</span><b>4</b></div><div class="score "><span>图解质量</span><b>4</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score "><span>术语与一致性</span><b>4</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 4/5</dt><dd>PSO 组合爆炸、预缓存、变体收敛的因果正确，没有把驱动缓存说成万能。</dd><dt>原理讲透程度 · 4/5</dt><dd>解释了「组合不是加法而是乘法」，但没有展开 PSO 库与驱动侧缓存差异。</dd><dt>图解质量 · 4/5</dt><dd>pso-hitch 用预缓存覆盖率/变体数表达未命中概率，已标注为示意。</dd><dt>难度与节奏 · 4/5</dt><dd>50 分钟合理。</dd><dt>自测题质量 · 4/5</dt><dd>考「为什么编辑器不卡、打包后卡」，属于边界题。</dd><dt>动手可执行性 · 4/5</dt><dd>PSO 收集与打包复现可执行；未写明必须打包构建。</dd><dt>术语与一致性 · 4/5</dt><dd>PSO、变体、预缓存统一。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>10 · 网络同步：橡皮筋从哪来，预测回滚怎么救</h3><span class="mono">net</span></header>
+    <div class="scoregrid"><div class="score high"><span>概念正确性</span><b>5</b></div><div class="score high"><span>原理讲透程度</span><b>5</b></div><div class="score high"><span>图解质量</span><b>5</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score high"><span>自测题质量</span><b>5</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score high"><span>术语与一致性</span><b>5</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 5/5</dt><dd>权威、预测、回滚、插值、延迟补偿的时序与公开网络同步资料一致；RTT/2 的偏差估算有明确前提。</dd><dt>原理讲透程度 · 5/5</dt><dd>把「预测是拿确定性换延迟」讲到回滚成本与观感。</dd><dt>图解质量 · 5/5</dt><dd>net-prediction 的 RTT 与重演帧数直接对应预测窗口。</dd><dt>难度与节奏 · 4/5</dt><dd>70 分钟偏长，是全站最长章；网络基础术语密集。</dd><dt>自测题质量 · 5/5</dt><dd>第 2 题考「哪些操作不能预测」，是边界与权衡题。</dd><dt>动手可执行性 · 4/5</dt><dd>PIE 多客户端 + PktLag 可执行；未写明网络模拟命令与专用服务器差异。</dd><dt>术语与一致性 · 5/5</dt><dd>权威、预测、回滚、插值、外推统一。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>11 · 技能系统：为什么联机放技能会「先亮后伤」</h3><span class="mono">gas</span></header>
+    <div class="scoregrid"><div class="score high"><span>概念正确性</span><b>5</b></div><div class="score high"><span>原理讲透程度</span><b>5</b></div><div class="score high"><span>图解质量</span><b>5</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score high"><span>自测题质量</span><b>5</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score high"><span>术语与一致性</span><b>5</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 5/5</dt><dd>ASC/Ability/Effect/AttributeSet/Cue/Tag 的职责划分与 GAS 文档一致；预测 key 的边界描述准确。</dd><dt>原理讲透程度 · 5/5</dt><dd>解释了「为什么 GAS 要把表现与数值拆开」，能推出预测与回滚的落点。</dd><dt>图解质量 · 5/5</dt><dd>gas-pred 的预测窗口直接对应需要回滚的预测数量与表现错位。</dd><dt>难度与节奏 · 4/5</dt><dd>55 分钟合理；GAS 术语密度高，但首次出现均有解释。</dd><dt>自测题质量 · 5/5</dt><dd>考「Cue 为什么不参与数值判定」，属于机制题。</dd><dt>动手可执行性 · 4/5</dt><dd>按 Ability/Effect/Attribute 分工搭最小技能可执行；未写明启用插件。</dd><dt>术语与一致性 · 5/5</dt><dd>ASC、GE、Cue、Tag 统一，与速查库一致。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>12 · 反作弊：客户端知道得越少，作弊空间越小</h3><span class="mono">anticheat</span></header>
+    <div class="scoregrid"><div class="score high"><span>概念正确性</span><b>5</b></div><div class="score high"><span>原理讲透程度</span><b>5</b></div><div class="score "><span>图解质量</span><b>4</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score "><span>术语与一致性</span><b>4</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 5/5</dt><dd>相关性裁剪、服务器权威、回溯补偿的组合正确；没有把客户端检测当唯一防线。</dd><dt>原理讲透程度 · 5/5</dt><dd>解释了「信息最小化」为什么比事后检测更有效。</dd><dt>图解质量 · 4/5</dt><dd>vision-cull 只表达「是否下发」，未体现带宽与更新频率，属于示意。</dd><dt>难度与节奏 · 4/5</dt><dd>50 分钟合理。</dd><dt>自测题质量 · 4/5</dt><dd>考「为什么客户端命中不可信」，是机制题；缺一道「裁剪过度的副作用」。</dd><dt>动手可执行性 · 4/5</dt><dd>服务器侧裁剪与延迟模拟可执行；未写明专用服务器前提。</dd><dt>术语与一致性 · 4/5</dt><dd>相关性、权威、回溯统一。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>13 · 物理与破坏：碎片越多，帧越不稳</h3><span class="mono">physics</span></header>
+    <div class="scoregrid"><div class="score low"><span>概念正确性</span><b>3</b></div><div class="score low"><span>原理讲透程度</span><b>3</b></div><div class="score low"><span>图解质量</span><b>3</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score "><span>术语与一致性</span><b>4</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 3/5</dt><dd>活跃刚体、休眠、子步进、破坏结果同步的定性正确；但「碰撞对近似平方增长」忽略了宽相位剔除，是错误的成本模型。</dd><dt>原理讲透程度 · 3/5</dt><dd>解释了「破坏尖峰是机制性的」，但没有分层讲宽相位/窄相位/约束求解各自的量级。</dd><dt>图解质量 · 3/5</dt><dd>physics-budget 用活跃碎片与休眠阈值联动，能解释尖峰，但对碰撞对的表达过于简化。</dd><dt>难度与节奏 · 4/5</dt><dd>50 分钟合理。</dd><dt>自测题质量 · 4/5</dt><dd>考「为什么是尖峰不是稳态」，属于机制题。</dd><dt>动手可执行性 · 4/5</dt><dd>Chaos 破碎与碎片上限对照可执行；未写明 Geometry Collection 前提。</dd><dt>术语与一致性 · 4/5</dt><dd>活跃刚体、休眠、子步进统一。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>14 · 动画系统：为什么人一多就掉帧</h3><span class="mono">animation</span></header>
+    <div class="scoregrid"><div class="score "><span>概念正确性</span><b>4</b></div><div class="score "><span>原理讲透程度</span><b>4</b></div><div class="score "><span>图解质量</span><b>4</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score "><span>术语与一致性</span><b>4</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 4/5</dt><dd>姿势求值、骨骼更新、Animation LOD、Motion Matching 的方向正确；把「与面数关系不大」说成绝对结论，忽略了蒙皮顶点成本。</dd><dt>原理讲透程度 · 4/5</dt><dd>解释了更新频率与 LOD 为什么比降面数更有效。</dd><dt>图解质量 · 4/5</dt><dd>anim-cost 的姿势库规模/同屏角色联动能解释检索与求值成本；已标注示意。</dd><dt>难度与节奏 · 4/5</dt><dd>45 分钟合理。</dd><dt>自测题质量 · 4/5</dt><dd>三题都在考取舍与边界，质量较高。</dd><dt>动手可执行性 · 4/5</dt><dd>逐步加到 20 个角色观察线性增长可执行；未写明 Motion Matching 数据前提。</dd><dt>术语与一致性 · 4/5</dt><dd>姿势求值、Animation LOD、Motion Matching 统一。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>15 · 复杂移动：抓钩、攀爬为什么容易出问题</h3><span class="mono">movement</span></header>
+    <div class="scoregrid"><div class="score "><span>概念正确性</span><b>4</b></div><div class="score "><span>原理讲透程度</span><b>4</b></div><div class="score "><span>图解质量</span><b>4</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score "><span>术语与一致性</span><b>4</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 4/5</dt><dd>CMC 自定义 Mode、根运动、特殊移动预测/回滚的边界描述合理。</dd><dt>原理讲透程度 · 4/5</dt><dd>解释了「状态切换 + 合法性检测」为什么比连续速度积分难。</dd><dt>图解质量 · 4/5</dt><dd>move-state 的合法锚点概率能解释失败回退与抖动；已标注示意。</dd><dt>难度与节奏 · 4/5</dt><dd>55 分钟合理。</dd><dt>自测题质量 · 4/5</dt><dd>考「抓钩为什么不能只做本地表现」，属于机制题。</dd><dt>动手可执行性 · 4/5</dt><dd>多客户端 + 延迟模拟可执行；未写明 CMC 与网络模拟前提。</dd><dt>术语与一致性 · 4/5</dt><dd>CMC、Movement Mode、根运动统一。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>16 · 群体 AI：几百个单位怎么不把 CPU 吃光</h3><span class="mono">ai-nav</span></header>
+    <div class="scoregrid"><div class="score "><span>概念正确性</span><b>4</b></div><div class="score "><span>原理讲透程度</span><b>4</b></div><div class="score low"><span>图解质量</span><b>3</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score "><span>术语与一致性</span><b>4</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 4/5</dt><dd>分档、限流、全量 AI 与批量模拟的方向正确；「Mass 个体智能较弱」是经验说法，不是引擎事实。</dd><dt>原理讲透程度 · 4/5</dt><dd>解释了寻路请求为什么会在同一帧集中，以及为什么要限流。</dd><dt>图解质量 · 3/5</dt><dd>crowd-lod 只在「全量/批量」两档之间切换，没有体现 StateTree 分层与更新频率。</dd><dt>难度与节奏 · 4/5</dt><dd>50 分钟合理。</dd><dt>自测题质量 · 4/5</dt><dd>考「为什么不能给每个单位全量 AI」，属于机制题。</dd><dt>动手可执行性 · 4/5</dt><dd>Mass 替换远处单位可执行；未写明 MassEntity/MassAI 插件前提。</dd><dt>术语与一致性 · 4/5</dt><dd>Mass、StateTree、NavMesh、流场有解释。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>17 · UI 性能：界面不复杂，为什么也掉帧</h3><span class="mono">ui</span></header>
+    <div class="scoregrid"><div class="score "><span>概念正确性</span><b>4</b></div><div class="score "><span>原理讲透程度</span><b>4</b></div><div class="score "><span>图解质量</span><b>4</b></div><div class="score high"><span>难度与节奏</span><b>5</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score "><span>术语与一致性</span><b>4</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 4/5</dt><dd>UMG/Slate、overdraw、虚拟化的方向正确；原理段默认「每帧布局」，没有先讲失效与缓存，容易把优化目标定错；第三候选错误引用 load-01。</dd><dt>原理讲透程度 · 4/5</dt><dd>解释了「成本取决于什么在动」而不是视觉复杂度。</dd><dt>图解质量 · 4/5</dt><dd>ui-overdraw 的层数与更新控件数联动 GPU/CPU 两侧成本。</dd><dt>难度与节奏 · 5/5</dt><dd>40 分钟合理，是全站节奏最轻的一章。</dd><dt>自测题质量 · 4/5</dt><dd>考「界面简单为什么不代表便宜」，属于机制题。</dd><dt>动手可执行性 · 4/5</dt><dd>长列表滚动与虚拟化对照可执行；未写明 stat 命令的版本差异。</dd><dt>术语与一致性 · 4/5</dt><dd>UMG、Slate、overdraw、虚拟化、脏标记统一。</dd></dl></div></details>
+  </article><article class="audit-card">
+    <header><h3>18 · 工程化与上线：把「能跑」变成「能发」</h3><span class="mono">engineering</span></header>
+    <div class="scoregrid"><div class="score "><span>概念正确性</span><b>4</b></div><div class="score "><span>原理讲透程度</span><b>4</b></div><div class="score low"><span>图解质量</span><b>3</b></div><div class="score "><span>难度与节奏</span><b>4</b></div><div class="score "><span>自测题质量</span><b>4</b></div><div class="score "><span>动手可执行性</span><b>4</b></div><div class="score "><span>术语与一致性</span><b>4</b></div></div>
+    <details class="detail"><summary>展开：逐维证据</summary><div class="dbody"><dl><dt>概念正确性 · 4/5</dt><dd>流水线、性能门禁、灰度、回滚的工程链条完整。</dd><dt>原理讲透程度 · 4/5</dt><dd>解释了「门禁必须有可信基线」而不是只跑构建。</dd><dt>图解质量 · 3/5</dt><dd>ci-pipeline 只表达「能拦住什么」，没有体现构建时长、误报率与维护成本。</dd><dt>难度与节奏 · 4/5</dt><dd>55 分钟合理。</dd><dt>自测题质量 · 4/5</dt><dd>考「为什么会误报」，属于边界题。</dd><dt>动手可执行性 · 4/5</dt><dd>CI 门禁与回滚演练可执行；未写明 Gauntlet/打包环境前提。</dd><dt>术语与一致性 · 4/5</dt><dd>Gauntlet、灰度、回滚、基线统一。</dd></dl></div></details>
+  </article></div>
+  </section>
+
+  <section>
+    <h2>问题清单</h2>
+    <div class="filters" id="sev-filters">
+      <button type="button" class="on" data-sev-filter="all">全部</button>
+      <button type="button" data-sev-filter="BLOCKER">BLOCKER</button>
+      <button type="button" data-sev-filter="MAJOR">MAJOR</button>
+      <button type="button" data-sev-filter="MINOR">MINOR</button>
+    </div>
+    <div id="issue-list"><div class="sevgroup" data-sev-group="BLOCKER"><h3><span class="sev blocker">BLOCKER</span> 2 条</h3><article class="issue" data-sev="BLOCKER">
+    <div class="issue-head"><span class="mono">BL-01</span><span>physics · intuition.body / principle[0]</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>把破坏瞬间的碰撞对成本写成「近似平方增长」，并把物理成本增长描述为整体快于线性。</p>
+    <p><b>为什么是问题</b>物理引擎先用宽相位（空间划分/哈希）剔除绝大多数远距离对，真正昂贵的是同一局部区域内的密集重叠、窄相位与约束求解迭代。写成全局平方会让读者把优化目标放在「减少物体总数」，而不是「降低局部密度、限制碎片数量与寿命」。</p>
+    <p><b>改法</b>改写为：全局有宽相位剔除，但同一区域的密集重叠会让候选对与约束快速增长；成本由活跃刚体、局部密度、求解迭代共同决定。</p>
+    <p class="dim">维度：概念正确性</p>
+  </article><article class="issue" data-sev="BLOCKER">
+    <div class="issue-head"><span class="mono">BL-02</span><span>loading · principle[3] / costs「Game 线程」/ pitfall / quiz[2] / terms「反序列化」</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>断言「反序列化与创建对象必须回到 Game 线程，这部分无法完全并行」。</p>
+    <p><b>为什么是问题</b>UE5 的异步加载线程可以承担大部分反序列化，并在满足条件时创建部分 UObject；必须回到 Game 线程的是蓝图类构造、组件注册、PostLoad 与部分依赖解析。把全部工作说成必须回主线程，会让读者误以为异步加载没有主线程收益，也会误判卡顿来源。</p>
+    <p><b>改法</b>改成「多数反序列化可在异步加载线程完成，蓝图/组件注册/PostLoad 等仍需 Game 线程」，并在代价、误区、自测与术语四处同步修正。</p>
+    <p class="dim">维度：概念正确性</p>
+  </article></div><div class="sevgroup" data-sev-group="MAJOR"><h3><span class="sev major">MAJOR</span> 8 条</h3><article class="issue" data-sev="MAJOR">
+    <div class="issue-head"><span class="mono">MJ-01</span><span>gc · comparison.options[0] / [2]</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>「默认全量 GC」指向 gc-10（对象池 vs 依赖 GC），「对象池 + 弱引用」指向 gc-02（增量 GC），三个候选的方案引用整体错位。</p>
+    <p><b>为什么是问题</b>读者点进候选会看到与标题不匹配的条目，无法复核「全量 vs 增量 vs 对象池」的取舍，等于对比页失效。</p>
+    <p><b>改法</b>改为：默认全量 → gc-01（UObject GC 标记-清除机制）；增量 → gc-11（增量 vs 全量）；对象池 → gc-10（对象池 vs 依赖 GC）。</p>
+    <p class="dim">维度：术语与一致性</p>
+  </article><article class="issue" data-sev="MAJOR">
+    <div class="issue-head"><span class="mono">MJ-02</span><span>loading · comparison.options[1] / [2]</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>「异步加载 + 回调」指向 load-06（预加载/预缓存），「预加载 / 预缓存」指向 load-03（Asset Manager 与 Primary Data Asset），两项引用互换。</p>
+    <p><b>为什么是问题</b>异步加载与预加载是两个不同策略，引用互换会让读者把 Asset Manager 当成预加载方案、把预缓存当成异步回调。</p>
+    <p><b>改法</b>把异步加载指向 load-03（Asset Manager 驱动的异步加载），预加载指向 load-06（预加载与预缓存）。</p>
+    <p class="dim">维度：术语与一致性</p>
+  </article><article class="issue" data-sev="MAJOR">
+    <div class="issue-head"><span class="mono">MJ-03</span><span>ui · comparison.options[2] / refs.solutions</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>「静态缓存 + 变化检测绑定」指向 load-01（同步 vs 异步加载），refs.solutions 里也带着同一条无关条目。</p>
+    <p><b>为什么是问题</b>这是完全跨主题的错误引用，读者会从 UI 优化跳到资源加载，无法复核「缓存与变化检测」的真实条目。</p>
+    <p><b>改法</b>移除该候选的 solutionId 与 refs 中的 load-01；保留 gen-10（UI 性能）与 arpg-09（背包/复杂 UI 优化）作为本章主引用。</p>
+    <p class="dim">维度：术语与一致性</p>
+  </article><article class="issue" data-sev="MAJOR">
+    <div class="issue-head"><span class="mono">MJ-04</span><span>gi · comparison.options[1]</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>「烘焙 Lightmap + 探针」与「Lumen 动态 GI」都指向 ow-04，两个相反策略共用同一条目。</p>
+    <p><b>为什么是问题</b>对比的意义是让读者点进各自候选继续读，重复引用会让烘焙侧没有可复核的落点。</p>
+    <p><b>改法</b>移除烘焙候选的 solutionId，保留本章 refs.comparisonId=cmp-gi 作为统一对比入口。</p>
+    <p class="dim">维度：术语与一致性</p>
+  </article><article class="issue" data-sev="MAJOR">
+    <div class="issue-head"><span class="mono">MJ-05</span><span>physics · refs.comparisonId</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>物理章关联的对比是 cmp-move-drive（代码/CMC 驱动 vs 物理约束驱动），与物理与破坏主题无关。</p>
+    <p><b>为什么是问题</b>读者从物理章点「对比」会进入移动驱动对比，找不到破坏方案的取舍。</p>
+    <p><b>改法</b>移除错误的 comparisonId；本章对比已由 comparison 区块自身表达。</p>
+    <p class="dim">维度：术语与一致性</p>
+  </article><article class="issue" data-sev="MAJOR">
+    <div class="issue-head"><span class="mono">MJ-06</span><span>多章（loading / streaming / asset / gi / mobile / shader-pso / net / gas / anticheat / physics / animation / movement / ai-nav / ui / engineering） · practice</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>动手步骤没有写明插件、项目设置、构建类型或版本前提，读者按步骤走可能复现不出预期现象。</p>
+    <p><b>为什么是问题</b>例如 GAS 未启用插件就无法创建 Ability，PSO 在编辑器里不触发打包期编译，移动端不看 Feature Level 会得到相反结论，World Partition 配置缺失会让流送步骤无从执行。</p>
+    <p><b>改法</b>为 15 章增加 practiceNote，统一在「动手复现」顶部渲染「前提」。</p>
+    <p class="dim">维度：动手可执行性</p>
+  </article><article class="issue" data-sev="MAJOR">
+    <div class="issue-head"><span class="mono">MJ-07</span><span>animation · intuition.body / principle[1] / pitfall[0] / practice[0] / quiz[0]</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>把「动画成本与模型面数关系不大」写成绝对结论，没有区分动画求值与蒙皮/渲染。</p>
+    <p><b>为什么是问题</b>蒙皮的顶点变换成本随顶点数增长，降面数对 GPU 蒙皮仍然有效；把两者混在一起会让读者在「动画掉帧」时错误地排除面数因素，也会在优化时漏掉蒙皮预算。</p>
+    <p><b>改法</b>统一改为「动画求值成本与角色数、骨骼数、蓝图复杂度相关；网格面数主要影响蒙皮与渲染」，并在自测解析中区分两者。</p>
+    <p class="dim">维度：概念正确性</p>
+  </article><article class="issue" data-sev="MAJOR">
+    <div class="issue-head"><span class="mono">MJ-08</span><span>ui · principle[0]</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>开头写成「UI 每帧的开销分两部分：CPU 侧的布局/构建/绑定」，默认了每帧全量重排，直到后文才提缓存。</p>
+    <p><b>为什么是问题</b>这会让读者把「减少控件数量」当成首要优化，而真实机制是失效标记与缓存：静态部分本可以零成本，问题通常出在「让一切都失效」。优化目标会被定错。</p>
+    <p><b>改法</b>改为「只有被标记失效或数值变化的控件才重做布局/构建/绑定，静态部分可复用；成本取决于什么在动」。</p>
+    <p class="dim">维度：概念正确性</p>
+  </article></div><div class="sevgroup" data-sev-group="MINOR"><h3><span class="sev minor">MINOR</span> 8 条</h3><article class="issue" data-sev="MINOR">
+    <div class="issue-head"><span class="mono">MN-01</span><span>asset · principle[0] / terms「块 / Chunk」</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>把 Pak 与 Chunk 合并成「块（Chunk/Pak）是分发与更新的最小单位」。</p>
+    <p><b>为什么是问题</b>Pak 是打包容器，Chunk 是分发/补丁单位；合并后读者无法区分「容器」与「补丁粒度」，在讨论 IoStore/Chunk 分包时会混用。</p>
+    <p><b>改法</b>已改为「Pak 是打包容器，Chunk 是分发与补丁单位」。</p>
+    <p class="dim">维度：术语与一致性</p>
+  </article><article class="issue" data-sev="MINOR">
+    <div class="issue-head"><span class="mono">MN-02</span><span>ai-nav · comparison.options[1].take / practice[1].expect</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>把 Mass 描述成「个体智能较弱」、批量模拟「代价是个体行为变粗」。</p>
+    <p><b>为什么是问题</b>Mass 是数据化实体框架，个体行为的复杂度取决于 Processor 与状态设计，不是引擎限制。写成引擎事实会误导选型。</p>
+    <p><b>改法</b>已改为「代价是行为需按批处理设计，个体差异要显式建模」。</p>
+    <p class="dim">维度：概念正确性</p>
+  </article><article class="issue" data-sev="MINOR">
+    <div class="issue-head"><span class="mono">MN-03</span><span>多章（gc / gi / net / perf / render-basics） · diagram.caption</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>gc-mark、lumen-trace、net-prediction、frame-budget 四类图解未标注「示意，非线性真实实现」。</p>
+    <p><b>为什么是问题</b>这四类图虽然机制更可信，但仍是简化；缺少标注会让读者把示意曲线当成真实比例。</p>
+    <p><b>改法</b>已在 5 个章节的 caption 末尾补上标注。</p>
+    <p class="dim">维度：图解质量</p>
+  </article><article class="issue" data-sev="MINOR">
+    <div class="issue-head"><span class="mono">MN-04</span><span>全站 · quiz</span><span class="fixed open">未修（MINOR 清单）</span></div>
+    <p><b>问题</b>自测是开放题 + 「显示解析」，没有选项，部分题目仍以复述原理为主。</p>
+    <p><b>为什么是问题</b>没有干扰项就无法区分「会背」与「会判断」；边界题比例不均。</p>
+    <p><b>改法</b>本轮不逐题加选项（会改变 54 道题的数据结构）；在路线图验收与项目演练中补「可观测判断」，后续可加选项层。</p>
+    <p class="dim">维度：自测题质量</p>
+  </article><article class="issue" data-sev="MINOR">
+    <div class="issue-head"><span class="mono">MN-05</span><span>全站 · diagram.params</span><span class="fixed open">未修（MINOR 清单）</span></div>
+    <p><b>问题</b>章节 JSON 的 diagram.params 全部为空，且 build 只把 params 写进 data-params，图解脚本只用它覆盖标题/说明，不设置初始滑块值。</p>
+    <p><b>为什么是问题</b>数据层看似可配置，实际不影响图解初始状态，容易让后续维护者误以为改 params 就能改演示。</p>
+    <p><b>改法</b>本轮保留现状并在审核报告注明；后续要么让图解读取初始值，要么删除该字段。</p>
+    <p class="dim">维度：图解质量</p>
+  </article><article class="issue" data-sev="MINOR">
+    <div class="issue-head"><span class="mono">MN-06</span><span>全站 · order / stage</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>章节 order 是线性阅读序，stage 分组为 3/3/3/8/1，和能力项与阶段验收不对齐。</p>
+    <p><b>为什么是问题</b>节点列表能读，但不能回答「这个阶段要能做什么」「哪些可以并行」「跳过会踩什么坑」。</p>
+    <p><b>改法</b>第二阶段用 roadmap.json 的能力树、5 阶段、项目演练与 4 条方向重构；章节 order 仅保留为阅读导航，不再作为能力分组。</p>
+    <p class="dim">维度：难度与节奏</p>
+  </article><article class="issue" data-sev="MINOR">
+    <div class="issue-head"><span class="mono">MN-07</span><span>perf · comparison.options[1] / [2]</span><span class="fixed ">已修</span></div>
+    <p><b>问题</b>「固定场景 + 基线对比」与「自动化性能门槛 + 真机矩阵」都指向 gen-05。</p>
+    <p><b>为什么是问题</b>两个不同阶段的工作方式共用同一条目，第三项的「自动化门禁」没有独立落点。</p>
+    <p><b>改法</b>已改为：固定场景 → perf-16（性能预算方法论）；自动化门禁 → perf-17（自动化性能回归）。</p>
+    <p class="dim">维度：术语与一致性</p>
+  </article><article class="issue" data-sev="MINOR">
+    <div class="issue-head"><span class="mono">MN-08</span><span>anticheat / engineering / ai-nav · diagram</span><span class="fixed open">未修（MINOR 清单）</span></div>
+    <p><b>问题</b>vision-cull、ci-pipeline、crowd-lod 只表达单一维度，未体现带宽、构建时长/误报、StateTree 分层与更新频率。</p>
+    <p><b>为什么是问题</b>图能说明一个结论，但不足以支撑章节里的完整机制叙述，读者容易把「是否下发」当成裁剪的全部成本。</p>
+    <p><b>改法</b>保留现有示意并在报告标注为「需后续加强」；不在此轮改图解实现。</p>
+    <p class="dim">维度：图解质量</p>
+  </article></div></div>
+  </section>
+
+  <section class="foot">
+    <div>审核数据源：<code>research/learning/audit.json</code>；路线图数据源：<code>research/learning/roadmap.json</code>。</div>
+    <div>本页为静态 HTML，无 CDN，可离线双击打开；所有修复都落在章节 JSON 与图解说明里，不在本页「口头通过」。</div>
+    <div><a href="../index.html">回到路线图 →</a> · <a href="index.html">进入速查库 →</a></div>
+  </section>
+</main>
+
+<script src="../assets/site.js"></script>
+<script>
+(function () {
+  var btns = document.querySelectorAll('[data-sev-filter]');
+  var groups = document.querySelectorAll('[data-sev-group]');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener('click', function () {
+      var v = this.getAttribute('data-sev-filter');
+      for (var j = 0; j < btns.length; j++) btns[j].classList.toggle('on', btns[j] === this);
+      for (var k = 0; k < groups.length; k++) {
+        groups[k].hidden = v !== 'all' && groups[k].getAttribute('data-sev-group') !== v;
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>
