@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>全局光照：Lumen 为什么贵，什么时候该烘焙 · UE 技术学习站</title>
+<meta name="description" content="这一章只回答一个问题：间接光到底是「提前算好」还是「每帧重新估」。理解这个差别，Lumen 的成本、延迟、漏光、以及低端平台为什么要烘焙，就都能自己推出来。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="gi">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>渲染与画质 · 第 07 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">渲染与画质</span>
+      <span class="chip">约 55 分钟</span>
+      <span class="chip">进阶</span>
+      <span class="chip">前置：渲染管线基础、性能分析与预算</span>
+    </div>
+    <h1>全局光照：Lumen 为什么贵，什么时候该烘焙</h1>
+    <p class="lede">这一章只回答一个问题：间接光到底是「提前算好」还是「每帧重新估」。理解这个差别，Lumen 的成本、延迟、漏光、以及低端平台为什么要烘焙，就都能自己推出来。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>雨夜关卡里，你打碎了一盏路灯</h3>
+      <p>美术希望灯光变化立刻影响整条街：碎掉的灯变暗、湿地面反射出新的高光、远处墙面跟着变。你在编辑器里看很漂亮，打包到主机上却掉到 40fps；调低效果后画面发灰，调高又掉帧。更麻烦的是，快速移动光源时，墙面上的光会「追」上来，像慢半拍。</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>打开 <span class="term" tabindex="0" data-def="UE5 的动态<span class="term" tabindex="0" data-def="间接光的总和：光打到表面后反弹到其他表面的部分。它决定阴影里的颜色、墙面互相染色等观感。">全局光照</span>与反射系统，结合屏幕空间追踪、表面缓存与场景距离场等近似。">Lumen</span> 后 GPU 帧时间明显上升，但不知道贵在哪个通道</li><li>光源或发光材质变化时，间接光有可见延迟、噪点或闪烁</li><li>低端机/移动端无法承受，团队临时决定「全部改<span class="term" tabindex="0" data-def="离线把光照算进 Lightmap/探针，运行时只采样；稳定便宜，但不响应动态变化。">烘焙</span>」，却发现动态物体不响应</li><li>薄墙、墙角出现<span class="term" tabindex="0" data-def="光穿过本应遮挡的几何，常见于薄墙、屏幕外回退与距离场精度不足。">漏光</span>，无法判断是配置问题还是算法近似</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">把 Lumen 想成一台「每帧重新测光」的相机：它不承认光已经算好，而是持续估计当前场景的间接光。</blockquote>
+    <p>相机测光需要采样、计算、平滑；Lumen 也需要追踪射线、取表面颜色、再做时域累积。因为它每帧只更新一部分信息，所以「快」和「准」天然冲突：动态场景越剧烈，你越容易看到延迟与噪点。烘焙则相反，它把光提前算死，运行时只查表，稳定便宜，但场景一旦变化就失效。</p>
+    <p class="note">类比的边界：类比到这里为止：Lumen 不是电影级路径追踪，它大量依赖屏幕空间与表面缓存，屏幕外和薄几何正是它最容易出错的地方。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="lumen-trace" data-title="一条间接光射线：先屏幕空间，再回退表面缓存" data-caption="拖动反弹次数与屏幕内可见比例，观察噪点量与回退路径的变化。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>Lumen 先为场景维护一份「表面缓存」：记录各表面的材质、法线、位置等信息，作为射线命中时的取色来源。</p><p>追踪时优先做<span class="term" tabindex="0" data-def="只在当前相机已渲染的像素里找命中，便宜但看不到屏幕外。">屏幕空间追踪</span>——只用当前相机已经渲染出来的像素，成本低、结果准，但屏幕外的物体它根本不知道。</p><p>射线离开屏幕或命中失败时，回退到表面缓存/距离场等场景表示，因此薄墙、背面和屏幕外区域最容易出现漏光或错误遮挡。</p><p>间接光不是一次算完：结果做时域累积与去噪，每帧更新一部分，所以快速变化会表现为延迟、拖影或噪点。</p><p>反射沿用同一套思路：屏幕空间反射 + 回退，所以「反射里看不到屏幕外的东西」是机制性的，不是 bug。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">类比到这里为止：Lumen 不是电影级路径追踪，它大量依赖屏幕空间与表面缓存，屏幕外和薄几何正是它最容易出错的地方。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">GPU</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">追踪、表面缓存更新、去噪与反射都要占 GPU；分辨率与反弹次数是主要放大器。</span></div><div class="costrow"><span class="cl">显存</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">表面缓存与各种场景表示常驻显存；大世界要按单元管理。</span></div><div class="costrow"><span class="cl">构建时间</span><div class="bars"><i class="on"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i></div><span class="note">不需要烘焙，迭代快；这是相对烘焙最大的收益之一。</span></div><div class="costrow"><span class="cl">美术规范</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">发光面积、材质粗糙度、薄墙与尺度都会直接影响结果，必须有规范。</span></div><div class="costrow"><span class="cl">团队成本</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">需要有人能读 ProfileGPU/可视化视图，否则只能靠猜调参数。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>Lumen、烘焙与混合：比的是取舍，不是排名</h3></div>
+    <div class="cmp-dims"><span>动态性</span><span>GPU / 显存</span><span>迭代速度</span><span>平台覆盖</span><span>画质稳定</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>Lumen 动态 GI</h4>
+      <a class="sid" href="../reference/catalog.html#card-ow-04">ow-04</a>
+      <dl><div><dt>动态性</dt><dd>高（光源/材质/破坏都能响应）</dd></div><div><dt>GPU / 显存</dt><dd>高</dd></div><div><dt>迭代速度</dt><dd>快（不烘焙）</dd></div><div><dt>平台覆盖</dt><dd>UE5 主机/PC 为主</dd></div><div><dt>画质稳定</dt><dd>中（可能闪烁/漏光）</dd></div></dl>
+      <div class="take">适合昼夜、天气、可破坏场景；代价是持续 GPU 预算与调参能力。</div>
+    </div><div class="cmp-card">
+      <h4>烘焙 Lightmap + 探针</h4>
+      <span class="sid">—</span>
+      <dl><div><dt>动态性</dt><dd>低（静态为主）</dd></div><div><dt>GPU / 显存</dt><dd>低（运行时只采样）</dd></div><div><dt>迭代速度</dt><dd>慢（每次改场景要重建）</dd></div><div><dt>平台覆盖</dt><dd>广（低端/移动友好）</dd></div><div><dt>画质稳定</dt><dd>高（离线算好，稳定）</dd></div></dl>
+      <div class="take">适合静态场景与弱平台；动态物体需要探针/局部补光，否则会「不跟光」。</div>
+    </div><div class="cmp-card">
+      <h4>分层混合：核心动态 + 远景烘焙</h4>
+      <a class="sid" href="../reference/catalog.html#card-ow-12">ow-12</a>
+      <dl><div><dt>动态性</dt><dd>中（核心区响应，远景固定）</dd></div><div><dt>GPU / 显存</dt><dd>中高（按区域分档）</dd></div><div><dt>迭代速度</dt><dd>中（核心区免烘焙，远景仍需构建）</dd></div><div><dt>平台覆盖</dt><dd>可分档</dd></div><div><dt>画质稳定</dt><dd>中高（需要边界规则）</dd></div></dl>
+      <div class="take">现实项目最常见：把动态预算花在玩家看得最近的地方，远景用烘焙/代理兜底。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>把 Lumen 当成「开了就正确」的光照，不做材质与发光面积规范。</div><div class="right"><b>正确理解</b>Lumen 是估计器：大面积高亮发光材质、过薄墙体、错误尺度都会放大噪点与漏光。先定美术规范，再谈参数。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>所有平台都用同一套 Lumen 配置，低端机只靠降分辨率硬扛。</div><div class="right"><b>正确理解</b>先确认目标平台是否在支持范围内，再准备烘焙/简化回退；分辨率不是万能的，追踪与表面缓存成本不会随分辨率等比例下降。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>看到漏光就认定是 Lumen 的 bug，直接改引擎参数。</div><div class="right"><b>正确理解</b>先按机制排查：表面缓存是否覆盖该几何、墙体厚度/距离场精度、屏幕空间可见性、发光材质是否过大。多数漏光来自场景与内容，而不是算法本身。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x 项目默认开启 Lumen；硬件光线追踪需在项目设置启用；对比时固定相机、分辨率与画质档位。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>用 Third Person 模板新建项目，在 Project Settings → Rendering 里把 Dynamic Global Illumination 与 Reflection 设为 Lumen。</div><div class="expect"><b>预期现象：</b>视口出现间接光与反射；移动光源时能观察到光的变化。</div></div><div class="step"><div class="do"><b>02</b>放一个高亮发光材质立方体，旁边放一面很薄的墙；快速移动立方体。</div><div class="expect"><b>预期现象：</b>墙面光会「追」上来，薄墙背面可能出现漏光——这是屏幕空间 + 缓存的机制表现。</div></div><div class="step"><div class="do"><b>03</b>打开 stat gpu（或 ProfileGPU），记录 GI/反射相关通道在总 GPU 时间中的占比。</div><div class="expect"><b>预期现象：</b>能指出成本主要来自哪个通道，而不是只知道「GPU 很高」。</div></div><div class="step"><div class="do"><b>04</b>把 Dynamic Global Illumination 切到 None 或改用烘焙预览，构建一次光照后对比同一场景。</div><div class="expect"><b>预期现象：</b>静态场景画质接近、运行时更便宜；但移动光源/动态物体不再影响间接光。</div></div><div class="step"><div class="do"><b>05</b>在 Scalability 或后处理里降低 GI 质量档，记录帧时间与画质损失。</div><div class="expect"><b>预期现象：</b>得到一个可回退的档位，而不是只有「开/关」两个极端。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. 为什么 Lumen 在光源快速变化时会出现短暂延迟、拖影或噪点？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>因为间接光不是一次收敛，而是依赖时域累积与逐帧更新：每帧只补充一部分采样，再靠去噪与历史帧平滑。变化越剧烈，历史信息越不匹配，就越容易看到延迟与噪点。<div class="refs"><a href="../reference/catalog.html#card-ow-04">方案：Lumen 动态 GI vs 烘焙光照</a><a href="../reference/catalog.html#card-pb-gi-04">问题：昼夜循环下 GI 与阴影不连贯</a></div></div></div><div class="q"><div class="qt">2. 屏幕空间追踪的固有缺陷是什么？它会怎样表现为画面问题？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>它只能使用当前相机已经渲染出的像素，屏幕外、被遮挡或薄几何的信息缺失，必须回退到表面缓存/距离场。表现就是屏幕外物体不贡献间接光、薄墙漏光、反射里看不到画面外的东西。<div class="refs"><a href="../reference/catalog.html#card-pb-gi-02">问题：Lumen 漏光、噪点与闪烁</a><a href="../reference/catalog.html#card-ow-04">方案：Lumen 动态 GI vs 烘焙光照</a></div></div></div><div class="q"><div class="qt">3. 什么情况下应该优先选择烘焙，而不是 Lumen？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>场景基本静态、目标平台较弱、需要稳定可预测的运行时成本、且美术迭代不频繁时。烘焙把成本移到离线构建，运行时只采样；代价是动态光源/破坏不响应。<div class="refs"><a href="../reference/catalog.html#card-ow-04">方案：Lumen 动态 GI vs 烘焙光照</a><a href="../reference/catalog.html#card-pb-gi-03">问题：烘焙 Lightmap 接缝与光照不一致</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-ow-04">方案：Lumen 动态 GI vs 烘焙光照</a> <a href="../reference/catalog.html#card-ow-12">方案：时间/天气系统与 GI/阴影更新</a> <a href="../reference/catalog.html#card-ow-03">方案：Nanite vs 传统 LOD 管线</a> <a href="../reference/catalog.html#card-pb-gi-01">问题：Lumen 在雨夜/大面积动态光源下成本失控</a> <a href="../reference/catalog.html#card-pb-gi-02">问题：Lumen 漏光、噪点与闪烁</a> <a href="../reference/catalog.html#card-pb-gi-03">问题：烘焙 Lightmap 接缝与光照不一致</a> <a href="../reference/catalog.html#card-pb-gi-04">问题：昼夜循环下 GI 与阴影不连贯</a> <a href="../reference/catalog.html#card-pb-gi-05">问题：反射质量与性能无法兼得</a> <a href="../reference/catalog.html#card-iq-slg-010">面试题：Nanite、Lumen 与 Virtual Shadow Map 如何按平台组合取舍？</a> <a href="../reference/catalog.html#card-iq-core-046">面试题：开启 Nanite 后为什么仍可能更慢，Cluster 可见性、Streaming 与材质路径如何形成真实成本？</a> <a href="../reference/catalog.html#card-iq-fps-039">面试题：Forward 与 Deferred Shading 在竞技 FPS、VR 和移动平台应如何选择，MSAA、GBuffer、光照与带宽代价是什么？</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-ow-04">方案：Lumen 动态 GI vs 烘焙光照</a><a href="../reference/catalog.html#card-ow-12">方案：时间/天气系统与 GI/阴影更新</a><a href="../reference/catalog.html#card-ow-03">方案：Nanite vs 传统 LOD 管线</a><a href="../reference/catalog.html#card-pb-gi-01">问题：Lumen 在雨夜/大面积动态光源下成本失控</a><a href="../reference/catalog.html#card-pb-gi-02">问题：Lumen 漏光、噪点与闪烁</a><a href="../reference/catalog.html#card-pb-gi-03">问题：烘焙 Lightmap 接缝与光照不一致</a><a href="../reference/catalog.html#card-pb-gi-04">问题：昼夜循环下 GI 与阴影不连贯</a><a href="../reference/catalog.html#card-pb-gi-05">问题：反射质量与性能无法兼得</a><a href="../reference/catalog.html#card-iq-slg-010">面试题：Nanite、Lumen 与 Virtual Shadow Map 如何按平台组合取舍？</a><a href="../reference/catalog.html#card-iq-core-046">面试题：开启 Nanite 后为什么仍可能更慢，Cluster 可见性、Streaming 与材质路径如何形成真实成本？</a><a href="../reference/catalog.html#card-iq-fps-039">面试题：Forward 与 Deferred Shading 在竞技 FPS、VR 和移动平台应如何选择，MSAA、GBuffer、光照与带宽代价是什么？</a><a href="../reference/catalog.html#card-cmp-gi">对比：光照：Lumen vs 烘焙</a></div>
+          <div class="entry-links"><a class="btn ghost" href="asset.html">← 上一章 · 资源管线与分包</a><a class="btn ghost" href="mobile.html">下一章 · 移动端渲染与带宽 →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/gi.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>性能优化：先定位，再谈预算 · UE 技术学习站</title>
+<meta name="description" content="性能不是「感觉慢」，而是一笔可以分配的预算：每帧有多少毫秒，Game、Render、GPU 各花多少，谁超了。这一章建立一套可复现的定位与回归方法。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="perf">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>基础 · 第 02 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">基础</span>
+      <span class="chip">约 50 分钟</span>
+      <span class="chip">入门</span>
+      <span class="chip">前置：渲染管线基础</span>
+    </div>
+    <h1>性能优化：先定位，再谈预算</h1>
+    <p class="lede">性能不是「感觉慢」，而是一笔可以分配的预算：每帧有多少毫秒，Game、Render、GPU 各花多少，谁超了。这一章建立一套可复现的定位与回归方法。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>这次更新后，帧率掉了 15 帧，但没人说得清为什么</h3>
+      <p>版本上线前一周，测试反馈「战斗里偶尔卡」。你打开编辑器看，帧率忽高忽低；关掉特效好一点，加回来又掉。每个人都在改自己负责的部分，没人有一份固定场景的<span class="term" tabindex="0" data-def="固定场景、设备、画质下记录的参考数据，用于比较后续改动。">基线</span>，也没人能在合并前发现退化。</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>同一台机器、同一关卡，两次测量结果差很多</li><li>只知道「掉帧」，不知道是 Game、Render 还是 GPU</li><li>优化后无法证明真的变快（没有基线）</li><li>问题在打包/联机/真机上才出现，编辑器复现不了</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">把每帧当成一笔固定预算：60fps 只有约 16.7ms，谁花超了，帧就没了。</blockquote>
+    <p>优化的第一步不是「改」，而是「量」：先知道总预算是多少、每个线程花了多少、哪个通道最高。第二步才是针对最高的一项做取舍。没有测量就没有优化，只有碰运气。</p>
+    <p class="note">类比的边界：预算不是越低越好：画质、玩法与团队产能也在预算里。性能工作的目标是「可解释、可回归」，不是把所有数字压到最小。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="frame-budget" data-title="把帧预算拆成可比较的几段" data-caption="调高某一项负载，观察帧时间由谁决定、余量如何消失。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>先定目标：目标帧率决定每<span class="term" tabindex="0" data-def="目标帧率对应的每帧可用时间，例如 60fps 约 16.7ms。">帧预算</span>（例如 60fps ≈ 16.7ms），并明确「平均」与「<span class="term" tabindex="0" data-def="把帧时间排序后最差 1% 的平均值，用来衡量卡顿而不是平均流畅度。">1% low</span> / 尖峰」两个口径。</p><p>再分线程：stat unit 给出 Game、Draw（Render 线程）与 GPU 的时间；最高的一项就是当前瓶颈。</p><p>再看通道：<span class="term" tabindex="0" data-def="UE 的 GPU 通道分析工具，能把一帧拆成各渲染阶段。">ProfileGPU</span> / Insights 把 GPU 拆成 Base Pass、光照、后处理、UI 等；CPU 侧看 Tick、动画、物理、蓝图与网络。</p><p>优化必须可复现：固定关卡、固定机位、固定画质、固定设备，重复采样，记录分位数而不是单次数字。</p><p>最后做回归：把关键场景接入自动化/<span class="term" tabindex="0" data-def="自动化流程中的阈值检查，退化超过阈值即阻断发布。">性能门槛</span>，合并前对比基线，超过阈值就阻断，而不是等到上线前才发现。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">为什么「平均值」会骗人：卡顿往往来自少数长帧（PSO 首次编译、GC、流送、加载），平均帧率会被大量正常帧稀释。要同时看帧时间曲线、1% low 与尖峰位置，才能判断是持续超预算还是周期性事件。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">开发时间</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">固定场景、基线、自动化都要持续投入，且需要跨职能协作。</span></div><div class="costrow"><span class="cl">画质</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">降分辨率、降阴影、降后处理都会直接损失观感，需要分级而不是一刀切。</span></div><div class="costrow"><span class="cl">内存 / 带宽</span><div class="bars"><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i><i class=""></i></div><span class="note">有些优化用内存换时间（缓存、预计算），要同时看峰值。</span></div><div class="costrow"><span class="cl">团队习惯</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">没有统一观测口径，数据就不可比；性能必须成为提交规范的一部分。</span></div><div class="costrow"><span class="cl">平台差异</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">PC、主机、移动端的瓶颈完全不同，不能拿一个平台的数据下结论。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>三种性能工作方式：从「感觉」到「门槛」</h3></div>
+    <div class="cmp-dims"><span>可复现</span><span>覆盖范围</span><span>前期成本</span><span>适用阶段</span><span>对团队要求</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>人工观测 + 经验调参</h4>
+      <span class="sid">—</span>
+      <dl><div><dt>可复现</dt><dd>低</dd></div><div><dt>覆盖范围</dt><dd>窄（当前机位）</dd></div><div><dt>前期成本</dt><dd>低</dd></div><div><dt>适用阶段</dt><dd>原型/早期</dd></div><div><dt>对团队要求</dt><dd>低</dd></div></dl>
+      <div class="take">能快速救火，但无法证明没退化；适合还没有稳定内容的阶段。</div>
+    </div><div class="cmp-card">
+      <h4>固定场景 + 基线对比</h4>
+      <a class="sid" href="../reference/catalog.html#card-perf-16">perf-16</a>
+      <dl><div><dt>可复现</dt><dd>高</dd></div><div><dt>覆盖范围</dt><dd>中（关键场景）</dd></div><div><dt>前期成本</dt><dd>中</dd></div><div><dt>适用阶段</dt><dd>Alpha/Beta</dd></div><div><dt>对团队要求</dt><dd>中</dd></div></dl>
+      <div class="take">把「感觉」变成数字；需要维护场景与阈值，但能提前发现退化。</div>
+    </div><div class="cmp-card">
+      <h4>自动化性能门槛 + 真机矩阵</h4>
+      <a class="sid" href="../reference/catalog.html#card-perf-17">perf-17</a>
+      <dl><div><dt>可复现</dt><dd>很高</dd></div><div><dt>覆盖范围</dt><dd>广（多机型/多场景）</dd></div><div><dt>前期成本</dt><dd>高</dd></div><div><dt>适用阶段</dt><dd>上线前/长期</dd></div><div><dt>对团队要求</dt><dd>高</dd></div></dl>
+      <div class="take">适合稳定迭代的项目；成本在设备、流水线与误报治理，收益是发布可控。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>只看平均帧率，不看 1% low 与长帧。</div><div class="right"><b>正确理解</b>卡顿由少数长帧决定。记录帧时间分布与尖峰，定位周期性事件（GC、流送、PSO），否则会优化错方向。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>在编辑器里测完就下结论。</div><div class="right"><b>正确理解</b>编辑器线程模型、缓存与打包版本不同；必须在目标平台打包构建、固定画质下复测。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>没有基线就做优化，改完凭感觉说「快了」。</div><div class="right"><b>正确理解</b>先记录基线（同场景、同设备、同画质），再改动，再复测；否则无法排除环境波动，也无法防止回归。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x；先看趋势可用 PIE，但最终数值要在打包构建与目标硬件上取；固定相机、分辨率、画质档位与场景版本。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>选一个固定关卡与固定机位，记录 stat unit、stat fps 与 30 秒帧时间。</div><div class="expect"><b>预期现象：</b>得到一份可重复的基线，而不是一次性的截图。</div></div><div class="step"><div class="do"><b>02</b>打开 ProfileGPU（或 <span class="term" tabindex="0" data-def="UE 的追踪与性能分析工具，可看 CPU 线程、任务与事件时间线。">Unreal Insights</span>），找出占比最高的三个通道。</div><div class="expect"><b>预期现象：</b>能按通道排序，而不是只知道「GPU 高」。</div></div><div class="step"><div class="do"><b>03</b>用 stat game / stat anim / stat physics 分别观察 CPU 侧热点。</div><div class="expect"><b>预期现象：</b>定位到具体系统（Tick、动画、物理、蓝图）。</div></div><div class="step"><div class="do"><b>04</b>只改一个变量（例如关闭一层后处理），复测同场景。</div><div class="expect"><b>预期现象：</b>帧时间变化可量化，能验证假设而不是叠加改动。</div></div><div class="step"><div class="do"><b>05</b>把该场景写进自动化或性能门槛，设定可接受的退化阈值。</div><div class="expect"><b>预期现象：</b>下一次改动若超阈值会被拦下，而不是上线前才发现。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. 为什么平均 60fps 仍可能感觉卡？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>平均值被大量正常帧拉高，少数长帧（GC、流送、PSO 首次编译）造成明显卡顿。要看 1% low、帧时间曲线与尖峰出现的位置。<div class="refs"><a href="../reference/catalog.html#card-pb-perf-02">问题：性能回归没有基线，改动后才发现掉帧</a><a href="../reference/catalog.html#card-iq-arpg-006">面试题：同屏敌人从 20 增至 200 时如何扩展 ARPG AI？</a></div></div></div><div class="q"><div class="qt">2. stat unit 显示 Game 22ms、Draw 12ms、GPU 14ms，应该先优化哪边？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>先看 Game 线程：它最高，且已经超过 16.7ms 预算。降分辨率对 Game 线程几乎无效，应该查 Tick、蓝图、动画、物理或 Actor 数量。<div class="refs"><a href="../reference/catalog.html#card-pb-perf-01">问题：无法判断瓶颈在 CPU 还是 GPU</a><a href="../reference/catalog.html#card-pb-perf-04">问题：Tick 与 Actor 遍历造成隐性 CPU 开销</a></div></div></div><div class="q"><div class="qt">3. 性能回归门槛为什么必须绑定固定场景与真机？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>不同场景/设备的负载不可比，编辑器与打包版本也不同。只有固定场景 + 目标设备 + 基线，数字才能反映真实退化；否则门槛会被噪声误伤或放过大问题。<div class="refs"><a href="../reference/catalog.html#card-gen-05">方案：自动化测试与性能回归：Gauntlet + 功能测试</a><a href="../reference/catalog.html#card-iq-fps-006">面试题：如何用 Replication Graph 控制 FPS 复制预算？</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-gen-05">方案：自动化测试与性能回归：Gauntlet + 功能测试</a> <a href="../reference/catalog.html#card-gen-04">方案：可观测性与线上运维：日志/指标/追踪</a> <a href="../reference/catalog.html#card-gen-06">方案：机器人压测与模拟对局</a> <a href="../reference/catalog.html#card-gen-12">方案：跨平台画质分级：Scalability 与设备档位</a> <a href="../reference/catalog.html#card-pb-perf-01">问题：无法判断瓶颈在 CPU 还是 GPU</a> <a href="../reference/catalog.html#card-pb-perf-02">问题：性能回归没有基线，改动后才发现掉帧</a> <a href="../reference/catalog.html#card-pb-perf-03">问题：不同设备/平台的性能数据不可比</a> <a href="../reference/catalog.html#card-pb-perf-04">问题：Tick 与 Actor 遍历造成隐性 CPU 开销</a> <a href="../reference/catalog.html#card-pb-perf-05">问题：内存与加载性能缺少持续监控</a> <a href="../reference/catalog.html#card-iq-arpg-006">面试题：同屏敌人从 20 增至 200 时如何扩展 ARPG AI？</a> <a href="../reference/catalog.html#card-iq-fps-006">面试题：如何用 Replication Graph 控制 FPS 复制预算？</a> <a href="../reference/catalog.html#card-iq-rts-007">面试题：RTS 海量单位如何分层优化 Actor、动画与渲染？</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-gen-05">方案：自动化测试与性能回归：Gauntlet + 功能测试</a><a href="../reference/catalog.html#card-gen-04">方案：可观测性与线上运维：日志/指标/追踪</a><a href="../reference/catalog.html#card-gen-06">方案：机器人压测与模拟对局</a><a href="../reference/catalog.html#card-gen-12">方案：跨平台画质分级：Scalability 与设备档位</a><a href="../reference/catalog.html#card-pb-perf-01">问题：无法判断瓶颈在 CPU 还是 GPU</a><a href="../reference/catalog.html#card-pb-perf-02">问题：性能回归没有基线，改动后才发现掉帧</a><a href="../reference/catalog.html#card-pb-perf-03">问题：不同设备/平台的性能数据不可比</a><a href="../reference/catalog.html#card-pb-perf-04">问题：Tick 与 Actor 遍历造成隐性 CPU 开销</a><a href="../reference/catalog.html#card-pb-perf-05">问题：内存与加载性能缺少持续监控</a><a href="../reference/catalog.html#card-iq-arpg-006">面试题：同屏敌人从 20 增至 200 时如何扩展 ARPG AI？</a><a href="../reference/catalog.html#card-iq-fps-006">面试题：如何用 Replication Graph 控制 FPS 复制预算？</a><a href="../reference/catalog.html#card-iq-rts-007">面试题：RTS 海量单位如何分层优化 Actor、动画与渲染？</a></div>
+          <div class="entry-links"><a class="btn ghost" href="render-basics.html">← 上一章 · 渲染管线基础</a><a class="btn ghost" href="gc.html">下一章 · GC 与内存 →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/perf.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>复杂移动：抓钩、攀爬为什么容易出问题 · UE 技术学习站</title>
+<meta name="description" content="特殊移动把「位置、动画、网络、物理」四条线缠在一起。这一章讲状态切换与合法性检测，解释为什么抓钩/攀爬在单机很稳、一联机就抖。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="movement">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>玩法系统 · 第 15 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">玩法系统</span>
+      <span class="chip">约 55 分钟</span>
+      <span class="chip">进阶</span>
+      <span class="chip">前置：动画与 Motion Matching、网络同步与预测回滚、物理、破坏与载具</span>
+    </div>
+    <h1>复杂移动：抓钩、攀爬为什么容易出问题</h1>
+    <p class="lede">特殊移动把「位置、动画、网络、物理」四条线缠在一起。这一章讲状态切换与合法性检测，解释为什么抓钩/攀爬在单机很稳、一联机就抖。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>抓钩在空中「拉回去」</h3>
+      <p>单机抓钩很顺，联机后出现位置回拉、贴墙抖动、落地穿透。攀爬时角色偶尔卡在边缘不上不下。你怀疑是动画问题，但关掉动画后位移仍然异常。</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>特殊移动在联机下出现回拉或<span class="term" tabindex="0" data-def="位置被服务器纠正后出现的回拉现象。">橡皮筋</span></li><li>边缘检测不稳定，时而上时而不上</li><li>角色在斜坡/台阶上抖动或弹飞</li><li>移动手感与动画表现不同步</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">特殊移动像「换挡」：换挡瞬间必须同时告知引擎、动画和服务器，任何一方慢半拍，车就会顿一下。</blockquote>
+    <p>普通移动是连续的速度积分；抓钩、攀爬是状态切换：先判定合法性（<span class="term" tabindex="0" data-def="抓钩/攀爬目标位置，需要合法性检测。">锚点</span>、边缘、法线），再进入新状态，最后由动画与相机跟随。联机时服务器也要认可这次切换，否则客户端会先动、服务器不认，于是回拉。状态切换越「瞬移」，越容易被网络延迟放大。</p>
+    <p class="note">类比的边界：换挡类比不体现「<span class="term" tabindex="0" data-def="客户端先执行，等待服务器确认或回滚。">预测</span>与回滚」：特殊移动往往需要自定义预测逻辑，不能只依赖通用移动组件的预测。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="move-state" data-title="锚点合法性与状态切换" data-caption="拖动锚点合法概率，观察检测失败时的状态回退与抖动。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>特殊移动通常是一次状态切换：检测（锚点/边缘/法线/高度）→ 决定新状态 → 计算位移与旋转 → 表现层跟随。</p><p>检测是核心风险点：射线/球形检测的容差过小会时灵时不灵，过大则会把角色吸到不该去的地方。</p><p>联机时状态切换需要服务器认可；客户端预测先动，服务器否定就回拉，所以「瞬移式」切换最容易看出问题。</p><p>移动与动画必须解耦但同步：位置由移动逻辑决定，动画只跟随；用动画驱动位移（<span class="term" tabindex="0" data-def="由动画驱动角色位移的方式。">Root Motion</span>）时要保证网络与预测路径一致。</p><p>物理约束（斜坡、台阶、载具）会引入额外抖动源；需要统一碰撞与容差，避免多套逻辑互相打架。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">换挡类比不体现「预测与回滚」：特殊移动往往需要自定义预测逻辑，不能只依赖通用移动组件的预测。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">实现复杂度</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i></div><span class="note">检测、状态机、预测与表现四者都要一致。</span></div><div class="costrow"><span class="cl">网络</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">状态切换需要同步与确认，弱网下回拉明显。</span></div><div class="costrow"><span class="cl">CPU</span><div class="bars"><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i><i class=""></i></div><span class="note">检测本身不贵，但高频射线/重叠查询会累积。</span></div><div class="costrow"><span class="cl">手感</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">容差与预测窗口直接决定「跟手」程度。</span></div><div class="costrow"><span class="cl">调试成本</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">问题常跨移动/动画/网络，定位链路长。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>CMC 扩展与自建移动组件：先看要改多深</h3></div>
+    <div class="cmp-dims"><span>改动范围</span><span>预测支持</span><span>上手成本</span><span>可维护性</span><span>适用场景</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>扩展 CharacterMovementComponent</h4>
+      <a class="sid" href="../reference/catalog.html#card-mov-01">mov-01</a>
+      <dl><div><dt>改动范围</dt><dd>小（复用现有网络与预测）</dd></div><div><dt>预测支持</dt><dd>内建（沿用 CMC 路径）</dd></div><div><dt>上手成本</dt><dd>低</dd></div><div><dt>可维护性</dt><dd>中（要理解 CMC 流程）</dd></div><div><dt>适用场景</dt><dd>常规移动 + 少量特殊状态</dd></div></dl>
+      <div class="take">优先选择：能复用成熟的预测与复制逻辑，风险最低；受 <span class="term" tabindex="0" data-def="CharacterMovementComponent，UE 的角色移动组件。">CMC</span> 结构约束。</div>
+    </div><div class="cmp-card">
+      <h4>自建移动组件</h4>
+      <a class="sid" href="../reference/catalog.html#card-mov-11">mov-11</a>
+      <dl><div><dt>改动范围</dt><dd>大（自己管复制与预测）</dd></div><div><dt>预测支持</dt><dd>要自己实现</dd></div><div><dt>上手成本</dt><dd>高</dd></div><div><dt>可维护性</dt><dd>高（完全可控）</dd></div><div><dt>适用场景</dt><dd>移动模型与 CMC 差异很大</dd></div></dl>
+      <div class="take">适合抓钩/攀爬等重度自定义；代价是网络与预测要自己扛。</div>
+    </div><div class="cmp-card">
+      <h4>物理约束驱动（如载具/布娃娃）</h4>
+      <a class="sid" href="../reference/catalog.html#card-mov-08">mov-08</a>
+      <dl><div><dt>改动范围</dt><dd>中（接物理系统）</dd></div><div><dt>预测支持</dt><dd>受限（物理难预测）</dd></div><div><dt>上手成本</dt><dd>中高</dd></div><div><dt>可维护性</dt><dd>中</dd></div><div><dt>适用场景</dt><dd>载具/受击/布娃娃</dd></div></dl>
+      <div class="take">物理驱动观感真实，但预测与回滚困难，通常只在局部或非权威表现中使用。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>特殊移动出问题就先怀疑动画。</div><div class="right"><b>正确理解</b>先确认位移由谁决定。若关掉动画后位移仍异常，问题在移动检测/预测/网络，而不是动画。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>把检测容差调到「刚好能过」，追求精准。</div><div class="right"><b>正确理解</b>过小的容差会让检测在边缘时灵时不灵，表现为抖动与失败。容差要留余量，并在不同帧率/延迟下验证。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>特殊移动直接瞬移到目标点，不做过渡。</div><div class="right"><b>正确理解</b>瞬移式切换在联机下最容易回拉。应做短过渡或预测一致的位移曲线，让客户端与服务器路径接近。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x；CharacterMovementComponent 项目；特殊移动建议独立 Movement Mode；联机测试需多客户端 + 延迟模拟。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>在单机下测试抓钩/攀爬的边缘情况（薄墙、斜角、移动目标）。</div><div class="expect"><b>预期现象：</b>复现检测失败或吸附异常，确认是检测容差问题。</div></div><div class="step"><div class="do"><b>02</b>关闭动画蓝图（或用无动画胶囊体）重复测试。</div><div class="expect"><b>预期现象：</b>若问题仍在，说明位移逻辑本身有问题，与动画无关。</div></div><div class="step"><div class="do"><b>03</b>在网络模拟下测试同一次特殊移动。</div><div class="expect"><b>预期现象：</b>出现回拉或橡皮筋，验证服务器认可与预测的差异。</div></div><div class="step"><div class="do"><b>04</b>把瞬移式切换改为带过渡的位移曲线，重复联机测试。</div><div class="expect"><b>预期现象：</b>回拉幅度下降，手感更连续。</div></div><div class="step"><div class="do"><b>05</b>在不同帧率（30/60/120）下测试同一边缘检测。</div><div class="expect"><b>预期现象：</b>暴露与帧率相关的容差问题，避免只在一种帧率下验证。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. 为什么特殊移动在联机下容易出现回拉？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>因为状态切换常伴随较大位移，客户端先预测执行，服务器若因合法性或时序否定，就会把位置纠正回权威值，表现为回拉。<div class="refs"><a href="../reference/catalog.html#card-mov-11">方案：特殊移动的网络：预测、回滚、平滑与防橡皮筋</a><a href="../reference/catalog.html#card-pb-move-01">问题：抓钩锚点非法或被服务器拒绝</a></div></div></div><div class="q"><div class="qt">2. 边缘检测「时灵时不灵」通常是什么原因？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>检测容差过小或依赖单帧采样：在边缘、斜角或高速移动时射线/重叠检测不稳定。应留容差并用多次采样或更稳的形状检测。<div class="refs"><a href="../reference/catalog.html#card-pb-move-02">问题：攀爬 Ledge 探测失败与状态错位</a><a href="../reference/catalog.html#card-mov-03">方案：抓钩/钩索：锚点检测、约束与摆动收绳</a></div></div></div><div class="q"><div class="qt">3. 什么时候应该自建移动组件，而不是扩展 CMC？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>当移动模型与 CMC 的假设差异很大（例如大量非地面约束、特殊重力、完全自定义碰撞），且团队有能力自己实现复制与预测时。否则优先扩展 CMC。<div class="refs"><a href="../reference/catalog.html#card-mov-01">方案：CharacterMovementComponent 自定义 Movement Mode</a><a href="../reference/catalog.html#card-iq-rts-012">面试题：移动、攻击移动、巡逻、施法和建造命令如何排队、打断并保持确定性？</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-mov-01">方案：CharacterMovementComponent 自定义 Movement Mode</a> <a href="../reference/catalog.html#card-mov-03">方案：抓钩/钩索：锚点检测、约束与摆动收绳</a> <a href="../reference/catalog.html#card-mov-09">方案：跳跃、落地缓冲、Coyote Time 与加减速曲线</a> <a href="../reference/catalog.html#card-mov-11">方案：特殊移动的网络：预测、回滚、平滑与防橡皮筋</a> <a href="../reference/catalog.html#card-mov-10">方案：表现层：IK 足部贴合、相机/FOV 与音效粒子</a> <a href="../reference/catalog.html#card-pb-move-01">问题：抓钩锚点非法或被服务器拒绝</a> <a href="../reference/catalog.html#card-pb-move-02">问题：攀爬 Ledge 探测失败与状态错位</a> <a href="../reference/catalog.html#card-pb-move-03">问题：墙跑法线/坡度约束抖动</a> <a href="../reference/catalog.html#card-pb-move-04">问题：滑铲/斜坡滑行速度曲线失控</a> <a href="../reference/catalog.html#card-pb-move-05">问题：特殊移动在联机下出现橡皮筋</a> <a href="../reference/catalog.html#card-iq-fps-001">面试题：CharacterMovement 的客户端预测与服务端纠正如何工作？</a> <a href="../reference/catalog.html#card-iq-fps-002">面试题：如何用 SavedMove 实现可预测、可校验的滑铲？</a> <a href="../reference/catalog.html#card-iq-fps-004">面试题：Hitscan 与 Projectile 应如何选择和同步？</a> <a href="../reference/catalog.html#card-iq-rts-012">面试题：移动、攻击移动、巡逻、施法和建造命令如何排队、打断并保持确定性？</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-mov-01">方案：CharacterMovementComponent 自定义 Movement Mode</a><a href="../reference/catalog.html#card-mov-03">方案：抓钩/钩索：锚点检测、约束与摆动收绳</a><a href="../reference/catalog.html#card-mov-09">方案：跳跃、落地缓冲、Coyote Time 与加减速曲线</a><a href="../reference/catalog.html#card-mov-11">方案：特殊移动的网络：预测、回滚、平滑与防橡皮筋</a><a href="../reference/catalog.html#card-mov-10">方案：表现层：IK 足部贴合、相机/FOV 与音效粒子</a><a href="../reference/catalog.html#card-pb-move-01">问题：抓钩锚点非法或被服务器拒绝</a><a href="../reference/catalog.html#card-pb-move-02">问题：攀爬 Ledge 探测失败与状态错位</a><a href="../reference/catalog.html#card-pb-move-03">问题：墙跑法线/坡度约束抖动</a><a href="../reference/catalog.html#card-pb-move-04">问题：滑铲/斜坡滑行速度曲线失控</a><a href="../reference/catalog.html#card-pb-move-05">问题：特殊移动在联机下出现橡皮筋</a><a href="../reference/catalog.html#card-iq-fps-001">面试题：CharacterMovement 的客户端预测与服务端纠正如何工作？</a><a href="../reference/catalog.html#card-iq-fps-002">面试题：如何用 SavedMove 实现可预测、可校验的滑铲？</a><a href="../reference/catalog.html#card-iq-fps-004">面试题：Hitscan 与 Projectile 应如何选择和同步？</a><a href="../reference/catalog.html#card-iq-rts-012">面试题：移动、攻击移动、巡逻、施法和建造命令如何排队、打断并保持确定性？</a><a href="../reference/catalog.html#card-cmp-cmc-custom">对比：移动组件：CMC 扩展 vs 自建移动组件</a></div>
+          <div class="entry-links"><a class="btn ghost" href="animation.html">← 上一章 · 动画与 Motion Matching</a><a class="btn ghost" href="ai-nav.html">下一章 · 群体 AI 与导航 →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/movement.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>

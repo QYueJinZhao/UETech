@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>移动端渲染：带宽比算力更容易先撞墙 · UE 技术学习站</title>
+<meta name="description" content="移动 GPU 和桌面不是「缩小版」：它把屏幕切成小块，在片上内存里完成着色，最怕的是把数据搬来搬去。理解这一点，就能解释为什么降分辨率有用、为什么半透明贵、为什么读回屏幕代价巨大。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="mobile">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>渲染与画质 · 第 08 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">渲染与画质</span>
+      <span class="chip">约 55 分钟</span>
+      <span class="chip">进阶</span>
+      <span class="chip">前置：渲染管线基础、性能分析与预算</span>
+    </div>
+    <h1>移动端渲染：带宽比算力更容易先撞墙</h1>
+    <p class="lede">移动 GPU 和桌面不是「缩小版」：它把屏幕切成小块，在片上内存里完成着色，最怕的是把数据搬来搬去。理解这一点，就能解释为什么降分辨率有用、为什么半透明贵、为什么读回屏幕代价巨大。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>画面不复杂，手机却发烫掉帧</h3>
+      <p>场景里没几个模型，光源也不多，但手机跑十分钟就烫、帧率下滑。你把材质精度降低、关掉一些特效，收益有限；换到另一台 GPU 不同的手机上，同样的内容表现又不一样。</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>帧率被 GPU 限制，但看不出明显的着色复杂度</li><li>半透明粒子、后处理、全屏特效一加就掉</li><li>设备发热<span class="term" tabindex="0" data-def="设备因发热或功耗限制降低运行频率，导致持续性能下滑。">降频</span>后性能持续下滑，短时测试看不出来</li><li>不同 GPU 厂商的机型表现差异大，难以统一调优</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">桌面 GPU 像一个大车间，原料可以随时从仓库取；移动 GPU 像一条只有很小工作台的流水线，东西拿进拿出都要花时间。</blockquote>
+    <p><span class="term" tabindex="0" data-def="<span class="term" tabindex="0" data-def="屏幕上被分出的一个小块，TBDR 在片上内存中逐块处理。">Tile</span>-Based Deferred Rendering，移动 GPU 常见的分块延迟渲染架构。">TBDR</span>（Tile-Based Deferred Rendering）把屏幕分成 tile，先在片上内存完成不透明物体的深度与着色，最后才把结果写回主存。片上内存很小但极快，主存大但访问昂贵。因此「多画一层半透明」「读写一张全屏 <span class="term" tabindex="0" data-def="Render Target，渲染目标纹理；全屏 RT 的读写是带宽大户。">RT</span>」在移动端都会被放大成<span class="term" tabindex="0" data-def="单位时间读写主存的数据量；移动端最容易被它限制。">带宽</span>成本，而不是简单的算力问题。</p>
+    <p class="note">类比的边界：工作台类比不体现「厂商实现差异」：不同 GPU 的 tile 大小、压缩格式与调度策略不同，同一份内容的表现会有差异，必须按机型档位实测。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="tbdr-flow" data-title="TBDR 的片上内存与带宽流向" data-caption="拖动 overdraw 与渲染分辨率，观察带宽压力如何变化。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>TBDR 先把几何按 tile 分桶，做完整的深度测试（Hidden Surface Removal），尽量只对最终可见的像素着色。</p><p>不透明物体的着色在片上内存完成，避免每个像素都往返主存；这也是「先深度后着色」能省带宽的原因。</p><p>半透明无法靠深度剔除，必须按层混合；层数越多，重复着色与读写次数越多，<span class="term" tabindex="0" data-def="同一像素被多次着色的现象，半透明叠加是主要来源。">overdraw</span> 直接变成带宽。</p><p>任何需要「读回上一张全屏结果」的操作（后处理、某些效果、屏幕空间效果）都可能触发 tile 的存取，成本远高于纯片上操作。</p><p>移动端常用带宽优化手段是压缩纹理、降低 RT 精度、减少全屏 pass 与半透明层数；分辨率下降能同时减少像素数与带宽，所以通常最有效。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">为什么「关掉一个特效」有时收益很小：如果该特效本来就在片上完成且层数很低，它的算力成本可能不大；真正贵的是额外的全屏 RT 与读写。定位时要看带宽与 pass 数，而不是只看「特效看起来复不复杂」。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">带宽</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i></div><span class="note">RT 读写、半透明混合与全屏 pass 是主要来源。</span></div><div class="costrow"><span class="cl">填充率</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">overdraw 直接乘上像素数，移动端尤其敏感。</span></div><div class="costrow"><span class="cl">发热 / 降频</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">持续高负载会触发降频，短时测试无法反映。</span></div><div class="costrow"><span class="cl">画质</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">降分辨率、降 RT 精度是最直接的带宽手段，但会牺牲清晰度。</span></div><div class="costrow"><span class="cl">机型适配</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">不同 GPU 的 tile 与压缩策略不同，需要分档与实测。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>Mobile Forward、Mobile Deferred 与桌面路径：先看带宽再说功能</h3></div>
+    <div class="cmp-dims"><span>带宽压力</span><span>多光源</span><span>半透明</span><span>机型覆盖</span><span>实现复杂度</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>Mobile Forward</h4>
+      <a class="sid" href="../reference/catalog.html#card-mob-01">mob-01</a>
+      <dl><div><dt>带宽压力</dt><dd>较低（每像素只着色可见层）</dd></div><div><dt>多光源</dt><dd>中低（受限于逐像素光照）</dd></div><div><dt>半透明</dt><dd>较友好</dd></div><div><dt>机型覆盖</dt><dd>广</dd></div><div><dt>实现复杂度</dt><dd>低</dd></div></dl>
+      <div class="take">移动端主流：先保证带宽与机型覆盖，再通过分簇/分块提升光源上限。</div>
+    </div><div class="cmp-card">
+      <h4>Mobile Deferred</h4>
+      <a class="sid" href="../reference/catalog.html#card-mob-11">mob-11</a>
+      <dl><div><dt>带宽压力</dt><dd>较高（GBuffer 写入/读取）</dd></div><div><dt>多光源</dt><dd>高</dd></div><div><dt>半透明</dt><dd>需单独前向路径</dd></div><div><dt>机型覆盖</dt><dd>较窄（依赖机型支持）</dd></div><div><dt>实现复杂度</dt><dd>中高</dd></div></dl>
+      <div class="take">适合多动态光源，但要先确认目标机型带宽能承受 GBuffer；半透明仍需前向。</div>
+    </div><div class="cmp-card">
+      <h4>桌面延迟 + 高画质特性</h4>
+      <a class="sid" href="../reference/catalog.html#card-mob-03">mob-03</a>
+      <dl><div><dt>带宽压力</dt><dd>很高（移动端不可承受）</dd></div><div><dt>多光源</dt><dd>高</dd></div><div><dt>半透明</dt><dd>中</dd></div><div><dt>机型覆盖</dt><dd>不覆盖移动</dd></div><div><dt>实现复杂度</dt><dd>高</dd></div></dl>
+      <div class="take">Lumen/Nanite 这类特性在移动端需要明确回退方案，不能假设「降分辨率就能跑」。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>用桌面机的表现推断移动端，只按比例降分辨率。</div><div class="right"><b>正确理解</b>移动端瓶颈常是带宽与发热，不是算力。必须在目标机型上实测，并观察降频后的持续表现。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>认为半透明「只是多画一层」，成本可以忽略。</div><div class="right"><b>正确理解</b>半透明无法被深度剔除，每层都要重复着色与混合，层数叠加会直接推高填充与带宽；移动端应严格限制层数。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>短时间跑 60fps 就认为性能达标。</div><div class="right"><b>正确理解</b>发热降频会让性能在几分钟后下滑。要做持续负载测试（10–30 分钟），记录帧率与温度/降频状态。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x；用 Mobile Preview 或真机（Android/iOS），Feature Level 设为 ES3.1/ES3.2；overdraw 需 GPU 抓帧。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>在目标机型上叠加几层半透明粒子，记录帧时间与 GPU 统计。</div><div class="expect"><b>预期现象：</b>GPU 时间随层数明显上升，验证 overdraw 是主要成本。</div></div><div class="step"><div class="do"><b>02</b>把渲染分辨率从 100% 降到 70%，重复同一场景。</div><div class="expect"><b>预期现象：</b>帧时间下降明显，说明带宽/填充是瓶颈之一。</div></div><div class="step"><div class="do"><b>03</b>关闭一个全屏后处理 pass，对比帧时间。</div><div class="expect"><b>预期现象：</b>减少一次全屏读写，收益可能比关掉一个复杂材质更大。</div></div><div class="step"><div class="do"><b>04</b>把 RT 精度与纹理压缩格式调整一档，观察画质与带宽变化。</div><div class="expect"><b>预期现象：</b>得到可量化的取舍，而不是凭感觉选画质。</div></div><div class="step"><div class="do"><b>05</b>持续运行 15 分钟并记录帧率曲线。</div><div class="expect"><b>预期现象：</b>看到降频后的下滑，确认短时测试不足以判断。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. 为什么移动端「降分辨率」通常最有效？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>因为分辨率同时减少像素数、填充率与 RT 读写带宽，而移动端最容易被带宽限制；它不需要改内容就能立刻降低多个成本项。<div class="refs"><a href="../reference/catalog.html#card-mob-08">方案：动态分辨率与设备分级</a><a href="../reference/catalog.html#card-pb-mobile-01">问题：中低端机帧率不稳并伴随发热降频</a></div></div></div><div class="q"><div class="qt">2. TBDR 中半透明为什么特别贵？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>因为半透明不能靠深度测试剔除，必须按层混合；每一层都要重复着色并读写，overdraw 直接转成带宽与填充成本。<div class="refs"><a href="../reference/catalog.html#card-mob-02">方案：TBDR、带宽与填充率：过度绘制治理</a><a href="../reference/catalog.html#card-pb-mobile-02">问题：移动端 GI/阴影方案照搬桌面导致不可用</a></div></div></div><div class="q"><div class="qt">3. 为什么移动端必须做持续负载测试？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>持续高负载会触发热降频，短时跑满帧并不代表稳定。只有记录十几分钟以上的帧率曲线，才能看到真实体验。<div class="refs"><a href="../reference/catalog.html#card-pb-mobile-04">问题：移动端带宽与 overdraw 打满</a><a href="../reference/catalog.html#card-iq-core-042">面试题：GPU 如何把场景变成像素，UE Renderer Path 为什么会把瓶颈落在提交、几何、像素或带宽的不同位置？</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-mob-01">方案：Mobile 渲染管线：Forward / Deferred 与 Feature Level</a> <a href="../reference/catalog.html#card-mob-02">方案：TBDR、带宽与填充率：过度绘制治理</a> <a href="../reference/catalog.html#card-mob-03">方案：Lumen / Nanite / VSM / TSR 在移动端的可用性与替代</a> <a href="../reference/catalog.html#card-mob-04">方案：移动端光照与阴影：烘焙、静态阴影与混合</a> <a href="../reference/catalog.html#card-mob-05">方案：材质复杂度、指令数与 Shader 变体控制</a> <a href="../reference/catalog.html#card-mob-08">方案：动态分辨率与设备分级</a> <a href="../reference/catalog.html#card-mob-09">方案：移动端后处理、透明与粒子开销</a> <a href="../reference/catalog.html#card-pb-mobile-01">问题：中低端机帧率不稳并伴随发热降频</a> <a href="../reference/catalog.html#card-pb-mobile-02">问题：移动端 GI/阴影方案照搬桌面导致不可用</a> <a href="../reference/catalog.html#card-pb-mobile-03">问题：移动端 draw call 与材质变体拖垮 CPU/GPU</a> <a href="../reference/catalog.html#card-pb-mobile-04">问题：移动端带宽与 overdraw 打满</a> <a href="../reference/catalog.html#card-pb-mobile-05">问题：缺少机型分级导致画质与性能两头落空</a> <a href="../reference/catalog.html#card-iq-arpg-010">面试题：如何用 Asset Manager 异步加载并保证资源进入正确容器？</a> <a href="../reference/catalog.html#card-iq-core-042">面试题：GPU 如何把场景变成像素，UE Renderer Path 为什么会把瓶颈落在提交、几何、像素或带宽的不同位置？</a> <a href="../reference/catalog.html#card-iq-core-043">面试题：移动 Tiler、统一内存与 big.LITTLE/DVFS 下，如何设计可持续的 30/60/90 FPS 画质档？</a> <a href="../reference/catalog.html#card-iq-slg-018">面试题：同一张战略大地图如何为手机与 PC 设计可持续的 Scalability、流送和渲染降级？</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-mob-01">方案：Mobile 渲染管线：Forward / Deferred 与 Feature Level</a><a href="../reference/catalog.html#card-mob-02">方案：TBDR、带宽与填充率：过度绘制治理</a><a href="../reference/catalog.html#card-mob-03">方案：Lumen / Nanite / VSM / TSR 在移动端的可用性与替代</a><a href="../reference/catalog.html#card-mob-04">方案：移动端光照与阴影：烘焙、静态阴影与混合</a><a href="../reference/catalog.html#card-mob-05">方案：材质复杂度、指令数与 Shader 变体控制</a><a href="../reference/catalog.html#card-mob-08">方案：动态分辨率与设备分级</a><a href="../reference/catalog.html#card-mob-09">方案：移动端后处理、透明与粒子开销</a><a href="../reference/catalog.html#card-pb-mobile-01">问题：中低端机帧率不稳并伴随发热降频</a><a href="../reference/catalog.html#card-pb-mobile-02">问题：移动端 GI/阴影方案照搬桌面导致不可用</a><a href="../reference/catalog.html#card-pb-mobile-03">问题：移动端 draw call 与材质变体拖垮 CPU/GPU</a><a href="../reference/catalog.html#card-pb-mobile-04">问题：移动端带宽与 overdraw 打满</a><a href="../reference/catalog.html#card-pb-mobile-05">问题：缺少机型分级导致画质与性能两头落空</a><a href="../reference/catalog.html#card-iq-arpg-010">面试题：如何用 Asset Manager 异步加载并保证资源进入正确容器？</a><a href="../reference/catalog.html#card-iq-core-042">面试题：GPU 如何把场景变成像素，UE Renderer Path 为什么会把瓶颈落在提交、几何、像素或带宽的不同位置？</a><a href="../reference/catalog.html#card-iq-core-043">面试题：移动 Tiler、统一内存与 big.LITTLE/DVFS 下，如何设计可持续的 30/60/90 FPS 画质档？</a><a href="../reference/catalog.html#card-iq-slg-018">面试题：同一张战略大地图如何为手机与 PC 设计可持续的 Scalability、流送和渲染降级？</a><a href="../reference/catalog.html#card-cmp-mobile-path">对比：移动管线：Mobile Forward vs Mobile Deferred</a></div>
+          <div class="entry-links"><a class="btn ghost" href="gi.html">← 上一章 · 全局光照与 Lumen</a><a class="btn ghost" href="shader-pso.html">下一章 · 着色器编译与 PSO →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/mobile.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>资源管线与包体：为什么补丁总是越更越大 · UE 技术学习站</title>
+<meta name="description" content="包体不是「压缩一下」就能解决的事。它由资产粒度、依赖关系、分包边界与补丁策略共同决定。这一章讲清楚：改动一个材质，为什么可能让整块包体失效。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="asset">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>资源与包体 · 第 06 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">资源与包体</span>
+      <span class="chip">约 50 分钟</span>
+      <span class="chip">进阶</span>
+      <span class="chip">前置：资源加载与卡顿、World Partition 流送</span>
+    </div>
+    <h1>资源管线与包体：为什么补丁总是越更越大</h1>
+    <p class="lede">包体不是「压缩一下」就能解决的事。它由资产粒度、依赖关系、分包边界与补丁策略共同决定。这一章讲清楚：改动一个材质，为什么可能让整块包体失效。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>改了一个材质，补丁却要下 400MB</h3>
+      <p>运营每次小版本，<span class="term" tabindex="0" data-def="基于块差异生成的增量更新包。">补丁</span>体积都超出预期。你只改了几张贴图和一个材质，按理说应该很小。深入排查发现<span class="term" tabindex="0" data-def="被多个资产或块引用的资源；处理不当会被重复打包。">共享依赖</span>被反复打进多个包，而且分包边界把大量「常用资源」切散在不同块里。</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>小改动引发的补丁体积远大于改动内容</li><li>同一个资产在多处重复出现（包体总量虚高）</li><li><span class="term" tabindex="0" data-def="玩家首次安装/下载必须包含的内容。">首包</span>能跑，但一进玩法就要再下几百兆</li><li>不同平台/不同渠道的包体差异难以解释</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">分包像给行李打包：你把同一件衣服塞进三个箱子，只要其中一个箱子换了，那件衣服就要重新托运一次。</blockquote>
+    <p>资源包是按块组织的，块内包含资产及其依赖。共享依赖如果被复制进多个块，任何一处改动都可能让多个块失效，补丁随之膨胀。分包的目标不是「块越小越好」，而是让「经常一起变的东西待在一起」，同时让共享依赖只存在一份。</p>
+    <p class="note">类比的边界：打包类比不体现「压缩与对齐」：真实包体还有压缩块大小、对齐与索引开销，块太小会让元数据占比上升，反而更亏。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="chunk-pack" data-title="分包边界与共享依赖：补丁为什么会变大" data-caption="拖动区域包数量与共享依赖比例，观察重复打包的体积与失效范围。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>资源以资产为单位打包：<span class="term" tabindex="0" data-def="UE 的打包容器，可包含多个资产。">Pak</span> 是打包容器，Chunk 是分发与补丁单位；块内资产与依赖共同决定块的内容。</p><p>共享依赖若没有单独抽出，会被复制进多个块；副本越多，总体积越大，任一改动的失效范围也越大。</p><p>补丁基于块差异生成：改动落在哪个块，就更新哪个块。块边界设计不合理，小改动会牵动大片内容。</p><p>首包与后续下载是两套约束：首包追求「能进游戏且够玩」，后续包追求「按玩法/区域按需下载」，二者需要不同的分包策略。</p><p>压缩与块大小存在权衡：压得越狠，解压 CPU 越高；块切得越小，索引与对齐开销占比越大。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">为什么「把共享依赖抽出来」有时反而更慢：独立共享块会增加一次额外的加载跳转与 IO 请求；如果该依赖很小且几乎总被同时使用，留在块内可能更划算。这是体积、加载次数与复杂度的三角权衡，需要按实际访问模式决定。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">包体</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i></div><span class="note">重复依赖与不合理分包是包体虚高的主因。</span></div><div class="costrow"><span class="cl">补丁体积</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">块边界决定小改动会牵动多少内容。</span></div><div class="costrow"><span class="cl">加载次数</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">块切得越细，IO 请求与索引开销越多。</span></div><div class="costrow"><span class="cl">构建时间</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">分包与依赖分析会增加构建与校验成本。</span></div><div class="costrow"><span class="cl">团队协作</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">分包规则需要长期维护，否则会被新内容逐渐破坏。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>单包、按区域分包与按玩法分包：先定「谁经常一起变」</h3></div>
+    <div class="cmp-dims"><span>首包体积</span><span>补丁体积</span><span>加载复杂度</span><span>维护成本</span><span>适用场景</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>单包全量</h4>
+      <a class="sid" href="../reference/catalog.html#card-load-10">load-10</a>
+      <dl><div><dt>首包体积</dt><dd>大</dd></div><div><dt>补丁体积</dt><dd>大（任何改动都可能全量）</dd></div><div><dt>加载复杂度</dt><dd>低</dd></div><div><dt>维护成本</dt><dd>低</dd></div><div><dt>适用场景</dt><dd>小体量/买断制</dd></div></dl>
+      <div class="take">最简单，适合内容量小、更新不频繁的项目；一旦内容增长，补丁与首包都会失控。</div>
+    </div><div class="cmp-card">
+      <h4>按区域/关卡分包</h4>
+      <a class="sid" href="../reference/catalog.html#card-gen-15">gen-15</a>
+      <dl><div><dt>首包体积</dt><dd>中</dd></div><div><dt>补丁体积</dt><dd>中（改动局限于区域）</dd></div><div><dt>加载复杂度</dt><dd>中</dd></div><div><dt>维护成本</dt><dd>中</dd></div><div><dt>适用场景</dt><dd>开放世界/关卡制</dd></div></dl>
+      <div class="take">与流送天然对齐，适合大世界；需要处理共享依赖与跨区域公共资源。</div>
+    </div><div class="cmp-card">
+      <h4>按玩法/系统分包 + 共享块</h4>
+      <a class="sid" href="../reference/catalog.html#card-load-07">load-07</a>
+      <dl><div><dt>首包体积</dt><dd>小</dd></div><div><dt>补丁体积</dt><dd>小（按系统失效）</dd></div><div><dt>加载复杂度</dt><dd>高（依赖解析复杂）</dd></div><div><dt>维护成本</dt><dd>高</dd></div><div><dt>适用场景</dt><dd>长线运营/多模式</dd></div></dl>
+      <div class="take">适合持续更新与多玩法；代价是依赖治理成本，规则一旦失守就会退化。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>只盯着压缩率，认为压得更狠包体就小了。</div><div class="right"><b>正确理解</b>压缩只改变同一份内容的存储大小；真正的大头往往是重复依赖与不合理分包。先做依赖去重与体积分析，再谈压缩。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>把分包当成一次性的构建配置。</div><div class="right"><b>正确理解</b>分包规则会被新内容持续破坏。需要把依赖检查、<span class="term" tabindex="0" data-def="把包体与补丁体积纳入自动化检查，防止逐步劣化。">体积回归</span>纳入 CI，否则半年后又回到起点。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>为了减小首包，把大量资源挪到「首次进入时下载」。</div><div class="right"><b>正确理解</b>这只是把体积换成「进入即等待」。要先确认玩家在首次体验中真正需要什么，并把下载设计成可感知、可继续的流程。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x + IoStore 打包；对比同一内容在单包与分包下的包体、补丁体积与冷启动加载路径。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>用打包体积分析工具（如 Asset Audit / Size Map）查看一个块内的资产与依赖分布。</div><div class="expect"><b>预期现象：</b>能看到体积最大的资产与重复出现的依赖，而不是只知道「包很大」。</div></div><div class="step"><div class="do"><b>02</b>找出一个同时被多个块引用的共享依赖。</div><div class="expect"><b>预期现象：</b>确认它是否被复制成多份，以及它的改动会牵动几个块。</div></div><div class="step"><div class="do"><b>03</b>对一个常用材质做一次极小改动，生成补丁并记录体积。</div><div class="expect"><b>预期现象：</b>补丁体积明显大于改动本身，验证分包边界的影响。</div></div><div class="step"><div class="do"><b>04</b>把该共享依赖抽成独立块（或调整分包规则），重复上一步。</div><div class="expect"><b>预期现象：</b>补丁体积下降，但可能多出一次加载跳转——记录这个代价。</div></div><div class="step"><div class="do"><b>05</b>在 CI 里加一条包体/补丁体积回归检查。</div><div class="expect"><b>预期现象：</b>下一次有人引入重复依赖时，能在合并前被发现。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. 为什么改一个材质可能导致很大的补丁？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>因为补丁以块为单位生成。材质若被复制进多个块的依赖里，或位于被大量内容共享的块中，改动会让这些块整体失效并重新下发。<div class="refs"><a href="../reference/catalog.html#card-gen-15">方案：构建、包体与热更：分块打包与补丁策略</a><a href="../reference/catalog.html#card-pb-asset-01">问题：首包体积超过商店限制</a></div></div></div><div class="q"><div class="qt">2. 把资源切得越细，包体就会越小吗？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>不一定。块切得越细，索引、对齐与压缩块的固定开销占比越高，加载请求也更多；关键是让经常一起访问和一起变化的内容待在同一块。<div class="refs"><a href="../reference/catalog.html#card-pb-asset-03">问题：热更后资源版本不一致</a><a href="../reference/catalog.html#card-load-07">方案：Pak / IoStore 与 Chunk 分包</a></div></div></div><div class="q"><div class="qt">3. 共享依赖应该总是抽成独立块吗？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>不是。独立块能避免重复与扩大失效范围，但会增加一次加载跳转。若依赖很小且几乎总与某块同时使用，留在块内可能更优。<div class="refs"><a href="../reference/catalog.html#card-load-07">方案：Pak / IoStore 与 Chunk 分包</a><a href="../reference/catalog.html#card-iq-slg-012">面试题：SLG 赛季重置与合服如何做到状态不串季、可回滚且停服可控？</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-gen-15">方案：构建、包体与热更：分块打包与补丁策略</a> <a href="../reference/catalog.html#card-load-07">方案：Pak / IoStore 与 Chunk 分包</a> <a href="../reference/catalog.html#card-load-10">方案：包体与分发：首包、补丁、Server/Client 分包</a> <a href="../reference/catalog.html#card-load-02">方案：软引用：SoftObjectPtr / SoftClassPtr / PrimaryAssetId</a> <a href="../reference/catalog.html#card-mob-07">方案：移动端纹理：ASTC/ETC2、Mip、流送与预算</a> <a href="../reference/catalog.html#card-pb-asset-01">问题：首包体积超过商店限制</a> <a href="../reference/catalog.html#card-pb-asset-02">问题：硬引用蔓延导致全量打包</a> <a href="../reference/catalog.html#card-pb-asset-03">问题：热更后资源版本不一致</a> <a href="../reference/catalog.html#card-pb-asset-04">问题：材质变体与纹理规格在移动端失控</a> <a href="../reference/catalog.html#card-pb-asset-05">问题：编辑器工具产出的资源不符合运行时规范</a> <a href="../reference/catalog.html#card-iq-smg-003">面试题：如何让存档安全跨版本迁移并抵抗写入中断？</a> <a href="../reference/catalog.html#card-iq-slg-012">面试题：SLG 赛季重置与合服如何做到状态不串季、可回滚且停服可控？</a> <a href="../reference/catalog.html#card-iq-fps-013">面试题：如何设计可组合、可热更新且双端一致的武器与配件系统？</a> <a href="../reference/catalog.html#card-iq-core-016">面试题：现场实现一个确定性的资产依赖分批构建器：如何拓扑排序并报告未知依赖与环？</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-gen-15">方案：构建、包体与热更：分块打包与补丁策略</a><a href="../reference/catalog.html#card-load-07">方案：Pak / IoStore 与 Chunk 分包</a><a href="../reference/catalog.html#card-load-10">方案：包体与分发：首包、补丁、Server/Client 分包</a><a href="../reference/catalog.html#card-load-02">方案：软引用：SoftObjectPtr / SoftClassPtr / PrimaryAssetId</a><a href="../reference/catalog.html#card-mob-07">方案：移动端纹理：ASTC/ETC2、Mip、流送与预算</a><a href="../reference/catalog.html#card-pb-asset-01">问题：首包体积超过商店限制</a><a href="../reference/catalog.html#card-pb-asset-02">问题：硬引用蔓延导致全量打包</a><a href="../reference/catalog.html#card-pb-asset-03">问题：热更后资源版本不一致</a><a href="../reference/catalog.html#card-pb-asset-04">问题：材质变体与纹理规格在移动端失控</a><a href="../reference/catalog.html#card-pb-asset-05">问题：编辑器工具产出的资源不符合运行时规范</a><a href="../reference/catalog.html#card-iq-smg-003">面试题：如何让存档安全跨版本迁移并抵抗写入中断？</a><a href="../reference/catalog.html#card-iq-slg-012">面试题：SLG 赛季重置与合服如何做到状态不串季、可回滚且停服可控？</a><a href="../reference/catalog.html#card-iq-fps-013">面试题：如何设计可组合、可热更新且双端一致的武器与配件系统？</a><a href="../reference/catalog.html#card-iq-core-016">面试题：现场实现一个确定性的资产依赖分批构建器：如何拓扑排序并报告未知依赖与环？</a><a href="../reference/catalog.html#card-cmp-chunk">对比：分发：Chunk 分包 vs 单包</a></div>
+          <div class="entry-links"><a class="btn ghost" href="streaming.html">← 上一章 · World Partition 流送</a><a class="btn ghost" href="gi.html">下一章 · 全局光照与 Lumen →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/asset.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>

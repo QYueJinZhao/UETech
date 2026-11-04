@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>技能系统：为什么联机放技能会「先亮后伤」 · UE 技术学习站</title>
+<meta name="description" content="技能是「表现」与「结算」两件事。表现要立刻有反馈，结算必须服务器说了算。GAS 的预测机制就是在这两者之间搭一条可回滚的桥。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="gas">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>玩法系统 · 第 11 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">玩法系统</span>
+      <span class="chip">约 55 分钟</span>
+      <span class="chip">进阶</span>
+      <span class="chip">前置：网络同步与预测回滚</span>
+    </div>
+    <h1>技能系统：为什么联机放技能会「先亮后伤」</h1>
+    <p class="lede">技能是「表现」与「结算」两件事。表现要立刻有反馈，结算必须服务器说了算。GAS 的预测机制就是在这两者之间搭一条可回滚的桥。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>技能特效已经放了，伤害却晚半拍</h3>
+      <p>玩家按下技能键，客户端立刻播动画和特效，但血条掉得慢，偶尔还会「技能放出去了却不算」。网络差的时候更明显：有时特效放了、伤害没结算，有时伤害先到、特效后到。</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>特效与伤害不同步，延迟越高越明显</li><li>弱网下出现「技能放了但被服务器拒绝」</li><li>同一技能在不同玩家屏幕上表现时机不一致</li><li>策划想改数值，却要改代码或重新连客户端</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">把技能想成「先开发票，后到账」：客户端先给你一张看得见的发票（表现），真正的钱要服务器确认后才到账（结算）。</blockquote>
+    <p>如果等服务器确认再播特效，手感会很差；如果客户端自己结算，就会被作弊。<span class="term" tabindex="0" data-def="Gameplay Ability System，UE 的技能与属性框架。">GAS</span> 的预测思路是：客户端按同一套规则先算一遍并立刻表现，同时把预测的改动标记为「待确认」，服务器结果回来后对账——一致就保留，不一致就<span class="term" tabindex="0" data-def="服务器否定预测后，把本地状态纠正回权威值。">回滚</span>并纠正。</p>
+    <p class="note">类比的边界：发票类比不体现「预测窗口」：预测只在一定时间与范围内有效，超出窗口或规则不允许预测的操作，仍然必须等服务器。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="gas-pred" data-title="预测 key 的生命周期：预测、确认与回滚" data-caption="拖动预测窗口，观察需要回滚的预测数量与表现错位程度。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>GAS 把能力拆成 <span class="term" tabindex="0" data-def="一次技能行为的定义，包含触发、消耗、效果与表现。">Ability</span>（做什么）、<span class="term" tabindex="0" data-def="对属性的修改描述，通常由数据配置驱动。">GameplayEffect</span>（改什么数值）、AttributeSet（被改的属性）与 <span class="term" tabindex="0" data-def="表现层事件（特效/音效），通常本地执行。">GameplayCue</span>（表现），规则与表现分离。</p><p>客户端预测会先本地应用效果并标记<span class="term" tabindex="0" data-def="标记本地预测改动的标识，用于确认或回滚。">预测 key</span>；服务器用同一套规则结算，返回确认或否定。</p><p>预测被确认时，本地改动转正；被否定时，按 key 回滚到服务器状态，并触发纠正表现。</p><p>只有「允许预测」的操作才会预测；涉及随机、掉落、命中判定等权威信息时，必须等服务器，否则一定对不上。</p><p>GameplayCue 通常走本地表现，因此特效可以先播；但如果结算被拒，表现必须能被撤销或修正，否则玩家会看到「假技能」。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">发票类比不体现「预测窗口」：预测只在一定时间与范围内有效，超出窗口或规则不允许预测的操作，仍然必须等服务器。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">网络带宽</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">预测与确认需要同步状态与 key，弱网下重传会增加压力。</span></div><div class="costrow"><span class="cl">CPU</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">每帧对账、属性重算与回滚都有成本，技能多时更明显。</span></div><div class="costrow"><span class="cl">实现复杂度</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i></div><span class="note">预测边界、回滚与表现纠正都需要严格设计。</span></div><div class="costrow"><span class="cl">策划迭代</span><div class="bars"><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i><i class=""></i></div><span class="note">数值与效果做成数据资产后，改起来比写代码快。</span></div><div class="costrow"><span class="cl">公平性</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">能预测什么、不能预测什么，直接决定作弊空间与手感。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>GAS 与自研技能框架：先看团队要付多少长期成本</h3></div>
+    <div class="cmp-dims"><span>上手成本</span><span>预测/回滚</span><span>扩展性</span><span>可维护性</span><span>与引擎集成</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>GAS 原生</h4>
+      <a class="sid" href="../reference/catalog.html#card-gas-01">gas-01</a>
+      <dl><div><dt>上手成本</dt><dd>高（概念多）</dd></div><div><dt>预测/回滚</dt><dd>内建（但边界要自己定）</dd></div><div><dt>扩展性</dt><dd>中（受框架约束）</dd></div><div><dt>可维护性</dt><dd>中（需理解源码行为）</dd></div><div><dt>与引擎集成</dt><dd>高（官方集成）</dd></div></dl>
+      <div class="take">适合中大型联机项目；前期学习陡，但预测、属性与表现分层是现成的。</div>
+    </div><div class="cmp-card">
+      <h4>GAS + 项目封装层</h4>
+      <a class="sid" href="../reference/catalog.html#card-gas-09">gas-09</a>
+      <dl><div><dt>上手成本</dt><dd>中高（封装后更易用）</dd></div><div><dt>预测/回滚</dt><dd>内建 + 自定义规则</dd></div><div><dt>扩展性</dt><dd>高（按项目扩展）</dd></div><div><dt>可维护性</dt><dd>中高（有统一入口）</dd></div><div><dt>与引擎集成</dt><dd>高</dd></div></dl>
+      <div class="take">最常见的落地方式：把数据资产与策划入口包起来，减少直接改框架。</div>
+    </div><div class="cmp-card">
+      <h4>自研技能框架</h4>
+      <a class="sid" href="../reference/catalog.html#card-arpg-05">arpg-05</a>
+      <dl><div><dt>上手成本</dt><dd>中（按需设计）</dd></div><div><dt>预测/回滚</dt><dd>要自己实现</dd></div><div><dt>扩展性</dt><dd>很高</dd></div><div><dt>可维护性</dt><dd>取决于团队</dd></div><div><dt>与引擎集成</dt><dd>中（要自己接网络与表现）</dd></div></dl>
+      <div class="take">适合技能模型与 GAS 差异很大、且团队有长期维护能力的情况；否则会重复造轮子。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>把所有技能都设为可预测，追求手感。</div><div class="right"><b>正确理解</b>涉及随机、掉落、权威命中判定的部分不能预测，否则服务器一否就一定回滚。应只预测「结果可确定」的数值与表现。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>特效先播了就算完成，不管结算被拒。</div><div class="right"><b>正确理解</b>表现必须能跟随结算结果纠正。被拒时要撤销或改为失败表现，否则玩家会长期看到「假技能」。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>策划改数值必须改代码或重连客户端。</div><div class="right"><b>正确理解</b>数值与效果应落在数据资产（如 GameplayEffect 配置）里，让策划在编辑器内迭代；代码只负责规则与边界。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x；启用 GameplayAbilities 插件；建议 Third Person 模板；预测需要服务器权威的 Ability 与正确的 ASC 配置。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>在网络模拟（如 PktLag）下释放一个可预测技能。</div><div class="expect"><b>预期现象：</b>特效立即出现，伤害稍后到账；延迟越高错位越明显。</div></div><div class="step"><div class="do"><b>02</b>打开 GAS 调试输出（如 showdebug abilitysystem），观察预测 key 的创建与确认。</div><div class="expect"><b>预期现象：</b>能看到预测被确认的过程，而不是只有最终数值。</div></div><div class="step"><div class="do"><b>03</b>制造一次服务器拒绝（如目标已死亡仍释放）。</div><div class="expect"><b>预期现象：</b>本地预测被回滚，表现被纠正——验证「先亮后伤」的边界。</div></div><div class="step"><div class="do"><b>04</b>把该技能的关键数值改为数据资产配置并热改一次。</div><div class="expect"><b>预期现象：</b>不重编代码即可调整数值，确认规则与数据已分离。</div></div><div class="step"><div class="do"><b>05</b>在弱网（高延迟 + 丢包）下重复释放，记录回滚次数。</div><div class="expect"><b>预期现象：</b>得到该技能的预测窗口是否合理的证据，而不是凭感觉调。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. 为什么技能特效可以先播，伤害却必须等服务器？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>表现是本地可撤销的反馈，先播能保住手感；伤害是权威结算，涉及公平与防作弊，必须由服务器确认后才能算数。<div class="refs"><a href="../reference/catalog.html#card-gas-06">方案：GAS 网络预测：PredictionKey、回滚与预测失效</a><a href="../reference/catalog.html#card-pb-gas-03">问题：Attribute 初始化顺序导致数值为 0 或被覆盖</a></div></div></div><div class="q"><div class="qt">2. 预测 key 的作用是什么？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>它标记「这笔本地改动还在等服务器确认」。服务器确认后转正，否定时按 key 精确回滚，避免把整份状态推倒重来。<div class="refs"><a href="../reference/catalog.html#card-gas-01">方案：GAS 架构：ASC、Ability、AttributeSet、Effect、Cue、Tag 的职责边界</a><a href="../reference/catalog.html#card-pb-gas-01">问题：GameplayTag 爆炸与命名混乱拖垮查询</a></div></div></div><div class="q"><div class="qt">3. 哪些技能内容不适合预测？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>结果依赖服务器权威信息的部分，例如随机掉落、命中判定、目标是否合法。预测它们必然经常被回滚，反而破坏体验。<div class="refs"><a href="../reference/catalog.html#card-pb-gas-02">问题：技能在客户端播了但服务器拒绝</a><a href="../reference/catalog.html#card-iq-arpg-001">面试题：多人 ARPG 中 ASC 应放在 PlayerState 还是 Character，复制模式如何选择？</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-gas-01">方案：GAS 架构：ASC、Ability、AttributeSet、Effect、Cue、Tag 的职责边界</a> <a href="../reference/catalog.html#card-gas-06">方案：GAS 网络预测：PredictionKey、回滚与预测失效</a> <a href="../reference/catalog.html#card-gas-09">方案：策划迭代：DataAsset/表格驱动、冷却消耗与伤害公式</a> <a href="../reference/catalog.html#card-gas-10">方案：GAS 调试与常见坑：Tag 爆炸、Cue 性能、初始化顺序、预测抖动</a> <a href="../reference/catalog.html#card-arpg-05">方案：联机 ARPG：服务器权威 + 预测 + 回滚</a> <a href="../reference/catalog.html#card-pb-gas-01">问题：GameplayTag 爆炸与命名混乱拖垮查询</a> <a href="../reference/catalog.html#card-pb-gas-02">问题：技能在客户端播了但服务器拒绝</a> <a href="../reference/catalog.html#card-pb-gas-03">问题：Attribute 初始化顺序导致数值为 0 或被覆盖</a> <a href="../reference/catalog.html#card-pb-gas-04">问题：Buff/Debuff 叠加规则错误</a> <a href="../reference/catalog.html#card-pb-gas-05">问题：GameplayCue 批量执行导致表现卡顿且远端不一致</a> <a href="../reference/catalog.html#card-iq-arpg-001">面试题：多人 ARPG 中 ASC 应放在 PlayerState 还是 Character，复制模式如何选择？</a> <a href="../reference/catalog.html#card-iq-arpg-002">面试题：GAS 技能中哪些行为可以预测，哪些必须由服务端裁决？</a> <a href="../reference/catalog.html#card-iq-arpg-003">面试题：如何用 Gameplay Tag 组织可扩展的战斗状态与打断规则？</a> <a href="../reference/catalog.html#card-iq-arpg-007">面试题：如何设计可复现、可持久化且性能可控的装备词缀与掉落系统？</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-gas-01">方案：GAS 架构：ASC、Ability、AttributeSet、Effect、Cue、Tag 的职责边界</a><a href="../reference/catalog.html#card-gas-06">方案：GAS 网络预测：PredictionKey、回滚与预测失效</a><a href="../reference/catalog.html#card-gas-09">方案：策划迭代：DataAsset/表格驱动、冷却消耗与伤害公式</a><a href="../reference/catalog.html#card-gas-10">方案：GAS 调试与常见坑：Tag 爆炸、Cue 性能、初始化顺序、预测抖动</a><a href="../reference/catalog.html#card-arpg-05">方案：联机 ARPG：服务器权威 + 预测 + 回滚</a><a href="../reference/catalog.html#card-pb-gas-01">问题：GameplayTag 爆炸与命名混乱拖垮查询</a><a href="../reference/catalog.html#card-pb-gas-02">问题：技能在客户端播了但服务器拒绝</a><a href="../reference/catalog.html#card-pb-gas-03">问题：Attribute 初始化顺序导致数值为 0 或被覆盖</a><a href="../reference/catalog.html#card-pb-gas-04">问题：Buff/Debuff 叠加规则错误</a><a href="../reference/catalog.html#card-pb-gas-05">问题：GameplayCue 批量执行导致表现卡顿且远端不一致</a><a href="../reference/catalog.html#card-iq-arpg-001">面试题：多人 ARPG 中 ASC 应放在 PlayerState 还是 Character，复制模式如何选择？</a><a href="../reference/catalog.html#card-iq-arpg-002">面试题：GAS 技能中哪些行为可以预测，哪些必须由服务端裁决？</a><a href="../reference/catalog.html#card-iq-arpg-003">面试题：如何用 Gameplay Tag 组织可扩展的战斗状态与打断规则？</a><a href="../reference/catalog.html#card-iq-arpg-007">面试题：如何设计可复现、可持久化且性能可控的装备词缀与掉落系统？</a><a href="../reference/catalog.html#card-cmp-gas-custom">对比：技能框架：GAS vs 自研</a></div>
+          <div class="entry-links"><a class="btn ghost" href="net.html">← 上一章 · 网络同步与预测回滚</a><a class="btn ghost" href="anticheat.html">下一章 · 反作弊与信息裁剪 →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/gas.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>

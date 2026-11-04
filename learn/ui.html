@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI 性能：界面不复杂，为什么也掉帧 · UE 技术学习站</title>
+<meta name="description" content="UI 的成本有两份：一份是每帧重建与布局的 CPU，一份是半透明叠加的 GPU。两者都跟「有多少控件在动」有关，而不是「界面看起来多复杂」。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="ui">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>玩法系统 · 第 17 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">玩法系统</span>
+      <span class="chip">约 40 分钟</span>
+      <span class="chip">进阶</span>
+      <span class="chip">前置：渲染管线基础、性能分析与预算</span>
+    </div>
+    <h1>UI 性能：界面不复杂，为什么也掉帧</h1>
+    <p class="lede">UI 的成本有两份：一份是每帧重建与布局的 CPU，一份是半透明叠加的 GPU。两者都跟「有多少控件在动」有关，而不是「界面看起来多复杂」。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>打开背包，帧率从 60 掉到 45</h3>
+      <p>背包是一个网格列表，滚动时明显掉帧；关闭背包就恢复。界面美术并不复杂，但每帧都有大量控件在更新位置、绑定数据与刷新文本。</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>打开/滚动界面时 CPU 或 GPU 上升，关闭即恢复</li><li>控件越多越慢，尤其是列表与文本</li><li>半透明面板叠加后掉帧，尤其在移动端</li><li>数据绑定每帧刷新，即使数值没变</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">UI 像每帧重排一次版面：只要有控件在动，排版与绘制就要重做；不动的部分本可以不动。</blockquote>
+    <p><span class="term" tabindex="0" data-def="UE 的 UI 框架，基于 Slate 的控件系统。">UMG</span>/<span class="term" tabindex="0" data-def="UE 底层的 UI 布局与绘制系统。">Slate</span> 每帧要做布局、构建绘制列表与提交；数据绑定若没有变化检测，就会每帧触发无意义的重建。GPU 侧则是半透明面板的 <span class="term" tabindex="0" data-def="同一像素被多次绘制，半透明叠加是主要来源。">overdraw</span>：层数越多、覆盖面积越大，混合成本越高。所以 UI 优化的核心是「减少每帧真正需要变化的部分」。</p>
+    <p class="note">类比的边界：重排版面类比不体现「失效与缓存」：真实实现有失效标记与缓存，做得好的话静态部分几乎零成本——问题往往出在「让一切都失效了」。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="ui-overdraw" data-title="半透明层数与每帧更新控件数" data-caption="拖动层数与更新控件数，观察 GPU overdraw 与 CPU 重建成本。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>UI 的开销分两部分：CPU 侧的失效重排/构建/绑定，GPU 侧的半透明绘制与 overdraw；只有被标记失效或数值变化的控件才重做，静态部分可复用。</p><p>控件数量与「是否变化」决定 CPU 成本：静态控件可被缓存，频繁变化的控件会不断触发重建。</p><p>数据绑定若每帧轮询而不做变化检测，会让「没变的东西」也重新计算，这是最常见的隐形开销。</p><p>半透明面板会叠加混合，层数越多、面积越大越贵；移动端带宽有限，尤其明显。</p><p>列表类界面应做<span class="term" tabindex="0" data-def="只创建可见条目，滚动时复用控件。">虚拟化</span>/复用：只创建可见项，滚动时复用控件，而不是整表重建。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">重排版面类比不体现「失效与缓存」：真实实现有失效标记与缓存，做得好的话静态部分几乎零成本——问题往往出在「让一切都失效了」。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">CPU</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">布局、构建绘制列表与数据绑定是主要开销。</span></div><div class="costrow"><span class="cl">GPU / 带宽</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">半透明叠加的 overdraw 在移动端尤其贵。</span></div><div class="costrow"><span class="cl">内存</span><div class="bars"><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i><i class=""></i></div><span class="note">大量控件实例与纹理常驻。</span></div><div class="costrow"><span class="cl">美术规范</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">面板层数、透明面积与动效数量需要约束。</span></div><div class="costrow"><span class="cl">迭代效率</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">绑定与重建逻辑复杂时，改一个界面容易引入新开销。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>全量重建、虚拟化列表与静态缓存：先看「什么在动」</h3></div>
+    <div class="cmp-dims"><span>CPU 成本</span><span>GPU 成本</span><span>实现复杂度</span><span>适用界面</span><span>维护成本</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>全量创建与每帧刷新</h4>
+      <a class="sid" href="../reference/catalog.html#card-gen-10">gen-10</a>
+      <dl><div><dt>CPU 成本</dt><dd>高（控件多时明显）</dd></div><div><dt>GPU 成本</dt><dd>中高（层数叠加）</dd></div><div><dt>实现复杂度</dt><dd>低</dd></div><div><dt>适用界面</dt><dd>简单界面</dd></div><div><dt>维护成本</dt><dd>低</dd></div></dl>
+      <div class="take">简单界面够用；列表一长就变成主要瓶颈，不应作为默认做法。</div>
+    </div><div class="cmp-card">
+      <h4>虚拟化/复用列表</h4>
+      <a class="sid" href="../reference/catalog.html#card-arpg-09">arpg-09</a>
+      <dl><div><dt>CPU 成本</dt><dd>低（只处理可见项）</dd></div><div><dt>GPU 成本</dt><dd>低（绘制项少）</dd></div><div><dt>实现复杂度</dt><dd>中高</dd></div><div><dt>适用界面</dt><dd>长列表/背包/排行榜</dd></div><div><dt>维护成本</dt><dd>中</dd></div></dl>
+      <div class="take">适合大量条目的界面；代价是实现与复用逻辑更复杂，需要小心状态错位。</div>
+    </div><div class="cmp-card">
+      <h4>静态缓存 + 变化检测绑定</h4>
+      <span class="sid">—</span>
+      <dl><div><dt>CPU 成本</dt><dd>低（不变就不重建）</dd></div><div><dt>GPU 成本</dt><dd>低</dd></div><div><dt>实现复杂度</dt><dd>中</dd></div><div><dt>适用界面</dt><dd>常驻 HUD/复杂面板</dd></div><div><dt>维护成本</dt><dd>中</dd></div></dl>
+      <div class="take">适合常驻界面；前提是绑定必须可靠地检测变化，否则会出现「不刷新」的 bug。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>界面看起来简单，就认为 UI 不会成为瓶颈。</div><div class="right"><b>正确理解</b>成本取决于控件数量与变化频率，而不是视觉复杂度。长列表、每帧绑定与半透明叠加都可能很贵。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>让数据绑定每帧轮询，靠「反正数值没变」自我安慰。</div><div class="right"><b>正确理解</b>没有变化检测的轮询会每帧触发重建。应使用事件/<span class="term" tabindex="0" data-def="标记某部分已变化，需要重算或重绘。">脏标记</span>，只在值真的变化时更新。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>在移动端堆叠多层半透明面板做「高级感」。</div><div class="right"><b>正确理解</b>半透明叠加直接转成 overdraw 与带宽。移动端应减少层数与覆盖面积，必要时用不透明替代。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x；用 stat ui / stat slate（版本不同命令名可能不同）；移动端 overdraw 需真机或 GPU 抓帧。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>打开一个长列表界面并滚动，记录 stat unit 与 UI 相关统计。</div><div class="expect"><b>预期现象：</b>CPU 或 GPU 明显上升，关闭后恢复。</div></div><div class="step"><div class="do"><b>02</b>把列表改为只创建可见项（虚拟化/复用）。</div><div class="expect"><b>预期现象：</b>滚动时 CPU 显著下降，条目总数不再影响每帧成本。</div></div><div class="step"><div class="do"><b>03</b>检查数据绑定是否每帧刷新，改为变化时更新。</div><div class="expect"><b>预期现象：</b>静止界面的 CPU 降到接近零。</div></div><div class="step"><div class="do"><b>04</b>叠加半透明面板并观察 GPU 时间。</div><div class="expect"><b>预期现象：</b>层数增加时 GPU 上升，验证 overdraw 成本。</div></div><div class="step"><div class="do"><b>05</b>在移动端重复同一组测试。</div><div class="expect"><b>预期现象：</b>带宽限制让差异更明显，得到分档依据。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. 为什么「界面简单」不代表 UI 性能好？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>UI 成本取决于控件数量、变化频率与半透明层数，而不是视觉复杂度。长列表每帧重建、绑定轮询与多层透明都会很贵。<div class="refs"><a href="../reference/catalog.html#card-gen-10">方案：UI 性能：UMG/Slate 的绘制与更新成本</a><a href="../reference/catalog.html#card-pb-ui-01">问题：背包/长列表滚动卡顿</a></div></div></div><div class="q"><div class="qt">2. 虚拟化列表解决了什么问题？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>它只创建与更新可见项，滚动时复用控件，使每帧成本与「可见数量」相关，而不是与「总条目数」相关。<div class="refs"><a href="../reference/catalog.html#card-arpg-09">方案：背包/复杂 UI：UMG 优化与数据虚拟化</a><a href="../reference/catalog.html#card-pb-ui-02">问题：UI 每帧失效重绘导致 CPU/GPU 浪费</a></div></div></div><div class="q"><div class="qt">3. 数据绑定为什么要做变化检测？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>没有变化检测的轮询会让没变的控件也触发重建，造成持续的 CPU 开销；用事件或脏标记可以只在值变化时更新。<div class="refs"><a href="../reference/catalog.html#card-pb-ui-03">问题：移动端 UI 纹理内存与 overdraw 失控</a><a href="../reference/catalog.html#card-iq-smg-004">面试题：如何保证 UMG/MVVM 大列表流畅且状态正确？</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-gen-10">方案：UI 性能：UMG/Slate 的绘制与更新成本</a> <a href="../reference/catalog.html#card-arpg-09">方案：背包/复杂 UI：UMG 优化与数据虚拟化</a> <a href="../reference/catalog.html#card-mob-07">方案：移动端纹理：ASTC/ETC2、Mip、流送与预算</a> <a href="../reference/catalog.html#card-gen-12">方案：跨平台画质分级：Scalability 与设备档位</a> <a href="../reference/catalog.html#card-pb-ui-01">问题：背包/长列表滚动卡顿</a> <a href="../reference/catalog.html#card-pb-ui-02">问题：UI 每帧失效重绘导致 CPU/GPU 浪费</a> <a href="../reference/catalog.html#card-pb-ui-03">问题：移动端 UI 纹理内存与 overdraw 失控</a> <a href="../reference/catalog.html#card-pb-ui-04">问题：多分辨率与安全区适配错位</a> <a href="../reference/catalog.html#card-pb-ui-05">问题：UI 与场景相机/后处理冲突</a> <a href="../reference/catalog.html#card-iq-smg-004">面试题：如何保证 UMG/MVVM 大列表流畅且状态正确？</a> <a href="../reference/catalog.html#card-iq-smg-009">面试题：模拟经营 UI 如何同时支持本地化、无障碍与多输入焦点？</a> <a href="../reference/catalog.html#card-iq-fps-005">面试题：如何校验开火、散布与射速而不牺牲手感？</a> <a href="../reference/catalog.html#card-iq-core-048">面试题：Slate 的 Retained Widget Tree、Invalidation、Prepass/Layout/Paint 如何工作，为什么局部属性变化会触发全树成本？</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-gen-10">方案：UI 性能：UMG/Slate 的绘制与更新成本</a><a href="../reference/catalog.html#card-arpg-09">方案：背包/复杂 UI：UMG 优化与数据虚拟化</a><a href="../reference/catalog.html#card-mob-07">方案：移动端纹理：ASTC/ETC2、Mip、流送与预算</a><a href="../reference/catalog.html#card-gen-12">方案：跨平台画质分级：Scalability 与设备档位</a><a href="../reference/catalog.html#card-pb-ui-01">问题：背包/长列表滚动卡顿</a><a href="../reference/catalog.html#card-pb-ui-02">问题：UI 每帧失效重绘导致 CPU/GPU 浪费</a><a href="../reference/catalog.html#card-pb-ui-03">问题：移动端 UI 纹理内存与 overdraw 失控</a><a href="../reference/catalog.html#card-pb-ui-04">问题：多分辨率与安全区适配错位</a><a href="../reference/catalog.html#card-pb-ui-05">问题：UI 与场景相机/后处理冲突</a><a href="../reference/catalog.html#card-iq-smg-004">面试题：如何保证 UMG/MVVM 大列表流畅且状态正确？</a><a href="../reference/catalog.html#card-iq-smg-009">面试题：模拟经营 UI 如何同时支持本地化、无障碍与多输入焦点？</a><a href="../reference/catalog.html#card-iq-fps-005">面试题：如何校验开火、散布与射速而不牺牲手感？</a><a href="../reference/catalog.html#card-iq-core-048">面试题：Slate 的 Retained Widget Tree、Invalidation、Prepass/Layout/Paint 如何工作，为什么局部属性变化会触发全树成本？</a></div>
+          <div class="entry-links"><a class="btn ghost" href="ai-nav.html">← 上一章 · 群体 AI 与导航</a><a class="btn ghost" href="engineering.html">下一章 · 自动化、构建与线上运维 →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/ui.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>

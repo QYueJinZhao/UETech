@@ -1,0 +1,126 @@
+{
+  "id": "render-basics",
+  "order": 1,
+  "stage": "base",
+  "topicId": "topic-render-basics",
+  "title": "渲染管线：一帧里到底发生了什么",
+  "shortTitle": "渲染管线基础",
+  "level": "入门",
+  "durationMin": 45,
+  "prereqs": [],
+  "summary": "先不讨论 Lumen、Nanite 这些名字。这一章只建立一条时间线：Game 线程准备数据、Render 线程翻译命令、GPU 执行并呈现。看懂这条线，后面所有「为什么卡」的问题才有坐标。",
+  "scenario": {
+    "title": "加了一个半透明特效，帧率直接腰斩",
+    "body": "主场景本来 60fps，美术加了一层雾和几个半透明特效后掉到 35fps。你试着降低材质精度、关掉阴影，效果都不明显；把分辨率降一半，帧率回来一些，但画面糊得不能看。团队里有人说「GPU 不行」，有人说是「CPU 太慢」，可是没人能指出具体是哪一段。",
+    "symptoms": [
+      "不知道瓶颈在 Game 线程、Render 线程还是 GPU",
+      "加特效/加光源就掉帧，但删掉任意一个都恢复不满",
+      "降低分辨率有效，降低画质效果不明显",
+      "编辑器里流畅，打包后变慢（或反过来）"
+    ]
+  },
+  "intuition": {
+    "one": "把一帧想成一条装配线：Game 线程备料，Render 线程把料翻译成 GPU 能执行的命令，GPU 才是真正干活的车间。",
+    "body": "装配线可以重叠：这一帧的 GPU 在渲染时，下一帧的 Game 线程已经在准备。所以帧时间不是三者相加，而是取最慢的一环。半透明特效主要压 GPU 的填充与带宽；Actor 太多、Tick 太重主要压 Game 线程；两者都会让你看到「掉帧」，但解法完全相反。",
+    "limit": "装配线类比不体现同步点：渲染线程要等 Game 线程的数据、GPU 要等命令提交，真正的并行程度取决于这些等待与缓冲。"
+  },
+  "diagram": {
+    "type": "frame-budget",
+    "title": "一帧的预算被谁吃掉",
+    "caption": "拖动各线程负载，观察瓶颈如何在 CPU 与 GPU 之间切换。示意，非线性真实实现。",
+    "params": {}
+  },
+  "principle": [
+    "Game 线程每帧执行 Actor Tick、蓝图、动画、物理与游戏逻辑，产出这一帧要渲染的场景状态。",
+    "Render 线程把场景状态翻译成渲染命令（可见性、材质、绘制调用），再通过 RHI 提交给 GPU；它和 Game 线程可以并行，但受同步点约束。",
+    "GPU 执行绘制与计算：顶点处理、光栅化、像素着色、后处理，最后呈现到屏幕；填充率、带宽与着色复杂度是主要成本。",
+    "CPU 与 GPU 通过若干帧的缓冲重叠工作，所以「CPU 一帧 20ms、GPU 一帧 10ms」时整体仍可能接近 20ms，而不是 30ms。",
+    "定位顺序是固定的：先看哪一环最高（stat unit），再看该环内部的热点（ProfileGPU / Insights / 逐项开关），最后才决定优化手段。"
+  ],
+  "detail": "为什么不能只盯一个数字：同一帧里 CPU 可能被同步点阻塞（等待 GPU 或等待渲染线程），GPU 也可能在等命令。把「线程时间」和「墙钟帧时间」混为一谈，就会得出错误的优化方向。真正的验证要在目标平台、目标画质、固定场景下重复测量。",
+  "costs": [
+    { "label": "GPU", "level": 4, "note": "分辨率、半透明 overdraw、后处理与光照是主要放大器。" },
+    { "label": "CPU", "level": 4, "note": "Actor/ Tick 数量、蓝图、动画与物理都会推高 Game 线程。" },
+    { "label": "内存 / 带宽", "level": 3, "note": "纹理、RT 与流送影响显存与带宽，移动端尤其敏感。" },
+    { "label": "美术规范", "level": 3, "note": "半透明层数、材质指令数、光源数量需要规范，否则优化永远追不上新增内容。" },
+    { "label": "团队协作", "level": 2, "note": "需要统一观测口径与固定测试场景，否则各说各话。" }
+  ],
+  "comparison": {
+    "title": "前向、延迟与移动端 TBDR：先看约束再选路径",
+    "dims": ["多光源", "带宽 / 填充", "MSAA", "平台适配", "实现复杂度"],
+    "options": [
+      {
+        "name": "前向渲染（Forward / Forward+）",
+        "solutionId": "mob-01",
+        "values": ["中（Forward+ 可支持较多光源）", "较低（每像素只着色可见层）", "天然友好", "移动端主流", "中"],
+        "take": "适合半透明多、MSAA 必需、光源数量可控的场景；多光源需要分簇/分块管理。"
+      },
+      {
+        "name": "延迟渲染（Deferred）",
+        "solutionId": "mob-11",
+        "values": ["高（GBuffer 后统一打光）", "较高（GBuffer 写入/读取）", "需要额外处理", "桌面/主机为主", "中高"],
+        "take": "适合大量动态光源；代价是带宽与半透明/前向物体需要单独路径。"
+      },
+      {
+        "name": "移动端 TBDR 路径",
+        "solutionId": "mob-02",
+        "values": ["中低（受 tile 内存限制）", "敏感（overdraw 与 resolve）", "有限", "移动端专用", "中"],
+        "take": "先过深度再着色能省带宽，但半透明无法靠 Early-Z 剔除，层数必须控。"
+      }
+    ]
+  },
+  "pitfalls": [
+    {
+      "wrong": "用平均 FPS 判断性能，忽略 1% low 与单帧尖峰。",
+      "right": "玩家感知的是卡顿帧。记录帧时间分布与尖峰，固定场景重复测量；平均 60fps 也可能每 10 秒卡一次。"
+    },
+    {
+      "wrong": "一掉帧就降分辨率，认为所有问题都在 GPU。",
+      "right": "先看 stat unit：Game/Draw/GPU 谁高。CPU 瓶颈降分辨率几乎无效，反而白白损失画质。"
+    },
+    {
+      "wrong": "在编辑器里调好就认为打包后没问题。",
+      "right": "编辑器有额外开销、热缓存与不同线程模型；必须在目标平台打包构建上验证，并用固定场景对比。"
+    }
+  ],
+  "practiceNote": "UE 5.x；PIE 可看趋势，代表性数值应在打包构建/Standalone 固定机位取；同时开 stat unit 与 stat fps。",
+  "practice": [
+    { "do": "打开任意模板关卡，控制台执行 stat unit，记录 Game / Draw / GPU 三个数。", "expect": "能指出当前帧由哪一环主导，而不是只说「卡」。" },
+    { "do": "执行 stat fps 与 stat scenerendering，观察 Draw call、可见 Actor 与三角形数量。", "expect": "对「场景复杂度」有一个可量化的起点。" },
+    { "do": "在场景里叠加几层半透明粒子/雾，再看 stat unit 与 ProfileGPU。", "expect": "GPU 通道上升明显，CPU 变化较小——验证填充率/带宽假设。" },
+    { "do": "把分辨率缩放调到 50%，对比同一位置的帧时间。", "expect": "若 GPU 主导则明显改善；若 Game 线程主导则改善有限。" },
+    { "do": "在 Project Settings 里切换 Forward/Deferred（若平台允许），对比多光源场景。", "expect": "看到两条路径在多光源与带宽上的不同取舍，而不是「谁更高级」。"
+    }
+  ],
+  "quiz": [
+    {
+      "q": "CPU 一帧 20ms、GPU 一帧 10ms，为什么整体帧时间通常不是 30ms？",
+      "answer": "因为 CPU 与 GPU 通过多帧缓冲重叠工作：GPU 渲染第 N 帧时，CPU 已在准备第 N+1 帧。整体接近较慢的一环（约 20ms），前提是没有同步点把两者串行化。",
+      "refs": [{ "kind": "problem", "id": "pb-render-05" }, { "kind": "interview", "id": "iq-rts-006" }]
+    },
+    {
+      "q": "半透明特效为什么比不透明物体更容易打爆 GPU？",
+      "answer": "不透明物体可以靠深度测试/ Early-Z 剔除被遮挡像素；半透明通常要混合、不能随意剔除，层数叠加会重复着色并增加带宽，overdraw 直接变成成本。",
+      "refs": [{ "kind": "solution", "id": "mob-02" }, { "kind": "problem", "id": "pb-render-01" }]
+    },
+    {
+      "q": "看到掉帧时，第一件事应该做什么？",
+      "answer": "先用 stat unit / ProfileGPU 定位是 Game、Render 还是 GPU 主导，再在目标平台固定场景下测量；没有定位就优化，等于随机改参数。",
+      "refs": [{ "kind": "problem", "id": "pb-perf-01" }, { "kind": "interview", "id": "iq-fps-009" }]
+    }
+  ],
+  "terms": [
+    { "term": "Game 线程", "def": "执行游戏逻辑、Tick、动画与物理的主线程，产出本帧场景状态。" },
+    { "term": "Render 线程", "def": "把场景状态翻译为渲染命令并提交给 GPU 的线程。" },
+    { "term": "RHI", "def": "Render Hardware Interface，UE 对不同图形 API 的抽象层。" },
+    { "term": "Draw call", "def": "一次把网格/材质提交给 GPU 绘制的调用；数量过多会推高 CPU 提交成本。" },
+    { "term": "overdraw", "def": "同一像素被多次着色的现象，半透明叠加是最常见来源。" },
+    { "term": "TBDR", "def": "Tile-Based Deferred Rendering，移动 GPU 常见的分块延迟渲染架构。" }
+  ],
+  "refs": {
+    "comparisonId": "cmp-shading",
+    "solutions": ["mob-01", "mob-02", "mob-11"],
+    "problems": ["pb-render-01", "pb-render-02", "pb-render-04", "pb-perf-01"],
+    "interviews": ["iq-rts-006", "iq-fps-009", "iq-smg-008"]
+  }
+}

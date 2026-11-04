@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GC 与内存：卡在看不见的地方 · UE 技术学习站</title>
+<meta name="description" content="UObject 不是普通 C++ 对象，它由 GC 管理。这一章讲清标记-清除在引用图上做什么、为什么会周期性卡顿，以及对象池、弱引用与内存峰值各自解决什么问题。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="gc">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>基础 · 第 03 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">基础</span>
+      <span class="chip">约 45 分钟</span>
+      <span class="chip">入门</span>
+      <span class="chip">前置：渲染管线基础</span>
+    </div>
+    <h1>GC 与内存：卡在看不见的地方</h1>
+    <p class="lede">UObject 不是普通 C++ 对象，它由 GC 管理。这一章讲清标记-清除在引用图上做什么、为什么会周期性卡顿，以及对象池、弱引用与内存峰值各自解决什么问题。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>每半分钟卡一次，Profiler 里找不到具体函数</h3>
+      <p>战斗打一会儿就顿一下，帧时间曲线出现规律性尖峰，但 CPU 采样里没有一个函数明显超标。你在关卡里来回走，内存持续上涨；退出再进又好一点。团队开始怀疑「引擎有问题」，但没人能说清 GC 什么时候触发、为什么这么久。</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>帧时间周期性尖峰，间隔与玩法节奏相关</li><li>内存曲线持续上升，怀疑泄漏但找不到引用链</li><li>高频创建/销毁对象（子弹、飘字、临时数组）后更明显</li><li>增加<span class="term" tabindex="0" data-def="预先创建并复用对象，减少频繁分配/释放。">对象池</span>后卡顿变少，但内存峰值反而更高</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">GC 像餐厅打烊：先沿着「还有人用」的桌子走一遍做标记，再把没人用的桌子收掉；桌子越多、关系越乱，打烊越久。</blockquote>
+    <p>UE 的 GC 从<span class="term" tabindex="0" data-def="GC 遍历的起点对象集合，例如 GameInstance、World 与被引用的 Actor。">根集</span>（GameInstance、World、Actor 等）出发，沿引用关系标记所有可达 <span class="term" tabindex="0" data-def="UE 的反射对象基类，由垃圾回收器管理生命周期。">UObject</span>；没被标记的在清除阶段释放。对象越多、引用图越深，标记阶段越长。<span class="term" tabindex="0" data-def="把标记工作拆分到多帧执行，降低单次停顿。">增量 GC</span> 把一次打烊拆成几次做，单次停顿变短，但总工作量还在。</p>
+    <p class="note">类比的边界：GC 只管理 UObject 及其引用；普通 C++ 内存（容器、裸指针）不由它回收，泄漏可能来自任何地方。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="gc-mark" data-title="从根集出发的标记与清除" data-caption="点击标记/清除，观察不可达对象如何被释放；对象越多，遍历越长。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>GC 从根集出发遍历 UObject 引用图，给可达对象打标记；根集包括 GameInstance、World、PlayerController、被引用的 Actor 等。</p><p>标记结束后，未被标记的 UObject 在清除阶段被回收；被回收对象的引用需要被正确清理，否则会留下悬空或阻止回收。</p><p>对象数量与引用边数直接决定标记成本；临时对象（子弹、飘字、事件）频繁创建会让 GC 更频繁、更重。</p><p>增量 GC 把标记拆到多帧执行，降低单次停顿；<span class="term" tabindex="0" data-def="把一组对象合并遍历，减少重复访问与指针跳转。">GC 集群</span>把一组对象合并遍历，减少重复访问与缓存不友好的跳转。</p><p>对象池减少分配/释放频率，但会长期占用内存；<span class="term" tabindex="0" data-def="不阻止对象被回收的引用，访问前需检查对象是否仍有效。">弱引用</span>允许对象在无人使用时被回收，代价是每次访问都要检查有效性。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">为什么「内存涨」不等于「泄漏」：加载的资产、缓存、对象池都会让内存上升，只要在预期范围内且可回收，就不是泄漏。真正的泄漏是对象已经不再被使用，却仍被某个引用链挂住，GC 无法回收。定位要靠引用链与快照对比，而不是只看总量。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">CPU 停顿</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">标记遍历与清除会造成尖峰；对象越多、图越深越明显。</span></div><div class="costrow"><span class="cl">内存</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">对象池与缓存降低分配频率，但抬高常驻峰值。</span></div><div class="costrow"><span class="cl">实现复杂度</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">弱引用、池化、增量 GC 都需要额外的生命周期管理。</span></div><div class="costrow"><span class="cl">稳定性</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">悬空引用、重复释放与泄漏会在长时间运行后集中爆发。</span></div><div class="costrow"><span class="cl">团队规范</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">谁创建、谁持有、何时释放必须统一，否则优化会被新代码抵消。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>全量 GC、增量 GC 与对象池</h3></div>
+    <div class="cmp-dims"><span>单次停顿</span><span>总工作量</span><span>内存峰值</span><span>实现复杂度</span><span>适用场景</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>默认全量 GC</h4>
+      <a class="sid" href="../reference/catalog.html#card-gc-01">gc-01</a>
+      <dl><div><dt>单次停顿</dt><dd>高（一次做完）</dd></div><div><dt>总工作量</dt><dd>低（总遍历一次）</dd></div><div><dt>内存峰值</dt><dd>中</dd></div><div><dt>实现复杂度</dt><dd>低</dd></div><div><dt>适用场景</dt><dd>对象少、帧预算宽松</dd></div></dl>
+      <div class="take">实现最简单；对象多时会出现明显周期性尖峰。</div>
+    </div><div class="cmp-card">
+      <h4>增量 GC / GC 集群</h4>
+      <a class="sid" href="../reference/catalog.html#card-gc-11">gc-11</a>
+      <dl><div><dt>单次停顿</dt><dd>低（拆到多帧）</dd></div><div><dt>总工作量</dt><dd>略高（多次遍历）</dd></div><div><dt>内存峰值</dt><dd>中</dd></div><div><dt>实现复杂度</dt><dd>中</dd></div><div><dt>适用场景</dt><dd>大世界、对象多</dd></div></dl>
+      <div class="take">用总工作量换单次停顿；需要调步长，避免拖慢每一帧。</div>
+    </div><div class="cmp-card">
+      <h4>对象池 + 弱引用</h4>
+      <a class="sid" href="../reference/catalog.html#card-gc-10">gc-10</a>
+      <dl><div><dt>单次停顿</dt><dd>很低（几乎不触发）</dd></div><div><dt>总工作量</dt><dd>低（复用）</dd></div><div><dt>内存峰值</dt><dd>高（常驻）</dd></div><div><dt>实现复杂度</dt><dd>高</dd></div><div><dt>适用场景</dt><dd>高频短生命周期对象</dd></div></dl>
+      <div class="take">适合子弹/飘字/特效；要处理「池满」与「对象失效」的边界。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>把所有分配都塞进对象池，认为这样就没有 GC 了。</div><div class="right"><b>正确理解</b>池化只减少 UObject 的创建/销毁频率，不能消除 GC；池本身占内存，且池满/失效逻辑会引入新 bug。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>把 UObject 当普通 C++ 对象，用裸指针长期持有。</div><div class="right"><b>正确理解</b>UObject 由 GC 管理，裸指针不会被追踪，随时可能变成悬空；跨生命周期引用要用 UPROPERTY/弱引用并明确所有权。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>内存上涨就归因于 GC 或引擎泄漏。</div><div class="right"><b>正确理解</b>先区分资产缓存、对象池与真实泄漏；用引用链与快照对比定位，不能只凭总量曲线下结论。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x；stat gc 只在部分构建可用，用 obj list / memreport 复核；对比时固定对象数量与生成节奏。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>在固定关卡执行 stat memory，记录物理内存、UObject 数量与 GC 次数。</div><div class="expect"><b>预期现象：</b>得到可比较的基线，而不是只看任务管理器。</div></div><div class="step"><div class="do"><b>02</b>打开 GC 日志/统计（或 Insights），观察一次 GC 的标记耗时与回收对象数。</div><div class="expect"><b>预期现象：</b>能把尖峰与 GC 事件对应起来。</div></div><div class="step"><div class="do"><b>03</b>连续生成/销毁一批临时 Actor（例如投射物），观察 GC 频率与帧时间。</div><div class="expect"><b>预期现象：</b>对象创建频率上升后，GC 更频繁或单次更重。</div></div><div class="step"><div class="do"><b>04</b>把同一批对象改为对象池复用，复测内存与 GC。</div><div class="expect"><b>预期现象：</b>GC 次数下降，但常驻内存上升——验证取舍。</div></div><div class="step"><div class="do"><b>05</b>用引用查看/快照对比，找出一个持续增长但未释放的对象链。</div><div class="expect"><b>预期现象：</b>能指出具体持有者，而不是笼统说「泄漏」。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. GC 的标记阶段在做什么？为什么对象越多越慢？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>从根集沿引用图遍历所有可达 UObject 并打标记；对象数与引用边数越多，遍历工作量越大，缓存局部性也更差，所以标记时间上升。<div class="refs"><a href="../reference/catalog.html#card-gc-10">方案：取舍：对象池 vs 依赖 GC</a><a href="../reference/catalog.html#card-pb-gc-01">问题：GC 长停顿造成周期性卡顿</a></div></div></div><div class="q"><div class="qt">2. 增量 GC 降低了单次停顿，为什么还可能影响帧率？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>它把一次标记拆到多帧，单次停顿变短，但总工作量仍在，且每帧都要分出一部分预算做 GC。如果步长设置不当，会持续占用帧时间。<div class="refs"><a href="../reference/catalog.html#card-gc-11">方案：取舍：增量 GC vs 全量 GC</a><a href="../reference/catalog.html#card-iq-rts-003">面试题：如何定位 RTS 的 OOS，并设计回放与重连？</a></div></div></div><div class="q"><div class="qt">3. 对象池解决了什么问题，又引入了什么新问题？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>它减少高频创建/销毁带来的 GC 压力；但会长期占用内存，需要处理池容量、复用前重置、对象失效与引用清理，否则会出现状态残留或泄漏。<div class="refs"><a href="../reference/catalog.html#card-gc-02">方案：增量 GC：把一次长停顿拆成多帧</a><a href="../reference/catalog.html#card-pb-gc-04">问题：对象池与 GC 的取舍错误</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-gc-10">方案：取舍：对象池 vs 依赖 GC</a> <a href="../reference/catalog.html#card-gc-06">方案：GC 卡顿成因与优化顺序</a> <a href="../reference/catalog.html#card-gc-11">方案：取舍：增量 GC vs 全量 GC</a> <a href="../reference/catalog.html#card-gc-02">方案：增量 GC：把一次长停顿拆成多帧</a> <a href="../reference/catalog.html#card-pb-gc-01">问题：GC 长停顿造成周期性卡顿</a> <a href="../reference/catalog.html#card-pb-gc-02">问题：引用泄漏导致对象无法释放</a> <a href="../reference/catalog.html#card-pb-gc-03">问题：高频容器/字符串分配造成 GC 压力</a> <a href="../reference/catalog.html#card-pb-gc-04">问题：对象池与 GC 的取舍错误</a> <a href="../reference/catalog.html#card-pb-gc-05">问题：加载/卸载造成内存碎片与峰值</a> <a href="../reference/catalog.html#card-iq-rts-003">面试题：如何定位 RTS 的 OOS，并设计回放与重连？</a> <a href="../reference/catalog.html#card-iq-rts-005">面试题：RTS 编队与局部避障如何避免拥堵、抖动和卡死？</a> <a href="../reference/catalog.html#card-iq-fps-006">面试题：如何用 Replication Graph 控制 FPS 复制预算？</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-gc-10">方案：取舍：对象池 vs 依赖 GC</a><a href="../reference/catalog.html#card-gc-06">方案：GC 卡顿成因与优化顺序</a><a href="../reference/catalog.html#card-gc-11">方案：取舍：增量 GC vs 全量 GC</a><a href="../reference/catalog.html#card-gc-02">方案：增量 GC：把一次长停顿拆成多帧</a><a href="../reference/catalog.html#card-pb-gc-01">问题：GC 长停顿造成周期性卡顿</a><a href="../reference/catalog.html#card-pb-gc-02">问题：引用泄漏导致对象无法释放</a><a href="../reference/catalog.html#card-pb-gc-03">问题：高频容器/字符串分配造成 GC 压力</a><a href="../reference/catalog.html#card-pb-gc-04">问题：对象池与 GC 的取舍错误</a><a href="../reference/catalog.html#card-pb-gc-05">问题：加载/卸载造成内存碎片与峰值</a><a href="../reference/catalog.html#card-iq-rts-003">面试题：如何定位 RTS 的 OOS，并设计回放与重连？</a><a href="../reference/catalog.html#card-iq-rts-005">面试题：RTS 编队与局部避障如何避免拥堵、抖动和卡死？</a><a href="../reference/catalog.html#card-iq-fps-006">面试题：如何用 Replication Graph 控制 FPS 复制预算？</a><a href="../reference/catalog.html#card-cmp-gc">对比：内存：对象池 vs 依赖 GC</a></div>
+          <div class="entry-links"><a class="btn ghost" href="perf.html">← 上一章 · 性能分析与预算</a><a class="btn ghost" href="loading.html">下一章 · 资源加载与卡顿 →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/gc.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>

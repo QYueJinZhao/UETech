@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>物理与破坏：碎片越多，帧越不稳 · UE 技术学习站</title>
+<meta name="description" content="物理的代价不是「算不算得动」，而是「同一时刻有多少东西在互相检查」。这一章从碎片、休眠与子步进入手，讲清楚破坏与载具为什么会让帧时间变得不可预测。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="physics">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>玩法系统 · 第 13 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">玩法系统</span>
+      <span class="chip">约 50 分钟</span>
+      <span class="chip">进阶</span>
+      <span class="chip">前置：性能分析与预算、网络同步与预测回滚</span>
+    </div>
+    <h1>物理与破坏：碎片越多，帧越不稳</h1>
+    <p class="lede">物理的代价不是「算不算得动」，而是「同一时刻有多少东西在互相检查」。这一章从碎片、休眠与子步进入手，讲清楚破坏与载具为什么会让帧时间变得不可预测。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>炸掉一面墙，全场掉帧十秒</h3>
+      <p>破坏效果很爽，但炸开后碎片满天飞，帧率骤降，过几秒才恢复。联机时更糟：不同客户端看到的碎片位置不一样，有时碎片穿地、有时卡在墙角抖动。</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>破坏瞬间出现长帧尖峰，之后逐渐恢复</li><li>碎片数量一多，物理耗时线性上升</li><li>联机时碎片位置不一致或「抖」</li><li>载具在复杂地形上抖动、穿模或异常弹飞</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">物理像一群人同时过窄门：人数（<span class="term" tabindex="0" data-def="参与物理求解的物体；<span class="term" tabindex="0" data-def="静止物体退出求解以降低开销的机制。">休眠</span>的刚体不计入。">活跃刚体</span>）越多，窄门附近的互相检查与排队就越挤，而睡着的人不需要排队。</blockquote>
+    <p>物理开销主要由活跃刚体数量、局部碰撞密度与求解迭代次数决定。碎片炸开时大量刚体同时被唤醒；宽相位会先剔除大部分远距离对，但同一小区域内的密集重叠会让候选对与约束快速增长，求解器还要迭代收敛。等它们慢慢静止进入休眠，成本才降下来。所以「破坏瞬间掉帧」是机制性的，不是优化没做好。</p>
+    <p class="note">类比的边界：过窄门类比不体现「<span class="term" tabindex="0" data-def="用更小的时间步多次求解，提升稳定性。">子步进</span>与异步」：物理可以在固定子步下运行并与渲染解耦，但同步点与插值会带来新的抖动来源。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="physics-budget" data-title="活跃碎片数量与休眠阈值对物理耗时的影响" data-caption="拖动同时活动碎片与休眠阈值，观察活跃刚体与碰撞对的增长。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>物理求解按活跃刚体与碰撞对工作：宽相位会先剔除大部分远距离对，真正昂贵的是同一局部区域内的密集重叠、窄相位检测与约束求解迭代。</p><p>休眠（Sleep）让静止刚体退出求解；休眠阈值过低会导致堆叠物持续微动、永远不休眠。</p><p>破坏产生大量新刚体与碎片，瞬间把活跃数拉满；若不限制碎片寿命与数量，尖峰就会持续。</p><p>物理子步进（Sub-stepping）用更小步长提升稳定性，但会增加每帧求解次数；它与帧率解耦，代价是 CPU。</p><p>联机破坏需要服务器权威 + 碎片同步策略：全量同步碎片代价高，常见做法是同步破坏结果与少量关键碎片，其余本地表现。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">过窄门类比不体现「子步进与异步」：物理可以在固定子步下运行并与渲染解耦，但同步点与插值会带来新的抖动来源。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">CPU</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i></div><span class="note">活跃刚体、碰撞对与求解迭代是主要成本。</span></div><div class="costrow"><span class="cl">内存</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">碎片与物理体常驻，数量失控会推高内存。</span></div><div class="costrow"><span class="cl">网络</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">碎片位置若全量同步，带宽会迅速失控。</span></div><div class="costrow"><span class="cl">稳定性</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">子步进与休眠调参不当会造成抖动与穿模。</span></div><div class="costrow"><span class="cl">美术 / 策划</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">碎片数量、寿命与破坏层级需要规范。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>全物理破坏、预破碎与表现层破坏：先问「玩家需要感受什么」</h3></div>
+    <div class="cmp-dims"><span>破坏自由度</span><span>CPU 成本</span><span>网络成本</span><span>稳定性</span><span>内容制作</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>Chaos 全物理破碎</h4>
+      <a class="sid" href="../reference/catalog.html#card-phy-04">phy-04</a>
+      <dl><div><dt>破坏自由度</dt><dd>高（可逐块飞散）</dd></div><div><dt>CPU 成本</dt><dd>高</dd></div><div><dt>网络成本</dt><dd>高（碎片要同步）</dd></div><div><dt>稳定性</dt><dd>中（易抖动/穿模）</dd></div><div><dt>内容制作</dt><dd>中（需制作破碎体）</dd></div></dl>
+      <div class="take">适合少量、重点的破坏演出；必须限制碎片数与寿命，否则尖峰不可避免。</div>
+    </div><div class="cmp-card">
+      <h4>预破碎 + 受控碎片</h4>
+      <a class="sid" href="../reference/catalog.html#card-phy-05">phy-05</a>
+      <dl><div><dt>破坏自由度</dt><dd>中（按预设层级断开）</dd></div><div><dt>CPU 成本</dt><dd>中</dd></div><div><dt>网络成本</dt><dd>中（可只同步结果）</dd></div><div><dt>稳定性</dt><dd>高</dd></div><div><dt>内容制作</dt><dd>高（要预制）</dd></div></dl>
+      <div class="take">联机项目更常见：同步「墙塌了」这个结果，碎片只做本地表现，兼顾观感与成本。</div>
+    </div><div class="cmp-card">
+      <h4>表现层破坏（特效/替换模型）</h4>
+      <a class="sid" href="../reference/catalog.html#card-ow-10">ow-10</a>
+      <dl><div><dt>破坏自由度</dt><dd>低（视觉为主）</dd></div><div><dt>CPU 成本</dt><dd>低</dd></div><div><dt>网络成本</dt><dd>低</dd></div><div><dt>稳定性</dt><dd>高</dd></div><div><dt>内容制作</dt><dd>低</dd></div></dl>
+      <div class="take">适合大规模、低交互的场景；牺牲真实物理交互，换取稳定与可控。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>把破坏瞬间的掉帧归因于「物理引擎不行」。</div><div class="right"><b>正确理解</b>碎片炸开会让活跃刚体与碰撞对瞬间暴涨，这是机制性成本。先限制碎片数量与寿命，再谈引擎选择。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>把所有碎片位置都同步给所有客户端。</div><div class="right"><b>正确理解</b>碎片是高频、大量、短生命周期的数据，全量同步会打爆带宽。应同步破坏结果与关键状态，其余做本地表现。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>为了稳定无限提高物理子步。</div><div class="right"><b>正确理解</b>子步进提升稳定性但成倍增加求解次数。应针对具体问题（穿模、抖动）调参，而不是全局拉满。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x + <span class="term" tabindex="0" data-def="UE 的物理与破坏系统。">Chaos</span>；破坏需启用 Geometry Collection；固定帧率与子步进设置，CP/CPU 曲线用 stat physics 观察。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>炸开一个可破坏物体，用 stat physics（或对应统计）记录物理耗时与活跃刚体数。</div><div class="expect"><b>预期现象：</b>看到活跃刚体数瞬间上升，耗时随之出现尖峰。</div></div><div class="step"><div class="do"><b>02</b>限制碎片数量与寿命后重复破坏。</div><div class="expect"><b>预期现象：</b>尖峰被压平，恢复时间变短。</div></div><div class="step"><div class="do"><b>03</b>把休眠阈值调低，观察堆叠碎片的静止行为。</div><div class="expect"><b>预期现象：</b>出现持续微动或抖动，说明阈值过低导致无法休眠。</div></div><div class="step"><div class="do"><b>04</b>在网络模拟下炸同一面墙，观察两台客户端的碎片差异。</div><div class="expect"><b>预期现象：</b>复现位置不一致，确认需要同步策略。</div></div><div class="step"><div class="do"><b>05</b>改为「同步破坏结果 + 本地碎片」，重复测试。</div><div class="expect"><b>预期现象：</b>带宽下降，观感仍在可接受范围。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. 为什么破坏瞬间的掉帧通常不是「持续性问题」？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>因为碎片刚被创建时全部活跃，碰撞对与求解成本瞬间拉满；随着碎片静止进入休眠，活跃数下降，帧率恢复。它是尖峰而非稳态。<div class="refs"><a href="../reference/catalog.html#card-phy-04">方案：Chaos Destruction vs 传统 Fracture</a><a href="../reference/catalog.html#card-pb-phy-01">问题：物理破坏碎片的网络带宽爆炸</a></div></div></div><div class="q"><div class="qt">2. 联机破坏为什么常只同步「结果」？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>碎片是大量高频短生命周期的数据，全量同步带宽不可承受；同步破坏结果与关键碎片，其余本地表现，能在观感与成本间取得平衡。<div class="refs"><a href="../reference/catalog.html#card-phy-05">方案：破坏的网络同步与碎片管理</a><a href="../reference/catalog.html#card-pb-phy-03">问题：载具网络抖动与悬浮</a></div></div></div><div class="q"><div class="qt">3. 休眠阈值调得过低会怎样？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>刚体难以满足休眠条件，堆叠物持续微动，物理永远处于活跃状态，CPU 无法回落，还会造成视觉抖动。<div class="refs"><a href="../reference/catalog.html#card-pb-phy-02">问题：高速移动/抓钩导致碰撞穿透</a><a href="../reference/catalog.html#card-iq-rts-001">面试题：RTS 确定性帧同步为什么难，如何保证各端结果一致？</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-phy-01">方案：刚体、约束与物理材质调参</a> <a href="../reference/catalog.html#card-phy-04">方案：Chaos Destruction vs 传统 Fracture</a> <a href="../reference/catalog.html#card-phy-05">方案：破坏的网络同步与碎片管理</a> <a href="../reference/catalog.html#card-phy-08">方案：异步物理 Tick、子步进与固定步长</a> <a href="../reference/catalog.html#card-phy-10">方案：物理性能：场景剔除、Sleep、物理 LOD 与预算</a> <a href="../reference/catalog.html#card-ow-10">方案：物理破坏：Chaos 破碎 vs 预破碎/假破坏</a> <a href="../reference/catalog.html#card-pb-phy-01">问题：物理破坏碎片的网络带宽爆炸</a> <a href="../reference/catalog.html#card-pb-phy-02">问题：高速移动/抓钩导致碰撞穿透</a> <a href="../reference/catalog.html#card-pb-phy-03">问题：载具网络抖动与悬浮</a> <a href="../reference/catalog.html#card-pb-phy-04">问题：物理动画/布娃娃抖动与瞬移</a> <a href="../reference/catalog.html#card-pb-phy-05">问题：大量刚体/碎片导致物理线程峰值</a> <a href="../reference/catalog.html#card-iq-rts-001">面试题：RTS 确定性帧同步为什么难，如何保证各端结果一致？</a> <a href="../reference/catalog.html#card-iq-core-004">面试题：Actor、ActorComponent、Pawn 与 Character 的职责和生命周期顺序如何区分？</a> <a href="../reference/catalog.html#card-iq-fps-019">面试题：带重力、阻力和归零距离的弹道怎样数值积分，何时应使用解析解、查表或子步？</a> <a href="../reference/catalog.html#card-iq-arpg-004">面试题：高速近战武器如何避免漏判、重复命中和客户端伪造？</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-phy-01">方案：刚体、约束与物理材质调参</a><a href="../reference/catalog.html#card-phy-04">方案：Chaos Destruction vs 传统 Fracture</a><a href="../reference/catalog.html#card-phy-05">方案：破坏的网络同步与碎片管理</a><a href="../reference/catalog.html#card-phy-08">方案：异步物理 Tick、子步进与固定步长</a><a href="../reference/catalog.html#card-phy-10">方案：物理性能：场景剔除、Sleep、物理 LOD 与预算</a><a href="../reference/catalog.html#card-ow-10">方案：物理破坏：Chaos 破碎 vs 预破碎/假破坏</a><a href="../reference/catalog.html#card-pb-phy-01">问题：物理破坏碎片的网络带宽爆炸</a><a href="../reference/catalog.html#card-pb-phy-02">问题：高速移动/抓钩导致碰撞穿透</a><a href="../reference/catalog.html#card-pb-phy-03">问题：载具网络抖动与悬浮</a><a href="../reference/catalog.html#card-pb-phy-04">问题：物理动画/布娃娃抖动与瞬移</a><a href="../reference/catalog.html#card-pb-phy-05">问题：大量刚体/碎片导致物理线程峰值</a><a href="../reference/catalog.html#card-iq-rts-001">面试题：RTS 确定性帧同步为什么难，如何保证各端结果一致？</a><a href="../reference/catalog.html#card-iq-core-004">面试题：Actor、ActorComponent、Pawn 与 Character 的职责和生命周期顺序如何区分？</a><a href="../reference/catalog.html#card-iq-fps-019">面试题：带重力、阻力和归零距离的弹道怎样数值积分，何时应使用解析解、查表或子步？</a><a href="../reference/catalog.html#card-iq-arpg-004">面试题：高速近战武器如何避免漏判、重复命中和客户端伪造？</a></div>
+          <div class="entry-links"><a class="btn ghost" href="anticheat.html">← 上一章 · 反作弊与信息裁剪</a><a class="btn ghost" href="animation.html">下一章 · 动画与 Motion Matching →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/physics.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>

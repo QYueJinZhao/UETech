@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工程化与上线：把「能跑」变成「能发」 · UE 技术学习站</title>
+<meta name="description" content="最后一章不再讲某个系统怎么实现，而是讲怎么保证它长期不退化：自动化构建、性能回归、可观测性与发布流程。没有这些，前面所有优化都会在几个版本内被磨平。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="engineering">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>工程与上线 · 第 18 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">工程与上线</span>
+      <span class="chip">约 55 分钟</span>
+      <span class="chip">进阶</span>
+      <span class="chip">前置：性能分析与预算、资源管线与分包</span>
+    </div>
+    <h1>工程化与上线：把「能跑」变成「能发」</h1>
+    <p class="lede">最后一章不再讲某个系统怎么实现，而是讲怎么保证它长期不退化：自动化构建、性能回归、可观测性与发布流程。没有这些，前面所有优化都会在几个版本内被磨平。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>版本发了，线上帧率逐周下降</h3>
+      <p>每个版本都能发，但线上反馈越来越卡、崩溃率上升、包体越来越大。团队每次都在「救火」，却说不清是哪次提交引入的。性能测试靠人手动跑，漏测就上线。</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>线上问题无法快速定位到某次提交或某个版本</li><li>性能与包体没有<span class="term" tabindex="0" data-def="固定场景与设备下记录的性能/包体参考值。">基线</span>，只能靠感觉判断「还行」</li><li>构建时间长、失败原因不明确，发布靠人盯</li><li>崩溃/卡顿上报零散，缺少统一指标</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">工程化像体检：不是等生病了才检查，而是每次改动都量一次关键指标，偏离基线就拦住。</blockquote>
+    <p>性能、包体与稳定性都会随时间自然劣化，因为每次新增内容都在花预算。自动化构建负责「稳定地产出可测版本」，性能回归负责「偏离基线就报警」，<span class="term" tabindex="0" data-def="通过指标、日志与追踪定位线上问题的能力。">可观测性</span>负责「线上出问题能定位」。三者合起来，才把「这次能跑」变成「长期能发」。</p>
+    <p class="note">类比的边界：体检类比不体现「成本」：跑全量回归很贵，现实中要按风险分层（提交级、每日级、发布级），而不是每次都全跑。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="ci-pipeline" data-title="从提交到发布：阈值余量与场景覆盖率" data-caption="拖动阈值余量与场景覆盖率，观察能拦住的回归类型。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>自动化构建把「出包」变成可重复流程：固定环境、固定步骤、可追溯产物，减少人为差异。</p><p>性能回归需要基线 + 固定场景 + 阈值：没有基线的数字无法判断好坏，没有固定场景的对比没有意义。</p><p>分层执行：提交级跑快速冒烟，每日跑完整场景，发布前跑全量并做设备矩阵验证。</p><p>可观测性把线上问题变成可查询的指标与日志：崩溃、卡顿、加载失败都要有统一采集与聚合。</p><p>发布流程要有<span class="term" tabindex="0" data-def="发现问题后恢复到上一个稳定版本。">回滚</span>与<span class="term" tabindex="0" data-def="先向小部分用户发布，验证后再逐步放量。">灰度</span>：先小范围验证，再逐步放量，确保问题能在影响最小的时候被发现。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">体检类比不体现「成本」：跑全量回归很贵，现实中要按风险分层（提交级、每日级、发布级），而不是每次都全跑。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">构建时间</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">全量构建与回归会显著拉长，需要分层与缓存。</span></div><div class="costrow"><span class="cl">机器 / 成本</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">构建机、设备矩阵与压测环境都需要持续投入。</span></div><div class="costrow"><span class="cl">团队流程</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">门禁与规范会改变工作方式，需要长期维护。</span></div><div class="costrow"><span class="cl">维护成本</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">脚本与流水线本身也会腐化，需要 owner。</span></div><div class="costrow"><span class="cl">发布风险</span><div class="bars"><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i><i class=""></i></div><span class="note">自动化与灰度能显著降低，但不是零风险。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>人工发布、自动流水线与云原生编排：先看团队规模</h3></div>
+    <div class="cmp-dims"><span>可重复性</span><span>构建时长</span><span>运维成本</span><span>故障恢复</span><span>适用团队</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>人工构建与发布</h4>
+      <a class="sid" href="../reference/catalog.html#card-gen-15">gen-15</a>
+      <dl><div><dt>可重复性</dt><dd>低（依赖个人步骤）</dd></div><div><dt>构建时长</dt><dd>长（含等待）</dd></div><div><dt>运维成本</dt><dd>低（初期）</dd></div><div><dt>故障恢复</dt><dd>慢（靠人排查）</dd></div><div><dt>适用团队</dt><dd>小团队/原型期</dd></div></dl>
+      <div class="take">早期够用，但随版本增多会变成瓶颈与事故源；至少要尽快固化步骤。</div>
+    </div><div class="cmp-card">
+      <h4>自动流水线 + 性能门禁</h4>
+      <a class="sid" href="../reference/catalog.html#card-gen-05">gen-05</a>
+      <dl><div><dt>可重复性</dt><dd>高</dd></div><div><dt>构建时长</dt><dd>中（可并行与缓存）</dd></div><div><dt>运维成本</dt><dd>中</dd></div><div><dt>故障恢复</dt><dd>快（定位到提交）</dd></div><div><dt>适用团队</dt><dd>中小到中型团队</dd></div></dl>
+      <div class="take">最常见的落地方式：把构建、冒烟、性能回归串起来，偏离基线就拦。</div>
+    </div><div class="cmp-card">
+      <h4>云原生编排 + 可观测性</h4>
+      <a class="sid" href="../reference/catalog.html#card-gen-02">gen-02</a>
+      <dl><div><dt>可重复性</dt><dd>高</dd></div><div><dt>构建时长</dt><dd>中（弹性资源）</dd></div><div><dt>运维成本</dt><dd>高（长期）</dd></div><div><dt>故障恢复</dt><dd>快（有指标与告警）</dd></div><div><dt>适用团队</dt><dd>中大型/长线运营</dd></div></dl>
+      <div class="take">适合多环境、多区域与长线运营；代价是平台建设与持续运维投入。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>性能测试靠人手动跑，想起来才跑一次。</div><div class="right"><b>正确理解</b>没有固定场景与基线，数字无法比较。应把关键场景纳入自动化，按提交/每日/发布分层执行。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>只做构建自动化，不做性能与包体门禁。</div><div class="right"><b>正确理解</b>构建只保证「出得来」，不保证「没变差」。需要阈值与基线，才能拦住逐版本的劣化。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>发布一把梭，出问题再回滚。</div><div class="right"><b>正确理解</b>应做灰度与回滚预案，让小范围先暴露问题；同时保证可观测性，能在第一时间判断影响面。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x；CI 环境需能跑打包与自动化测试；Gauntlet 需项目配置；先建立可信基线，再设阈值。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>为项目建立一条最小流水线：拉代码 → 构建 → 跑冒烟。</div><div class="expect"><b>预期现象：</b>同一提交能稳定产出可测版本，步骤可重复。</div></div><div class="step"><div class="do"><b>02</b>选定一个固定场景，记录帧时间与包体作为基线。</div><div class="expect"><b>预期现象：</b>得到可比较的数字，而不是「感觉还行」。</div></div><div class="step"><div class="do"><b>03</b>为基线设置阈值，并在流水线中加入回归检查。</div><div class="expect"><b>预期现象：</b>一次故意引入的性能退化能被拦住并定位到提交。</div></div><div class="step"><div class="do"><b>04</b>接入崩溃/卡顿上报，验证一条真实问题能被聚合与查询。</div><div class="expect"><b>预期现象：</b>线上问题有指标可看，而不是只靠玩家描述。</div></div><div class="step"><div class="do"><b>05</b>做一次灰度发布与回滚演练。</div><div class="expect"><b>预期现象：</b>确认流程可执行，问题能在小范围被发现。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. 为什么没有基线的性能数字没有意义？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>性能受场景、设备、画质档影响很大，单独一个数字无法判断好坏。只有固定场景下的基线对比，才能判断是否退化。<div class="refs"><a href="../reference/catalog.html#card-gen-05">方案：自动化测试与性能回归：Gauntlet + 功能测试</a><a href="../reference/catalog.html#card-pb-eng-01">问题：手工构建/发布容易出错且不可复现</a></div></div></div><div class="q"><div class="qt">2. 为什么要分层执行回归，而不是每次全跑？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>全量回归成本高、时间长。按风险分层：提交级跑快速冒烟，每日跑完整场景，发布前跑全量与设备矩阵，兼顾速度与覆盖。<div class="refs"><a href="../reference/catalog.html#card-pb-eng-02">问题：自动化测试覆盖不足，联机问题到后期才暴露</a><a href="../reference/catalog.html#card-gen-04">方案：可观测性与线上运维：日志/指标/追踪</a></div></div></div><div class="q"><div class="qt">3. 灰度发布解决什么问题？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>它把问题的影响面限制在小范围，先验证再放量；配合可观测性能快速判断是否需要回滚，降低全量事故的概率。<div class="refs"><a href="../reference/catalog.html#card-gen-02">方案：专用服务器编排：自建 vs Kubernetes/Agones</a><a href="../reference/catalog.html#card-iq-smg-002">面试题：如何设计可审计且数值稳定的经济系统？</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-gen-05">方案：自动化测试与性能回归：Gauntlet + 功能测试</a> <a href="../reference/catalog.html#card-gen-04">方案：可观测性与线上运维：日志/指标/追踪</a> <a href="../reference/catalog.html#card-gen-02">方案：专用服务器编排：自建 vs Kubernetes/Agones</a> <a href="../reference/catalog.html#card-gen-17">方案：匹配与对局编排：MMR/延迟/队伍约束</a> <a href="../reference/catalog.html#card-gen-15">方案：构建、包体与热更：分块打包与补丁策略</a> <a href="../reference/catalog.html#card-net-10">方案：Tick 频率、DS 规格与云原生编排</a> <a href="../reference/catalog.html#card-pb-eng-01">问题：手工构建/发布容易出错且不可复现</a> <a href="../reference/catalog.html#card-pb-eng-02">问题：自动化测试覆盖不足，联机问题到后期才暴露</a> <a href="../reference/catalog.html#card-pb-eng-03">问题：DS 编排成本与弹性失控</a> <a href="../reference/catalog.html#card-pb-eng-04">问题：线上故障定位慢，缺少日志/指标/追踪</a> <a href="../reference/catalog.html#card-pb-eng-05">问题：跨平台构建与热更流水线混乱</a> <a href="../reference/catalog.html#card-iq-slg-005">面试题：如何设计可复现且能跨版本解释的 SLG 战报？</a> <a href="../reference/catalog.html#card-iq-smg-001">面试题：离线十小时的生产如何正确且高效推进？</a> <a href="../reference/catalog.html#card-iq-smg-002">面试题：如何设计可审计且数值稳定的经济系统？</a> <a href="../reference/catalog.html#card-iq-smg-007">面试题：如何阻止坏配置进入运行时并安全演进规则？</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-gen-05">方案：自动化测试与性能回归：Gauntlet + 功能测试</a><a href="../reference/catalog.html#card-gen-04">方案：可观测性与线上运维：日志/指标/追踪</a><a href="../reference/catalog.html#card-gen-02">方案：专用服务器编排：自建 vs Kubernetes/Agones</a><a href="../reference/catalog.html#card-gen-17">方案：匹配与对局编排：MMR/延迟/队伍约束</a><a href="../reference/catalog.html#card-gen-15">方案：构建、包体与热更：分块打包与补丁策略</a><a href="../reference/catalog.html#card-net-10">方案：Tick 频率、DS 规格与云原生编排</a><a href="../reference/catalog.html#card-pb-eng-01">问题：手工构建/发布容易出错且不可复现</a><a href="../reference/catalog.html#card-pb-eng-02">问题：自动化测试覆盖不足，联机问题到后期才暴露</a><a href="../reference/catalog.html#card-pb-eng-03">问题：DS 编排成本与弹性失控</a><a href="../reference/catalog.html#card-pb-eng-04">问题：线上故障定位慢，缺少日志/指标/追踪</a><a href="../reference/catalog.html#card-pb-eng-05">问题：跨平台构建与热更流水线混乱</a><a href="../reference/catalog.html#card-iq-slg-005">面试题：如何设计可复现且能跨版本解释的 SLG 战报？</a><a href="../reference/catalog.html#card-iq-smg-001">面试题：离线十小时的生产如何正确且高效推进？</a><a href="../reference/catalog.html#card-iq-smg-002">面试题：如何设计可审计且数值稳定的经济系统？</a><a href="../reference/catalog.html#card-iq-smg-007">面试题：如何阻止坏配置进入运行时并安全演进规则？</a><a href="../reference/catalog.html#card-cmp-topology">对比：拓扑：Dedicated vs Listen vs P2P</a></div>
+          <div class="entry-links"><a class="btn ghost" href="ui.html">← 上一章 · UMG / Slate 性能</a><a class="btn ghost" href="../index.html">回到路线图 →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/engineering.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>

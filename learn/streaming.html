@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大世界流送：无缝世界其实是「一直在换页」 · UE 技术学习站</title>
+<meta name="description" content="开放世界看起来连续，内存里其实只装了一圈「附近」。这一章讲清楚 World Partition 的网格、加载半径与流送源，以及为什么「跑得越快，越容易看到加载边界」。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="streaming">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>资源与包体 · 第 05 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">资源与包体</span>
+      <span class="chip">约 55 分钟</span>
+      <span class="chip">进阶</span>
+      <span class="chip">前置：资源加载与卡顿</span>
+    </div>
+    <h1>大世界流送：无缝世界其实是「一直在换页」</h1>
+    <p class="lede">开放世界看起来连续，内存里其实只装了一圈「附近」。这一章讲清楚 World Partition 的网格、加载半径与流送源，以及为什么「跑得越快，越容易看到加载边界」。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>高速载具穿城，远景突然空了一块</h3>
+      <p>步行时世界很稳，开车或滑翔就出现远景缺失、贴图模糊、地形 LOD 跳变。加加载半径后内存暴涨甚至闪退；减小半径又到处是「空区」。你想知道到底是网格没配好，还是加载速度追不上移动速度。</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>高速移动时出现明显「加载边界」或突然弹出的物体</li><li>调大流送半径会顶到内存上限，调小又出现空洞</li><li>同一区域步行正常，载具/滑翔异常</li><li>编辑器里 Play 很稳，打包后（或跨平台）差异明显</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">把无缝大世界想成「地图分页」：你走到哪，附近几页就铺开，远处几页被收回，翻页速度必须跟得上你走路的速度。</blockquote>
+    <p><span class="term" tabindex="0" data-def="UE5 的大世界组织方式：把关卡切成网格单元，按距离流送。">World Partition</span> 把世界切成网格单元，按<span class="term" tabindex="0" data-def="决定加载范围的位置来源，通常是玩家、相机或载具。">流送源</span>（通常是玩家或相机）的距离决定加载/卸载。它不会让世界「全部常驻」，而是持续换页。于是三个量互相拉扯：单元大小、加载半径、以及单位时间内需要换掉多少页。移动越快，第三项越大，任何一页来不及准备就会露出边界。</p>
+    <p class="note">类比的边界：分页类比不体现「<span class="term" tabindex="0" data-def="在需要之前提前发起加载，用吞吐换观感。">预取</span>与优先级」：真实流送有异步队列、优先级与预算，靠近视野中心的页优先，边缘页可以慢一点——这正是调优的主要抓手。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="wp-grid" data-title="网格单元、加载半径与流送源" data-caption="拖动加载半径与流送源位置，观察需要常驻的单元数如何随半径增长。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>World Partition 把关卡切成 <span class="term" tabindex="0" data-def="World Partition 的网格单元，是最小流送粒度。">Cell</span>（网格单元），每个单元有自己的 Actor 与数据文件，加载单位是可寻址的块而不是整张地图。</p><p>流送源（玩家、相机、载具）有位置与半径：落在半径内的单元被请求加载，离开后进入卸载流程，中间通常还有一段<span class="term" tabindex="0" data-def="加载与卸载使用不同阈值，避免在边界反复抖动。">滞回</span>避免抖动。</p><p>单元大小决定粒度：太小则单元数量与请求数暴涨，太大则一次加载过重、边界更明显；它必须和移动速度、视野距离一起定。</p><p>流送是异步且有预算的：IO、解压与 Actor 创建都受帧预算限制，来不及的单元会延后，所以高速移动时最容易看到「还没铺上」的空区。</p><p>LOD/<span class="term" tabindex="0" data-def="层级 LOD，把远处多个物体合并成代理，降低远景成本。">HLOD</span> 是流送的补充：远景用代理或更低精度表示，避免为了「看得远」而把所有单元都常驻。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">为什么「半径调大」不是万能解：常驻单元数大致随半径平方增长，内存与流送吞吐都会被放大；而真正影响观感的往往不是半径，而是单元粒度、优先级与移动速度是否匹配。先测「单位时间需要换多少页」，再决定调哪个。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">内存</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i></div><span class="note">常驻单元数随半径增长，是流送最硬的约束。</span></div><div class="costrow"><span class="cl">IO 吞吐</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">高速移动时单位时间要读入更多单元，低速存储首先顶不住。</span></div><div class="costrow"><span class="cl">Game 线程</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">Actor 创建与注册在主线程，集中加载会形成尖峰。</span></div><div class="costrow"><span class="cl">包体 / 布局</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">单元划分影响包体碎片与补丁大小，也影响加载粒度。</span></div><div class="costrow"><span class="cl">美术规范</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">远景必须有 HLOD/代理，否则「看得远」只能靠常驻，代价不可控。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>World Partition、Level Streaming 与手工分块：粒度与可控性的取舍</h3></div>
+    <div class="cmp-dims"><span>粒度</span><span>自动化程度</span><span>内存控制</span><span>适用世界规模</span><span>调试难度</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>World Partition 自动网格</h4>
+      <a class="sid" href="../reference/catalog.html#card-ow-01">ow-01</a>
+      <dl><div><dt>粒度</dt><dd>网格单元（可配）</dd></div><div><dt>自动化程度</dt><dd>高（按距离自动加载）</dd></div><div><dt>内存控制</dt><dd>中（靠半径与预算约束）</dd></div><div><dt>适用世界规模</dt><dd>超大世界</dd></div><div><dt>调试难度</dt><dd>中（要会用可视化与统计）</dd></div></dl>
+      <div class="take">适合开放世界与大地图；关键在单元大小、半径与优先级，而不是「打开就好」。</div>
+    </div><div class="cmp-card">
+      <h4>Level Streaming 手工分区</h4>
+      <a class="sid" href="../reference/catalog.html#card-load-04">load-04</a>
+      <dl><div><dt>粒度</dt><dd>关卡/子关卡</dd></div><div><dt>自动化程度</dt><dd>中（蓝图或代码触发）</dd></div><div><dt>内存控制</dt><dd>高（显式控制加载卸载）</dd></div><div><dt>适用世界规模</dt><dd>中等世界/关卡制</dd></div><div><dt>调试难度</dt><dd>低（边界清晰）</dd></div></dl>
+      <div class="take">适合副本、分区明确的关卡制游戏；代价是分区边界需要人工设计与维护。</div>
+    </div><div class="cmp-card">
+      <h4>手工分块 + 预取</h4>
+      <a class="sid" href="../reference/catalog.html#card-ow-05">ow-05</a>
+      <dl><div><dt>粒度</dt><dd>自定义块</dd></div><div><dt>自动化程度</dt><dd>低（自己写调度）</dd></div><div><dt>内存控制</dt><dd>高（完全可控）</dd></div><div><dt>适用世界规模</dt><dd>任意（但要自己扛）</dd></div><div><dt>调试难度</dt><dd>高</dd></div></dl>
+      <div class="take">适合有明确玩法边界、需要极致控制的项目；成本是长期维护与工具链投入。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>只在步行速度下验证流送，就认为大世界没问题。</div><div class="right"><b>正确理解</b>流送的压力来自「单位时间换页量」。必须用最快移动方式（载具、滑翔、传送）在目标平台实测，必要时用命令加速移动。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>靠不断调大加载半径来消除空洞。</div><div class="right"><b>正确理解</b>半径增大会让常驻单元近似平方增长，先顶到内存。应优先改单元粒度、预取优先级与 HLOD，而不是无限加半径。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>编辑器 Play 流畅就认为打包后同样流畅。</div><div class="right"><b>正确理解</b>编辑器有更快的存储与不同的加载路径。必须打包到目标平台（含低速存储机型）验证，并记录流送统计。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x + World Partition 地图；先配置 Streaming Source 与单元大小；用 stat streaming / stat unit 观察。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>打开一个 World Partition 关卡，执行 stat streaming（或对应流送统计命令），记录常驻单元与流送状态。</div><div class="expect"><b>预期现象：</b>能看到「已加载 / 加载中 / 待加载」的数量，而不是只有画面感受。</div></div><div class="step"><div class="do"><b>02</b>把流送源速度调到远高于正常移动（例如用控制台或调试相机高速穿越）。</div><div class="expect"><b>预期现象：</b>复现远景缺失或弹出，确认瓶颈是换页速度而不是画质设置。</div></div><div class="step"><div class="do"><b>03</b>记录一次高速穿越时的内存曲线。</div><div class="expect"><b>预期现象：</b>看到内存随常驻单元上升，明确半径与内存的直接关系。</div></div><div class="step"><div class="do"><b>04</b>为该区域补一层 HLOD 或远景代理。</div><div class="expect"><b>预期现象：</b>在同样半径下远处不再空白，且常驻压力下降。</div></div><div class="step"><div class="do"><b>05</b>打包到目标平台，用同一条路线重复一次。</div><div class="expect"><b>预期现象：</b>差异暴露在真实存储与真实线程模型上，得到可复现的基线。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. 为什么「加载半径」不能无限调大？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>常驻单元数量大致随半径平方增长，内存与流送吞吐会同步放大；一旦超过设备内存或 IO 上限，就会从「看得远」变成「卡顿/闪退」。<div class="refs"><a href="../reference/catalog.html#card-ow-01">方案：World Partition + OFPA vs 传统 Level Streaming</a><a href="../reference/catalog.html#card-pb-stream-02">问题：World Partition HLOD 接缝与远景跳变</a></div></div></div><div class="q"><div class="qt">2. 步行正常、开车就露出加载边界，说明问题在哪？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>说明单位时间需要换掉的单元数超过了流送吞吐。应检查移动速度与单元粒度是否匹配、预取优先级是否合理，而不是只加半径。<div class="refs"><a href="../reference/catalog.html#card-pb-stream-01">问题：跨区块加载导致周期性 hitch</a><a href="../reference/catalog.html#card-ow-05">方案：虚拟纹理 + Zen/IoStore 流式资源管线</a></div></div></div><div class="q"><div class="qt">3. HLOD 在流送里扮演什么角色？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>它用更低成本的代理表示远处区域，让你在不常驻全部单元的情况下仍有远景；它减少的是「为了看得远而必须常驻」的压力。<div class="refs"><a href="../reference/catalog.html#card-ow-02">方案：HLOD：远景代理 vs 传统 LOD/全量流送</a><a href="../reference/catalog.html#card-iq-slg-002">面试题：World Partition 与服务端地图分片有什么区别？</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-ow-01">方案：World Partition + OFPA vs 传统 Level Streaming</a> <a href="../reference/catalog.html#card-ow-02">方案：HLOD：远景代理 vs 传统 LOD/全量流送</a> <a href="../reference/catalog.html#card-ow-05">方案：虚拟纹理 + Zen/IoStore 流式资源管线</a> <a href="../reference/catalog.html#card-load-04">方案：Level Streaming：Always Loaded / Blueprint / Volume</a> <a href="../reference/catalog.html#card-load-09">方案：加载预算、IO 带宽与观测</a> <a href="../reference/catalog.html#card-pb-stream-01">问题：跨区块加载导致周期性 hitch</a> <a href="../reference/catalog.html#card-pb-stream-02">问题：World Partition HLOD 接缝与远景跳变</a> <a href="../reference/catalog.html#card-pb-stream-03">问题：传统 Level Streaming 的内存峰值与引用泄漏</a> <a href="../reference/catalog.html#card-pb-stream-05">问题：移动端流送半径与纹理池导致崩溃/糊图</a> <a href="../reference/catalog.html#card-iq-slg-002">面试题：World Partition 与服务端地图分片有什么区别？</a> <a href="../reference/catalog.html#card-iq-smg-008">面试题：建造类场景如何建立建筑、装饰物与动态效果的渲染预算？</a> <a href="../reference/catalog.html#card-iq-rts-009">面试题：如何把 RTS 批量计算移出 Game Thread 而不制造竞态？</a> <a href="../reference/catalog.html#card-iq-core-025">面试题：实现确定性的动态二维空间哈希，支持 Upsert、Remove 与精确范围查询</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-ow-01">方案：World Partition + OFPA vs 传统 Level Streaming</a><a href="../reference/catalog.html#card-ow-02">方案：HLOD：远景代理 vs 传统 LOD/全量流送</a><a href="../reference/catalog.html#card-ow-05">方案：虚拟纹理 + Zen/IoStore 流式资源管线</a><a href="../reference/catalog.html#card-load-04">方案：Level Streaming：Always Loaded / Blueprint / Volume</a><a href="../reference/catalog.html#card-load-09">方案：加载预算、IO 带宽与观测</a><a href="../reference/catalog.html#card-pb-stream-01">问题：跨区块加载导致周期性 hitch</a><a href="../reference/catalog.html#card-pb-stream-02">问题：World Partition HLOD 接缝与远景跳变</a><a href="../reference/catalog.html#card-pb-stream-03">问题：传统 Level Streaming 的内存峰值与引用泄漏</a><a href="../reference/catalog.html#card-pb-stream-05">问题：移动端流送半径与纹理池导致崩溃/糊图</a><a href="../reference/catalog.html#card-iq-slg-002">面试题：World Partition 与服务端地图分片有什么区别？</a><a href="../reference/catalog.html#card-iq-smg-008">面试题：建造类场景如何建立建筑、装饰物与动态效果的渲染预算？</a><a href="../reference/catalog.html#card-iq-rts-009">面试题：如何把 RTS 批量计算移出 Game Thread 而不制造竞态？</a><a href="../reference/catalog.html#card-iq-core-025">面试题：实现确定性的动态二维空间哈希，支持 Upsert、Remove 与精确范围查询</a><a href="../reference/catalog.html#card-cmp-streaming">对比：大世界流送：World Partition vs Level Streaming vs 副本分块</a></div>
+          <div class="entry-links"><a class="btn ghost" href="loading.html">← 上一章 · 资源加载与卡顿</a><a class="btn ghost" href="asset.html">下一章 · 资源管线与分包 →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/streaming.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>

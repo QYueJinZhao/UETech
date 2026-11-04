@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>网络同步：橡皮筋从哪来，预测回滚怎么救 · UE 技术学习站</title>
+<meta name="description" content="这一章把「延迟」拆成可计算的时间线：输入什么时候到服务器、权威结果什么时候回来、客户端在这段时间里到底该显示什么。看懂这条线，预测、回滚、插值与延迟补偿就不再是名词。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="net">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>玩法系统 · 第 10 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">玩法系统</span>
+      <span class="chip">约 70 分钟</span>
+      <span class="chip">深入</span>
+      <span class="chip">前置：性能分析与预算</span>
+    </div>
+    <h1>网络同步：橡皮筋从哪来，预测回滚怎么救</h1>
+    <p class="lede">这一章把「延迟」拆成可计算的时间线：输入什么时候到服务器、权威结果什么时候回来、客户端在这段时间里到底该显示什么。看懂这条线，预测、回滚、插值与延迟补偿就不再是名词。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>80ms 延迟下，角色像被橡皮筋拽回去</h3>
+      <p>玩家按下移动或开枪，客户端立刻播放了动作；半秒后角色突然被拉回一个「正确」的位置，或者明明准星在敌人身上却没有伤害。你把服务器 <span class="term" tabindex="0" data-def="服务器或模拟的固定步长频率；tick 越高越平滑，但 CPU 与带宽成本越高。">tick</span> 调高、带宽加粗，抖动依然存在。团队开始争论：到底该用帧同步还是状态同步？要不要做<span class="term" tabindex="0" data-def="发现预测与权威不一致时，回到权威状态并重演之后的输入。">回滚</span>？</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>客户端先动、服务器后校正，位置出现可见的拉扯</li><li>高延迟玩家「打过去」能命中，低延迟防守方觉得不公平</li><li>平均延迟正常，但抖动（jitter）一来就出现瞬时错误</li><li>带宽随人数/特效增长，服务器帧时间同时被打满</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">把联机想成两个人隔着一张桌子传球：你看到的是球飞出去之后的样子，真正的球永远在对方手里。</blockquote>
+    <p>客户端为了手感，必须先假装球已经到手——这就是<span class="term" tabindex="0" data-def="客户端在收到权威结果前，先本地模拟输入以提供即时反馈。">预测</span>；服务器才是唯一知道球真实位置的人——这就是权威。当两者不一致，客户端只能把画面拉回权威结果并重演之后的输入，这就是回滚。回合越久（<span class="term" tabindex="0" data-def="往返时延：一个包从客户端到服务器再回来的总时间。单向延迟通常近似 RTT/2。">RTT</span> 越大）、球越滑（抖动越大），拉扯就越明显。</p>
+    <p class="note">类比的边界：这个类比不覆盖确定性帧同步：帧同步里没有「服务器手里的球」，所有客户端按同一份输入重演，前提是模拟必须完全一致。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="net-prediction" data-title="一次输入从客户端到服务器再回来" data-caption="拖动 RTT 与预测速度，看预测偏差和需要重演的帧数如何变化。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>客户端在本地立即模拟输入，得到「预测状态」并直接用于表现；同时把输入与时间戳发给服务器。</p><p>服务器按自己的 tick 执行权威模拟，结果再复制回客户端；这段往返就是 RTT，服务器看到输入的时间约晚 RTT/2。</p><p>客户端收到权威状态后，比较预测与权威的差异：差异小就平滑修正，差异大就回滚到权威帧并重演之后的输入。</p><p><span class="term" tabindex="0" data-def="在已收到的历史快照之间按时间采样，让远端角色平滑移动。">插值</span>让远端角色在历史快照之间平滑显示；<span class="term" tabindex="0" data-def="缺包时按速度/加速度猜测未来位置；短窗有效，急转/碰撞会迅速失效。">外推</span>在缺包时短暂猜测未来，但急转/碰撞会让猜测迅速失效。</p><p><span class="term" tabindex="0" data-def="服务器按开火时刻回溯目标历史碰撞体，用射手当时看到的位置判定命中。">延迟补偿</span>是另一条线：服务器保存命中体历史，收到开火命令时回到「射手当时看到的时刻」做判定。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">这个类比不覆盖确定性帧同步：帧同步里没有「服务器手里的球」，所有客户端按同一份输入重演，前提是模拟必须完全一致。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">带宽</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">状态同步要复制位置/属性/事件；特效与大量 Actor 是主要放大器。</span></div><div class="costrow"><span class="cl">服务器成本</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">高 tick、回溯历史缓存、更多实例都直接换成 CPU 与内存。</span></div><div class="costrow"><span class="cl">实现复杂度</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i></div><span class="note">预测、回滚、插值、重连、作弊校验互相牵连，是最容易出「看起来能跑」的领域。</span></div><div class="costrow"><span class="cl">公平性</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">回溯窗口与 tick 直接决定高延迟玩家的优势；没有绝对公平，只有明确取舍。</span></div><div class="costrow"><span class="cl">运维</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">区域部署、抖动、丢包与版本兼容都需要观测与压测，不只靠局域网验证。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>三种同步模型：先问「哪种错误不可接受」</h3></div>
+    <div class="cmp-dims"><span>公平 / 可复核</span><span>带宽</span><span>服务器成本</span><span>实现复杂度</span><span>回放 / 重连</span><span>典型场景</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>服务器权威 + 客户端预测</h4>
+      <a class="sid" href="../reference/catalog.html#card-fps-01">fps-01</a>
+      <dl><div><dt>公平 / 可复核</dt><dd>高（服务器裁定）</dd></div><div><dt>带宽</dt><dd>中</dd></div><div><dt>服务器成本</dt><dd>中</dd></div><div><dt>实现复杂度</dt><dd>高</dd></div><div><dt>回放 / 重连</dt><dd>中（快照 + 输入重演）</dd></div><div><dt>典型场景</dt><dd>竞技射击 / 动作</dd></div></dl>
+      <div class="take">手感与公平的折中；代价是回滚实现与延迟补偿的复杂度。</div>
+    </div><div class="cmp-card">
+      <h4>状态同步 + 快照插值</h4>
+      <a class="sid" href="../reference/catalog.html#card-fps-02">fps-02</a>
+      <dl><div><dt>公平 / 可复核</dt><dd>中</dd></div><div><dt>带宽</dt><dd>中低</dd></div><div><dt>服务器成本</dt><dd>中</dd></div><div><dt>实现复杂度</dt><dd>中</dd></div><div><dt>回放 / 重连</dt><dd>中（快照）</dd></div><div><dt>典型场景</dt><dd>大规模 / 载具 / 合作</dd></div></dl>
+      <div class="take">实现更直接，客户端不预测或只做轻预测；高延迟下手感偏「延迟」而不是「拉扯」。</div>
+    </div><div class="cmp-card">
+      <h4>确定性帧同步（锁步）</h4>
+      <a class="sid" href="../reference/catalog.html#card-fps-03">fps-03</a>
+      <dl><div><dt>公平 / 可复核</dt><dd>高（确定性）</dd></div><div><dt>带宽</dt><dd>低（只传输入）</dd></div><div><dt>服务器成本</dt><dd>低</dd></div><div><dt>实现复杂度</dt><dd>很高</dd></div><div><dt>回放 / 重连</dt><dd>高（可重演）</dd></div><div><dt>典型场景</dt><dd>MOBA / RTS / 格斗</dd></div></dl>
+      <div class="take">带宽最省、回放天然；但浮点/随机/顺序必须完全一致，断线重连要追帧。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>只看平均延迟，不看抖动与高分位。</div><div class="right"><b>正确理解</b>玩家感知的是最差的那几帧。用 Net Emulate 同时制造延迟与抖动，观察回滚频率与可见拉扯，而不是只看 ping 数值。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>预测与服务器结果冲突时直接硬拉回。</div><div class="right"><b>正确理解</b>差异小要做平滑修正，差异大才回滚；并且要限制回滚频率，否则每次校正都是一次可见的抖动。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>把回滚窗口开得越大越好，认为「覆盖所有延迟」最公平。</div><div class="right"><b>正确理解</b>窗口越大，高延迟玩家优势越大、服务器历史缓存越贵。窗口应覆盖目标 RTT 分位，并明确上限与降级策略。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x；PIE 多客户端 + Net PktLag/PktLagVariance 模拟延迟与抖动；专用服务器需独立进程。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>在 PIE 里开两个客户端，控制台执行 net PktLag=100，移动角色并观察远端表现。</div><div class="expect"><b>预期现象：</b>能看到远端角色的延迟与插值，而不是瞬移。</div></div><div class="step"><div class="do"><b>02</b>保持默认的服务器权威 + 客户端预测移动，把 PktLag 调到 200，快速变向。</div><div class="expect"><b>预期现象：</b>出现预测与权威的差异；客户端会校正，表现为轻微拉扯。</div></div><div class="step"><div class="do"><b>03</b>加入 net PktLagVariance=30 制造抖动，观察插值/外推的边界。</div><div class="expect"><b>预期现象：</b>缺包时外推会短暂「猜」方向，急转后出现明显修正。</div></div><div class="step"><div class="do"><b>04</b>打开 stat net 或 Network Insights，记录一次多人对局的带宽与复制耗时。</div><div class="expect"><b>预期现象：</b>能指出带宽主要来自哪些 Actor/属性，而不是笼统地说「网络卡」。</div></div><div class="step"><div class="do"><b>05</b>阅读并对照 fps-06 的延迟补偿流程，想清楚：服务器要保存哪些历史、窗口多大、时间戳如何校验。</div><div class="expect"><b>预期现象：</b>能画出「开火 → 回溯 → 判定 → 同步」的四步链路。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. RTT 为 80ms 时，客户端预测偏差主要来自什么？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>输入到达服务器约需 RTT/2，服务器结果再花 RTT/2 回来；在这段时间里客户端只能按自己的模拟前进，偏差约与「速度 × RTT/2」同量级。抖动会让实际往返时间偏离估计，进一步放大偏差。<div class="refs"><a href="../reference/catalog.html#card-net-07">方案：客户端预测与服务器回滚</a><a href="../reference/catalog.html#card-pb-net-03">问题：移动预测回滚导致角色抖动与橡皮筋</a></div></div></div><div class="q"><div class="qt">2. 为什么回滚窗口不能无限大？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>窗口越大，服务器要保存的历史与重建成本越高；同时高延迟玩家能「回到过去」判定，获得不公平优势。窗口应覆盖目标延迟分位并设上限，超出部分用别的机制降级。<div class="refs"><a href="../reference/catalog.html#card-fps-06">方案：延迟补偿回溯命中（Lag Compensation）</a><a href="../reference/catalog.html#card-pb-net-02">问题：高延迟下“明明打中却没有伤害”</a></div></div></div><div class="q"><div class="qt">3. 状态同步与帧同步各自最不能妥协的前提是什么？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>状态同步的前提是服务器权威与复制/插值链路正确，客户端可以预测但不能最终裁定；帧同步的前提是所有端模拟完全确定性（浮点、随机、遍历顺序、输入顺序都一致），否则会漂移。<div class="refs"><a href="../reference/catalog.html#card-cmp-framesync">对比：同步模型：帧同步 vs 状态同步</a><a href="../reference/catalog.html#card-pb-net-04">问题：帧同步在断线重连与浮点差异下漂移</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-net-01">方案：帧同步 vs 状态同步：确定性、带宽、作弊面与回放</a> <a href="../reference/catalog.html#card-net-07">方案：客户端预测与服务器回滚</a> <a href="../reference/catalog.html#card-net-09">方案：插值、外推与输入缓冲</a> <a href="../reference/catalog.html#card-fps-01">方案：服务器权威 + 客户端预测 + 延迟补偿</a> <a href="../reference/catalog.html#card-fps-06">方案：延迟补偿回溯命中（Lag Compensation）</a> <a href="../reference/catalog.html#card-net-05">方案：Replication Graph：空间裁剪与大规模复制</a> <a href="../reference/catalog.html#card-pb-net-01">问题：同屏技能特效让专用服务器带宽与帧时间同时爆炸</a> <a href="../reference/catalog.html#card-pb-net-02">问题：高延迟下“明明打中却没有伤害”</a> <a href="../reference/catalog.html#card-pb-net-03">问题：移动预测回滚导致角色抖动与橡皮筋</a> <a href="../reference/catalog.html#card-pb-net-04">问题：帧同步在断线重连与浮点差异下漂移</a> <a href="../reference/catalog.html#card-pb-net-05">问题：大规模世界相关性裁剪把视野外的重要事件裁掉</a> <a href="../reference/catalog.html#card-iq-fps-009">面试题：如何系统拆解并优化 FPS 的 Input-to-Photon 延迟？</a> <a href="../reference/catalog.html#card-iq-arpg-001">面试题：多人 ARPG 中 ASC 应放在 PlayerState 还是 Character，复制模式如何选择？</a> <a href="../reference/catalog.html#card-iq-arpg-002">面试题：GAS 技能中哪些行为可以预测，哪些必须由服务端裁决？</a> <a href="../reference/catalog.html#card-iq-fps-003">面试题：如何设计安全的 Server-Side Rewind？</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-net-01">方案：帧同步 vs 状态同步：确定性、带宽、作弊面与回放</a><a href="../reference/catalog.html#card-net-07">方案：客户端预测与服务器回滚</a><a href="../reference/catalog.html#card-net-09">方案：插值、外推与输入缓冲</a><a href="../reference/catalog.html#card-fps-01">方案：服务器权威 + 客户端预测 + 延迟补偿</a><a href="../reference/catalog.html#card-fps-06">方案：延迟补偿回溯命中（Lag Compensation）</a><a href="../reference/catalog.html#card-net-05">方案：Replication Graph：空间裁剪与大规模复制</a><a href="../reference/catalog.html#card-pb-net-01">问题：同屏技能特效让专用服务器带宽与帧时间同时爆炸</a><a href="../reference/catalog.html#card-pb-net-02">问题：高延迟下“明明打中却没有伤害”</a><a href="../reference/catalog.html#card-pb-net-03">问题：移动预测回滚导致角色抖动与橡皮筋</a><a href="../reference/catalog.html#card-pb-net-04">问题：帧同步在断线重连与浮点差异下漂移</a><a href="../reference/catalog.html#card-pb-net-05">问题：大规模世界相关性裁剪把视野外的重要事件裁掉</a><a href="../reference/catalog.html#card-iq-fps-009">面试题：如何系统拆解并优化 FPS 的 Input-to-Photon 延迟？</a><a href="../reference/catalog.html#card-iq-arpg-001">面试题：多人 ARPG 中 ASC 应放在 PlayerState 还是 Character，复制模式如何选择？</a><a href="../reference/catalog.html#card-iq-arpg-002">面试题：GAS 技能中哪些行为可以预测，哪些必须由服务端裁决？</a><a href="../reference/catalog.html#card-iq-fps-003">面试题：如何设计安全的 Server-Side Rewind？</a><a href="../reference/catalog.html#card-cmp-sync">对比：同步模型：服务器权威+预测 vs 状态同步+插值 vs 帧同步</a></div>
+          <div class="entry-links"><a class="btn ghost" href="shader-pso.html">← 上一章 · 着色器编译与 PSO</a><a class="btn ghost" href="gas.html">下一章 · GAS 与技能预测 →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/net.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>渲染管线：一帧里到底发生了什么 · UE 技术学习站</title>
+<meta name="description" content="先不讨论 Lumen、Nanite 这些名字。这一章只建立一条时间线：Game 线程准备数据、Render 线程翻译命令、GPU 执行并呈现。看懂这条线，后面所有「为什么卡」的问题才有坐标。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="render-basics">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>基础 · 第 01 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">基础</span>
+      <span class="chip">约 45 分钟</span>
+      <span class="chip">入门</span>
+      <span class="chip">前置：无（可直接开始）</span>
+    </div>
+    <h1>渲染管线：一帧里到底发生了什么</h1>
+    <p class="lede">先不讨论 Lumen、Nanite 这些名字。这一章只建立一条时间线：Game 线程准备数据、Render 线程翻译命令、GPU 执行并呈现。看懂这条线，后面所有「为什么卡」的问题才有坐标。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>加了一个半透明特效，帧率直接腰斩</h3>
+      <p>主场景本来 60fps，美术加了一层雾和几个半透明特效后掉到 35fps。你试着降低材质精度、关掉阴影，效果都不明显；把分辨率降一半，帧率回来一些，但画面糊得不能看。团队里有人说「GPU 不行」，有人说是「CPU 太慢」，可是没人能指出具体是哪一段。</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>不知道瓶颈在 <span class="term" tabindex="0" data-def="执行游戏逻辑、Tick、动画与物理的主线程，产出本帧场景状态。">Game 线程</span>、<span class="term" tabindex="0" data-def="把场景状态翻译为渲染命令并提交给 GPU 的线程。">Render 线程</span>还是 GPU</li><li>加特效/加光源就掉帧，但删掉任意一个都恢复不满</li><li>降低分辨率有效，降低画质效果不明显</li><li>编辑器里流畅，打包后变慢（或反过来）</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">把一帧想成一条装配线：Game 线程备料，Render 线程把料翻译成 GPU 能执行的命令，GPU 才是真正干活的车间。</blockquote>
+    <p>装配线可以重叠：这一帧的 GPU 在渲染时，下一帧的 Game 线程已经在准备。所以帧时间不是三者相加，而是取最慢的一环。半透明特效主要压 GPU 的填充与带宽；Actor 太多、Tick 太重主要压 Game 线程；两者都会让你看到「掉帧」，但解法完全相反。</p>
+    <p class="note">类比的边界：装配线类比不体现同步点：渲染线程要等 Game 线程的数据、GPU 要等命令提交，真正的并行程度取决于这些等待与缓冲。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="frame-budget" data-title="一帧的预算被谁吃掉" data-caption="拖动各线程负载，观察瓶颈如何在 CPU 与 GPU 之间切换。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>Game 线程每帧执行 Actor Tick、蓝图、动画、物理与游戏逻辑，产出这一帧要渲染的场景状态。</p><p>Render 线程把场景状态翻译成渲染命令（可见性、材质、绘制调用），再通过 <span class="term" tabindex="0" data-def="Render Hardware Interface，UE 对不同图形 API 的抽象层。">RHI</span> 提交给 GPU；它和 Game 线程可以并行，但受同步点约束。</p><p>GPU 执行绘制与计算：顶点处理、光栅化、像素着色、后处理，最后呈现到屏幕；填充率、带宽与着色复杂度是主要成本。</p><p>CPU 与 GPU 通过若干帧的缓冲重叠工作，所以「CPU 一帧 20ms、GPU 一帧 10ms」时整体仍可能接近 20ms，而不是 30ms。</p><p>定位顺序是固定的：先看哪一环最高（stat unit），再看该环内部的热点（ProfileGPU / Insights / 逐项开关），最后才决定优化手段。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">为什么不能只盯一个数字：同一帧里 CPU 可能被同步点阻塞（等待 GPU 或等待渲染线程），GPU 也可能在等命令。把「线程时间」和「墙钟帧时间」混为一谈，就会得出错误的优化方向。真正的验证要在目标平台、目标画质、固定场景下重复测量。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">GPU</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">分辨率、半透明 <span class="term" tabindex="0" data-def="同一像素被多次着色的现象，半透明叠加是最常见来源。">overdraw</span>、后处理与光照是主要放大器。</span></div><div class="costrow"><span class="cl">CPU</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">Actor/ Tick 数量、蓝图、动画与物理都会推高 Game 线程。</span></div><div class="costrow"><span class="cl">内存 / 带宽</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">纹理、RT 与流送影响显存与带宽，移动端尤其敏感。</span></div><div class="costrow"><span class="cl">美术规范</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">半透明层数、材质指令数、光源数量需要规范，否则优化永远追不上新增内容。</span></div><div class="costrow"><span class="cl">团队协作</span><div class="bars"><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i><i class=""></i></div><span class="note">需要统一观测口径与固定测试场景，否则各说各话。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>前向、延迟与移动端 TBDR：先看约束再选路径</h3></div>
+    <div class="cmp-dims"><span>多光源</span><span>带宽 / 填充</span><span>MSAA</span><span>平台适配</span><span>实现复杂度</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>前向渲染（Forward / Forward+）</h4>
+      <a class="sid" href="../reference/catalog.html#card-mob-01">mob-01</a>
+      <dl><div><dt>多光源</dt><dd>中（Forward+ 可支持较多光源）</dd></div><div><dt>带宽 / 填充</dt><dd>较低（每像素只着色可见层）</dd></div><div><dt>MSAA</dt><dd>天然友好</dd></div><div><dt>平台适配</dt><dd>移动端主流</dd></div><div><dt>实现复杂度</dt><dd>中</dd></div></dl>
+      <div class="take">适合半透明多、MSAA 必需、光源数量可控的场景；多光源需要分簇/分块管理。</div>
+    </div><div class="cmp-card">
+      <h4>延迟渲染（Deferred）</h4>
+      <a class="sid" href="../reference/catalog.html#card-mob-11">mob-11</a>
+      <dl><div><dt>多光源</dt><dd>高（GBuffer 后统一打光）</dd></div><div><dt>带宽 / 填充</dt><dd>较高（GBuffer 写入/读取）</dd></div><div><dt>MSAA</dt><dd>需要额外处理</dd></div><div><dt>平台适配</dt><dd>桌面/主机为主</dd></div><div><dt>实现复杂度</dt><dd>中高</dd></div></dl>
+      <div class="take">适合大量动态光源；代价是带宽与半透明/前向物体需要单独路径。</div>
+    </div><div class="cmp-card">
+      <h4>移动端 TBDR 路径</h4>
+      <a class="sid" href="../reference/catalog.html#card-mob-02">mob-02</a>
+      <dl><div><dt>多光源</dt><dd>中低（受 tile 内存限制）</dd></div><div><dt>带宽 / 填充</dt><dd>敏感（overdraw 与 resolve）</dd></div><div><dt>MSAA</dt><dd>有限</dd></div><div><dt>平台适配</dt><dd>移动端专用</dd></div><div><dt>实现复杂度</dt><dd>中</dd></div></dl>
+      <div class="take">先过深度再着色能省带宽，但半透明无法靠 Early-Z 剔除，层数必须控。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>用平均 FPS 判断性能，忽略 1% low 与单帧尖峰。</div><div class="right"><b>正确理解</b>玩家感知的是卡顿帧。记录帧时间分布与尖峰，固定场景重复测量；平均 60fps 也可能每 10 秒卡一次。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>一掉帧就降分辨率，认为所有问题都在 GPU。</div><div class="right"><b>正确理解</b>先看 stat unit：Game/Draw/GPU 谁高。CPU 瓶颈降分辨率几乎无效，反而白白损失画质。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>在编辑器里调好就认为打包后没问题。</div><div class="right"><b>正确理解</b>编辑器有额外开销、热缓存与不同线程模型；必须在目标平台打包构建上验证，并用固定场景对比。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x；PIE 可看趋势，代表性数值应在打包构建/Standalone 固定机位取；同时开 stat unit 与 stat fps。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>打开任意模板关卡，控制台执行 stat unit，记录 Game / Draw / GPU 三个数。</div><div class="expect"><b>预期现象：</b>能指出当前帧由哪一环主导，而不是只说「卡」。</div></div><div class="step"><div class="do"><b>02</b>执行 stat fps 与 stat scenerendering，观察 <span class="term" tabindex="0" data-def="一次把网格/材质提交给 GPU 绘制的调用；数量过多会推高 CPU 提交成本。">Draw call</span>、可见 Actor 与三角形数量。</div><div class="expect"><b>预期现象：</b>对「场景复杂度」有一个可量化的起点。</div></div><div class="step"><div class="do"><b>03</b>在场景里叠加几层半透明粒子/雾，再看 stat unit 与 ProfileGPU。</div><div class="expect"><b>预期现象：</b>GPU 通道上升明显，CPU 变化较小——验证填充率/带宽假设。</div></div><div class="step"><div class="do"><b>04</b>把分辨率缩放调到 50%，对比同一位置的帧时间。</div><div class="expect"><b>预期现象：</b>若 GPU 主导则明显改善；若 Game 线程主导则改善有限。</div></div><div class="step"><div class="do"><b>05</b>在 Project Settings 里切换 Forward/Deferred（若平台允许），对比多光源场景。</div><div class="expect"><b>预期现象：</b>看到两条路径在多光源与带宽上的不同取舍，而不是「谁更高级」。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. CPU 一帧 20ms、GPU 一帧 10ms，为什么整体帧时间通常不是 30ms？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>因为 CPU 与 GPU 通过多帧缓冲重叠工作：GPU 渲染第 N 帧时，CPU 已在准备第 N+1 帧。整体接近较慢的一环（约 20ms），前提是没有同步点把两者串行化。<div class="refs"><a href="../reference/catalog.html#card-pb-render-05">问题：渲染 Pass 顺序与带宽浪费难以定位</a><a href="../reference/catalog.html#card-iq-rts-006">面试题：RTS 战争迷雾如何同时保证逻辑正确、渲染平滑和信息安全？</a></div></div></div><div class="q"><div class="qt">2. 半透明特效为什么比不透明物体更容易打爆 GPU？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>不透明物体可以靠深度测试/ Early-Z 剔除被遮挡像素；半透明通常要混合、不能随意剔除，层数叠加会重复着色并增加带宽，overdraw 直接变成成本。<div class="refs"><a href="../reference/catalog.html#card-mob-02">方案：TBDR、带宽与填充率：过度绘制治理</a><a href="../reference/catalog.html#card-pb-render-01">问题：Draw call 与 overdraw 把 GPU 压到帧率腰斩</a></div></div></div><div class="q"><div class="qt">3. 看到掉帧时，第一件事应该做什么？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>先用 stat unit / ProfileGPU 定位是 Game、Render 还是 GPU 主导，再在目标平台固定场景下测量；没有定位就优化，等于随机改参数。<div class="refs"><a href="../reference/catalog.html#card-pb-perf-01">问题：无法判断瓶颈在 CPU 还是 GPU</a><a href="../reference/catalog.html#card-iq-fps-009">面试题：如何系统拆解并优化 FPS 的 Input-to-Photon 延迟？</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-mob-01">方案：Mobile 渲染管线：Forward / Deferred 与 Feature Level</a> <a href="../reference/catalog.html#card-mob-02">方案：TBDR、带宽与填充率：过度绘制治理</a> <a href="../reference/catalog.html#card-mob-11">方案：Mobile Deferred 渲染路径：适用条件与代价</a> <a href="../reference/catalog.html#card-pb-render-01">问题：Draw call 与 overdraw 把 GPU 压到帧率腰斩</a> <a href="../reference/catalog.html#card-pb-render-02">问题：硬抗原生分辨率导致填充率与发热失控</a> <a href="../reference/catalog.html#card-pb-render-04">问题：前向/延迟选型错误导致多光源或 MSAA 需求冲突</a> <a href="../reference/catalog.html#card-pb-perf-01">问题：无法判断瓶颈在 CPU 还是 GPU</a> <a href="../reference/catalog.html#card-iq-rts-006">面试题：RTS 战争迷雾如何同时保证逻辑正确、渲染平滑和信息安全？</a> <a href="../reference/catalog.html#card-iq-fps-009">面试题：如何系统拆解并优化 FPS 的 Input-to-Photon 延迟？</a> <a href="../reference/catalog.html#card-iq-smg-008">面试题：建造类场景如何建立建筑、装饰物与动态效果的渲染预算？</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-mob-01">方案：Mobile 渲染管线：Forward / Deferred 与 Feature Level</a><a href="../reference/catalog.html#card-mob-02">方案：TBDR、带宽与填充率：过度绘制治理</a><a href="../reference/catalog.html#card-mob-11">方案：Mobile Deferred 渲染路径：适用条件与代价</a><a href="../reference/catalog.html#card-pb-render-01">问题：Draw call 与 overdraw 把 GPU 压到帧率腰斩</a><a href="../reference/catalog.html#card-pb-render-02">问题：硬抗原生分辨率导致填充率与发热失控</a><a href="../reference/catalog.html#card-pb-render-04">问题：前向/延迟选型错误导致多光源或 MSAA 需求冲突</a><a href="../reference/catalog.html#card-pb-perf-01">问题：无法判断瓶颈在 CPU 还是 GPU</a><a href="../reference/catalog.html#card-iq-rts-006">面试题：RTS 战争迷雾如何同时保证逻辑正确、渲染平滑和信息安全？</a><a href="../reference/catalog.html#card-iq-fps-009">面试题：如何系统拆解并优化 FPS 的 Input-to-Photon 延迟？</a><a href="../reference/catalog.html#card-iq-smg-008">面试题：建造类场景如何建立建筑、装饰物与动态效果的渲染预算？</a><a href="../reference/catalog.html#card-cmp-shading">对比：光照路径：前向 vs 延迟 vs 簇延迟</a></div>
+          <div class="entry-links"><a class="btn ghost" href="perf.html">下一章 · 性能分析与预算 →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/render-basics.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>

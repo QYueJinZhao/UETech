@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>着色器与 PSO：第一次看到新效果时的那一下卡 · UE 技术学习站</title>
+<meta name="description" content="很多「莫名卡顿」不是帧率不够，而是驱动在当场编译一个从未见过的着色器组合。这一章讲清楚 PSO 是什么、为什么会漏、以及为什么它总在「第一次」发生。">
+<script>(function(){try{var m=localStorage.getItem('ue-theme')||'auto';var d=m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<link rel="stylesheet" href="../assets/base.css">
+</head>
+<body data-chapter="shader-pso">
+<div class="readbar" id="readbar"></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><b>UE 技术学习站</b><span>渲染与画质 · 第 09 章</span></div>
+    <span class="spacer"></span>
+    <a class="tb-link" href="../index.html">← 路线图</a>
+    <a class="tb-link" href="../reference/index.html">速查库</a>
+    <button class="iconbtn" data-theme-toggle type="button">主题：跟随系统</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="chapter-head">
+    <div class="meta">
+      <span class="chip">渲染与画质</span>
+      <span class="chip">约 50 分钟</span>
+      <span class="chip">进阶</span>
+      <span class="chip">前置：渲染管线基础、性能分析与预算</span>
+    </div>
+    <h1>着色器与 PSO：第一次看到新效果时的那一下卡</h1>
+    <p class="lede">很多「莫名卡顿」不是帧率不够，而是驱动在当场编译一个从未见过的着色器组合。这一章讲清楚 PSO 是什么、为什么会漏、以及为什么它总在「第一次」发生。</p>
+    <div class="chapter-actions">
+      <button class="btn ghost" data-mark-learned type="button">标记为已学会</button>
+      <a class="btn ghost" href="../reference/index.html">速查库</a>
+    </div>
+  </section>
+
+  <div class="chapter-layout">
+    <aside class="rail" aria-label="本章目录">
+      <div class="rail-title">本章 8 屏</div>
+      <a href="#s1">01 场景</a><a href="#s2">02 直觉</a><a href="#s3">03 原理</a><a href="#s4">04 代价</a><a href="#s5">05 对比</a><a href="#s6">06 误区</a><a href="#s7">07 动手</a><a href="#s8">08 自测</a>
+      <div class="rail-done" id="rail-done" style="display:none">本章已标记为已学</div>
+    </aside>
+    <article id="chapter-body">
+      <section class="screen" id="s1">
+  <div class="label"><span class="idx">01</span><h2>你会遇到什么问题</h2></div>
+  <div class="body">
+    <div class="scene">
+      <h3>第一次放技能，画面卡住半秒</h3>
+      <p>技能第一次释放会卡顿，第二次完全正常；换一个地图或换一台机器又卡。编辑器里基本看不出来。日志里偶尔能看到与 shader 编译/<span class="term" tabindex="0" data-def="Pipeline State Object，着色器与固定管线状态的完整组合。">PSO</span> 相关的长时间任务。</p>
+      <div class="symptoms"><b>常见症状：</b><ul><li>首次出现的效果卡一下，重复触发不卡</li><li>特定地图、特定皮肤或特定画质档才会卡</li><li>打包后比编辑器更容易出现</li><li>改用新显卡/新驱动后重新出现</li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="s2">
+  <div class="label"><span class="idx">02</span><h2>一句话直觉</h2></div>
+  <div class="body">
+    <blockquote class="intuition">PSO 像餐厅的「套餐预配」：菜谱（着色器）和餐具（渲染状态）要提前配好一套，临时现配就得让整条队伍等。</blockquote>
+    <p>GPU 需要知道「用哪个着色器 + 哪些固定管线状态（混合、深度、剔除、RT 格式等）」才能执行绘制。这个组合就是 PSO。组合数量会随材质、画质档与平台膨胀，无法全部预先生成，于是驱动在首次遇到时现场编译，形成一次性长卡顿。</p>
+    <p class="note">类比的边界：套餐类比不体现「<span class="term" tabindex="0" data-def="驱动保存已编译结果的位置；换驱动或清缓存会失效。">驱动缓存</span>」：编译结果会被驱动缓存下来，所以第二次不卡；但换驱动、换机型或清缓存后缓存失效，问题会「复活」。</p>
+  </div>
+</section>
+<section class="screen" id="s3">
+  <div class="label"><span class="idx">03</span><h2>原理图解</h2></div>
+  <div class="body">
+    <div class="diagram-wrap"><div data-diagram="pso-hitch" data-title="变体数量、预缓存覆盖率与首次卡顿" data-caption="拖动预缓存覆盖率与材质变体数，观察未命中组合带来的卡顿概率。示意，非线性真实实现。" data-params="{}"></div></div>
+    <p>一次绘制需要一组完整状态：顶点/像素着色器、混合模式、深度测试、剔除、RT 格式等；这个组合就是 PSO。</p><p>组合数量不是加法而是乘法式膨胀：材质 × 画质档 × 平台 × 特殊效果（如描边、阴影、深度预pass）都会生成不同<span class="term" tabindex="0" data-def="同一材质在不同状态/平台下生成的着色器组合。">变体</span>。</p><p>PSO 通常在首次使用时由驱动编译并缓存；未预先生成的组合会造成明显的一次性卡顿，尤其在主机与部分移动平台上更严格。</p><p><span class="term" tabindex="0" data-def="提前生成常见 PSO，避免运行时首次编译。">预缓存</span>（PSO Cache / 收集 + 预编译）能把常见组合提前生成，覆盖率越高，运行时命中未缓存组合的概率越低。</p><p>不同平台策略不同：有的允许运行时编译但代价高，有的要求提交前准备好，否则直接失败或长时间阻塞。</p>
+    <details class="detail"><summary>展开：再深一层的机制与边界</summary><div class="dbody">为什么「编辑器里不卡」：编辑器通常已有大量缓存，且画质与平台路径不同；打包构建、首次运行、目标机型上才是真实场景。验证必须在<span class="term" tabindex="0" data-def="清空驱动缓存后的首次运行状态，用于暴露编译卡顿。">冷缓存</span>条件下做。</div></details>
+  </div>
+</section>
+<section class="screen" id="s4">
+  <div class="label"><span class="idx">04</span><h2>关键代价</h2></div>
+  <div class="body">
+    <div class="costbars"><div class="costrow"><span class="cl">首次卡顿</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i></div><span class="note">未命中组合会阻塞渲染，表现为明显的一次性长帧。</span></div><div class="costrow"><span class="cl">包体 / 缓存体积</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">预编译的 PSO 缓存要随包分发或运行时生成，体积不可忽略。</span></div><div class="costrow"><span class="cl">构建时间</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">收集与编译变体会显著拉长构建，变体越多越慢。</span></div><div class="costrow"><span class="cl">美术规范</span><div class="bars"><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class="on hot"></i><i class=""></i></div><span class="note">材质变体数量与特殊效果开关直接决定组合总量。</span></div><div class="costrow"><span class="cl">平台适配</span><div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i></div><span class="note">各平台/驱动的缓存策略不同，需要分别验证。</span></div></div>
+    <p class="costnote">条形为相对量级（1–5 档），不对应具体毫秒、兆字节或人力数字。判断取舍时看「哪一项不可接受」，而不是追求每项都低。</p>
+    
+  </div>
+</section>
+<section class="screen" id="s5">
+  <div class="label"><span class="idx">05</span><h2>方案对比</h2></div>
+  <div class="body">
+    <div class="cmp-head"><h3>运行时编译、预缓存与变体收敛：都在为「首次卡顿」付账</h3></div>
+    <div class="cmp-dims"><span>首次卡顿</span><span>构建成本</span><span>包体</span><span>覆盖完整性</span><span>维护成本</span></div>
+    <div class="cmp-grid"><div class="cmp-card">
+      <h4>运行时按需编译</h4>
+      <a class="sid" href="../reference/catalog.html#card-gen-11">gen-11</a>
+      <dl><div><dt>首次卡顿</dt><dd>高（首次必卡）</dd></div><div><dt>构建成本</dt><dd>低</dd></div><div><dt>包体</dt><dd>低</dd></div><div><dt>覆盖完整性</dt><dd>不确定（取决于玩家路径）</dd></div><div><dt>维护成本</dt><dd>低</dd></div></dl>
+      <div class="take">实现最省事，但把风险留给玩家；适合小项目或卡顿不敏感的场合。</div>
+    </div><div class="cmp-card">
+      <h4>PSO 预缓存 / 收集预编译</h4>
+      <a class="sid" href="../reference/catalog.html#card-ow-13">ow-13</a>
+      <dl><div><dt>首次卡顿</dt><dd>低（常见组合已命中）</dd></div><div><dt>构建成本</dt><dd>高（要跑收集流程）</dd></div><div><dt>包体</dt><dd>中（缓存要分发）</dd></div><div><dt>覆盖完整性</dt><dd>高（取决于收集覆盖）</dd></div><div><dt>维护成本</dt><dd>中</dd></div></dl>
+      <div class="take">主流方案：用构建期成本换运行时稳定；关键是收集流程要覆盖真实玩法路径。</div>
+    </div><div class="cmp-card">
+      <h4>收敛材质与变体数量</h4>
+      <a class="sid" href="../reference/catalog.html#card-mob-05">mob-05</a>
+      <dl><div><dt>首次卡顿</dt><dd>中（组合总量下降）</dd></div><div><dt>构建成本</dt><dd>低</dd></div><div><dt>包体</dt><dd>低</dd></div><div><dt>覆盖完整性</dt><dd>中</dd></div><div><dt>维护成本</dt><dd>中高（要改内容规范）</dd></div></dl>
+      <div class="take">从源头减少组合，长期收益最大；代价是美术与策划要接受规范约束。</div>
+    </div></div>
+    <p class="note">统一维度只用于比较取舍；没有「最好」的模型，只有在当前约束下可接受的错误。</p>
+  </div>
+</section>
+<section class="screen" id="s6">
+  <div class="label"><span class="idx">06</span><h2>常见误区</h2></div>
+  <div class="body">
+    <div class="pitfalls"><div class="pit"><div class="wrong"><b>误区 1</b>在编辑器里没看到卡顿，就认为 PSO 没问题。</div><div class="right"><b>正确理解</b>编辑器有缓存且平台路径不同。必须在打包构建、冷缓存、目标机型上，沿真实玩法路径验证。</div></div><div class="pit"><div class="wrong"><b>误区 2</b>预缓存「跑一次收集」就认为覆盖完整。</div><div class="right"><b>正确理解</b>覆盖率取决于收集时走过的路径。皮肤、画质档、特殊状态、不同地图都可能产生新组合，需要按内容清单系统性覆盖。</div></div><div class="pit"><div class="wrong"><b>误区 3</b>把所有材质变体都预编译，靠堆缓存解决。</div><div class="right"><b>正确理解</b>变体会推高构建时间与包体，而且仍可能漏。更稳的做法是先收敛变体数量，再对剩余组合做预缓存。</div></div></div>
+  </div>
+</section>
+<section class="screen" id="s7">
+  <div class="label"><span class="idx">07</span><h2>动手复现</h2></div>
+  <div class="body">
+    <p class="practice-setup"><b>前提：</b>UE 5.x；必须用打包构建（Development/Shipping）复现；开启 PSO 预缓存并用 PSO 缓存命中/未命中统计验证覆盖率。</p>
+    <div class="steps"><div class="step"><div class="do"><b>01</b>在打包构建里清空驱动/PSO 缓存，首次触发一个技能或特效。</div><div class="expect"><b>预期现象：</b>复现一次性长帧，确认是首次编译而不是持续性能问题。</div></div><div class="step"><div class="do"><b>02</b>用 stat 或 Insights 记录该次卡顿期间的调用栈/任务名。</div><div class="expect"><b>预期现象：</b>能看到与 shader/PSO 编译相关的耗时，而不是笼统的「GPU 卡」。</div></div><div class="step"><div class="do"><b>03</b>执行一次 PSO 收集流程（按项目现有工具），再次冷启动验证。</div><div class="expect"><b>预期现象：</b>同一路径上的卡顿减少或消失，说明预缓存生效。</div></div><div class="step"><div class="do"><b>04</b>更换皮肤、画质档或地图，重复触发。</div><div class="expect"><b>预期现象：</b>可能重新出现卡顿，暴露收集覆盖的缺口。</div></div><div class="step"><div class="do"><b>05</b>统计材质变体数量并收敛一批不必要变体，重新构建。</div><div class="expect"><b>预期现象：</b>构建时间与缓存体积下降，同时减少潜在漏网组合。</div></div></div>
+    <p class="practice-warn">步骤在编辑器内 5 步以内可复现；预期现象用来自检机制是否成立，不要求截图一致。</p>
+  </div>
+</section>
+<section class="screen" id="s8">
+  <div class="label"><span class="idx">08</span><h2>自测</h2></div>
+  <div class="body">
+    <div class="quiz"><div class="q"><div class="qt">1. 为什么 PSO 卡顿总是发生在「第一次」？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>因为首次遇到某个着色器与管线状态组合时，驱动需要现场编译；编译结果会被缓存，后续命中缓存就不再编译。清缓存或换驱动后缓存失效，问题会重现。<div class="refs"><a href="../reference/catalog.html#card-gen-11">方案：Shader 编译与 PSO 卡顿：预缓存 + 收集</a><a href="../reference/catalog.html#card-pb-shader-01">问题：首次使用技能/材质时 PSO 缺失导致卡顿</a></div></div></div><div class="q"><div class="qt">2. 预缓存覆盖率为什么很难做到 100%？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>因为组合数量随材质、画质档、平台与特殊效果膨胀，收集只能覆盖走过的路径；新皮肤、新地图、新状态都可能引入未收集的组合。<div class="refs"><a href="../reference/catalog.html#card-pb-shader-02">问题：材质变体爆炸导致编译时间与包体失控</a><a href="../reference/catalog.html#card-ow-13">方案：Shader 编译与 PSO 卡顿治理</a></div></div></div><div class="q"><div class="qt">3. 为什么「收敛变体」比「多编译」更根本？</div><div class="qopts"><button type="button">显示解析</button></div>
+      <div class="ans"><b>解析：</b>变体总量决定了构建时间、缓存体积与漏网概率。减少组合是从源头降低三者，而多编译只是把已有组合提前算好。<div class="refs"><a href="../reference/catalog.html#card-mob-05">方案：材质复杂度、指令数与 Shader 变体控制</a><a href="../reference/catalog.html#card-iq-core-018">面试题：UE 跨平台代码如何划分编译期、启动期与运行期边界，并用 Target 与配置形成单一能力契约？</a></div></div></div></div>
+    <details class="detail"><summary>展开：本章关联的速查条目</summary><div class="dbody"><a href="../reference/catalog.html#card-gen-11">方案：Shader 编译与 PSO 卡顿：预缓存 + 收集</a> <a href="../reference/catalog.html#card-ow-13">方案：Shader 编译与 PSO 卡顿治理</a> <a href="../reference/catalog.html#card-gen-15">方案：构建、包体与热更：分块打包与补丁策略</a> <a href="../reference/catalog.html#card-mob-05">方案：材质复杂度、指令数与 Shader 变体控制</a> <a href="../reference/catalog.html#card-gen-05">方案：自动化测试与性能回归：Gauntlet + 功能测试</a> <a href="../reference/catalog.html#card-pb-shader-01">问题：首次使用技能/材质时 PSO 缺失导致卡顿</a> <a href="../reference/catalog.html#card-pb-shader-02">问题：材质变体爆炸导致编译时间与包体失控</a> <a href="../reference/catalog.html#card-pb-shader-03">问题：热更后 Shader 版本不匹配导致花屏/回退</a> <a href="../reference/catalog.html#card-pb-shader-04">问题：移动端 Shader 指令数超预算</a> <a href="../reference/catalog.html#card-pb-shader-05">问题：全局 Shader 编译卡顿与 DDC 缺失</a> <a href="../reference/catalog.html#card-iq-smg-010">面试题：跨地图业务服务应放 Module、Plugin 还是 Subsystem？</a> <a href="../reference/catalog.html#card-iq-core-009">面试题：UBT、UHT、Build.cs、Module 与 Plugin 分别解决什么问题，依赖边界错误会怎样暴露？</a> <a href="../reference/catalog.html#card-iq-core-018">面试题：UE 跨平台代码如何划分编译期、启动期与运行期边界，并用 Target 与配置形成单一能力契约？</a> <a href="../reference/catalog.html#card-iq-core-044">面试题：PC 平均 FPS 正常但 1% Low 恶化时，如何区分 CPU 提交、GPU 执行、VRAM 驱逐与驱动排队？</a></div></details>
+  </div>
+</section>
+      <section class="chapter-foot">
+        <div class="row">
+          <div class="entry-links"><a href="../reference/catalog.html#card-gen-11">方案：Shader 编译与 PSO 卡顿：预缓存 + 收集</a><a href="../reference/catalog.html#card-ow-13">方案：Shader 编译与 PSO 卡顿治理</a><a href="../reference/catalog.html#card-gen-15">方案：构建、包体与热更：分块打包与补丁策略</a><a href="../reference/catalog.html#card-mob-05">方案：材质复杂度、指令数与 Shader 变体控制</a><a href="../reference/catalog.html#card-gen-05">方案：自动化测试与性能回归：Gauntlet + 功能测试</a><a href="../reference/catalog.html#card-pb-shader-01">问题：首次使用技能/材质时 PSO 缺失导致卡顿</a><a href="../reference/catalog.html#card-pb-shader-02">问题：材质变体爆炸导致编译时间与包体失控</a><a href="../reference/catalog.html#card-pb-shader-03">问题：热更后 Shader 版本不匹配导致花屏/回退</a><a href="../reference/catalog.html#card-pb-shader-04">问题：移动端 Shader 指令数超预算</a><a href="../reference/catalog.html#card-pb-shader-05">问题：全局 Shader 编译卡顿与 DDC 缺失</a><a href="../reference/catalog.html#card-iq-smg-010">面试题：跨地图业务服务应放 Module、Plugin 还是 Subsystem？</a><a href="../reference/catalog.html#card-iq-core-009">面试题：UBT、UHT、Build.cs、Module 与 Plugin 分别解决什么问题，依赖边界错误会怎样暴露？</a><a href="../reference/catalog.html#card-iq-core-018">面试题：UE 跨平台代码如何划分编译期、启动期与运行期边界，并用 Target 与配置形成单一能力契约？</a><a href="../reference/catalog.html#card-iq-core-044">面试题：PC 平均 FPS 正常但 1% Low 恶化时，如何区分 CPU 提交、GPU 执行、VRAM 驱逐与驱动排队？</a></div>
+          <div class="entry-links"><a class="btn ghost" href="mobile.html">← 上一章 · 移动端渲染与带宽</a><a class="btn ghost" href="net.html">下一章 · 网络同步与预测回滚 →</a></div>
+        </div>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  <div>本页为静态 HTML，无 CDN、可离线双击打开。图解均为「示意，非线性真实实现」，机制描述对应官方文档/公开技术分享。</div>
+  <div>数据源：research/learning/chapters/shader-pso.json · 方案与来源可在速查库复核。</div>
+</footer>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/diagrams.js"></script>
+</body>
+</html>
