@@ -1,6 +1,6 @@
 {
  "meta": {
-  "generated": "2026-11-04T03:00:19.651Z",
+  "generated": "2026-11-04T15:04:19.429Z",
   "title": "UE 游戏技术方案情报库",
   "version": "1.0.0",
   "stats": {
@@ -261,7 +261,19 @@
    "interviewWithOrigRefs": 45,
    "auditDirectories": 13,
    "auditMappingRows": 94,
-   "auditRejected": 5
+   "auditRejected": 5,
+   "chapters": 18,
+   "diagramTypes": 17,
+   "abilities": 35,
+   "stages": 5,
+   "projects": 5,
+   "branches": 4,
+   "gaps": 7,
+   "auditBlockers": 2,
+   "auditMajors": 8,
+   "auditMinors": 8,
+   "auditFixed": 15,
+   "auditAverage": 4.18
   },
   "warnings": [],
   "errors": [],

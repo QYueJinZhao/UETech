@@ -1577,7 +1577,7 @@ function jump(kind,id){
     const el=document.getElementById('card-'+id);
     if(!el){ return; }
     const det=el.querySelector('details'); if(det) det.open=true;
-    el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.scrollIntoView({block:'center'});
     el.classList.add('flash');
     setTimeout(()=>el.classList.remove('flash'),1800);
   },30);

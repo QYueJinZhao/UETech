@@ -1,0 +1,3 @@
+# 本地分享打包产物与截图缓存（不参与站点构建）
+.trae-html-share-packages/
+.screenshots/
